@@ -1,0 +1,11 @@
+*.txt.user
+.vscode/
+bin/
+.ipynb_checkpoints/
+*.spl
+.vs/
+*.obj
+*.pdb
+CMakeSettings.json
+build/
+out/
