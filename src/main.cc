@@ -8,6 +8,7 @@
 #include <plane_polygon.hh>
 #include <octree.hh>
 #include <aabb.hh>
+#include <nexus/Nexus.hh>
 
 void test_plane_visu();
 void test_octree();
@@ -17,6 +18,8 @@ void test_trianle_classification();
 void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
 
 int main() {
+    nx::Nexus tests;
+    tests.run();
     pm::vertex_attribute<tg::pos3> test3;
 
     glow::glfw::GlfwContext ctx;

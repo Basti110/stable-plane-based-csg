@@ -22,3 +22,6 @@
 [submodule "extern/nexus"]
 	path = extern/nexus
 	url = https://github.com/project-arcana/nexus.git
+[submodule "extern/ctracer"]
+	path = extern/ctracer
+	url = https://www.graphics.rwth-aachen.de:9000/ptrettner/ctracer

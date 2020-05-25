@@ -59,6 +59,9 @@ add_subdirectory(extern/polymesh)
 # graphics extras library
 add_subdirectory(extern/glow-extras)
 
+# nexus
+add_subdirectory(extern/nexus)
+
 # ===============================================
 # Configure executable
 
@@ -82,6 +85,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     typed-geometry
     polymesh
     imgui
+    nexus
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include")
