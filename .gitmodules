@@ -21,7 +21,7 @@
 	url = https://github.com/project-arcana/clean-core.git
 [submodule "extern/nexus"]
 	path = extern/nexus
-	url = https://github.com/project-arcana/nexus.git
+	url = https://github.com/project-arcana/nexus/tree/develop.git
 [submodule "extern/ctracer"]
 	path = extern/ctracer
 	url = https://www.graphics.rwth-aachen.de:9000/ptrettner/ctracer

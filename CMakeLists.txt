@@ -62,6 +62,9 @@ add_subdirectory(extern/glow-extras)
 # nexus
 add_subdirectory(extern/nexus)
 
+# ctracer
+add_subdirectory(extern/ctracer)
+
 # ===============================================
 # Configure executable
 
@@ -80,12 +83,13 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
     clean-core
+    typed-geometry
     glow
     glow-extras
-    typed-geometry
     polymesh
     imgui
     nexus
+    ctracer
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include")
@@ -138,6 +142,8 @@ foreach(TARGET_NAME
     polymesh
     typed-geometry-src
     imgui
+    nexus
+    ctracer
 )
     if (TARGET ${TARGET_NAME})
         set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "Extern")
