@@ -11,6 +11,7 @@ using Plane = geometry128::plane_t;
 using scalar_t = geometry128::pos_scalar_t;
 //using type_t = geometry128::pos_scalar_t;
 using pos_t = geometry128::pos_t;
+using vec_t = tg::vec<3, scalar_t>;
 using dir_t = tg::dir<3, scalar_t>;
 using SubDet = ob::subdeterminants<geometry128>;
 using VertexAttribute = pm::vertex_attribute<geometry128::pos_t>;
@@ -25,13 +26,13 @@ struct PlanePolygon {
 
 class PlaneMesh {
 public:
-    PlaneMesh() : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh) {
+    PlaneMesh() : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh), mHalfEdges(mMesh){
         mID = instances;
         instances++;
     }
 
     ///Only Triangle TODO: Polygons
-    PlaneMesh(const pm::Mesh& m, const pm::vertex_attribute<pos_t>& pos) : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh) {
+    PlaneMesh(const pm::Mesh& m, const pm::vertex_attribute<pos_t>& pos) : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh), mHalfEdges(mMesh) {
         mID = instances;
         instances++;
 
@@ -40,7 +41,7 @@ public:
         init_mesh();
     }
 
-    PlaneMesh(const pm::Mesh& m, const pm::vertex_attribute<tg::pos3>& pos, int scale) : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh) {
+    PlaneMesh(const pm::Mesh& m, const pm::vertex_attribute<tg::pos3>& pos, int scale) : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh), mHalfEdges(mMesh) {
         mID = instances;
         instances++;
 
@@ -60,10 +61,29 @@ public:
         return mMesh.all_faces();
     }
 
+    pm::face_handle insertTriangle(tg::triangle<3, scalar_t> triangle) {
+        return insertPolygon(triangle.pos0, triangle.pos1, triangle.pos2);
+    }
+
     //void only test
+    /*pm::face_handle insertPolygon(pos_t x, pos_t y, pos_t z) {      
+        const auto vh0 = mMesh.vertices().add();
+        const auto vh1 = mMesh.vertices().add();
+        const auto vh2 = mMesh.vertices().add();
+        //pm::load("test", mMesh, mPositions);
+
+        mPositions[vh0] = x;
+        mPositions[vh1] = y;
+        mPositions[vh2] = z;
+
+        pm::face_handle face = mMesh.faces().add(vh0, vh1, vh2);
+        generatePlanes(face);
+        return face;
+    }*/
+
     pm::face_handle insertPolygon(pos_t x, pos_t y, pos_t z) {
         auto normalFace = tg::cross(y - x, y - z);
-        
+
         const auto vh0 = mMesh.vertices().add();
         const auto vh1 = mMesh.vertices().add();
         const auto vh2 = mMesh.vertices().add();
@@ -75,21 +95,73 @@ public:
 
         pm::face_handle face = mMesh.faces().add(vh0, vh1, vh2);
         mFaces[face] = Plane::from_points(x, y, z);
-        
-        pm::face_edge_ring edgeRing = face.edges();        
+
+        pm::face_edge_ring edgeRing = face.edges();
         TG_ASSERT(edgeRing.count() == 3);
-        
+
+        auto dir1 = y - x;
+        auto dir2 = z - x;
+
+        auto normalDir = tg::cross(dir1, dir2);
+        vec_t approxNormalDir = vec_t(tg::normalize(tg::f64vec3(normalDir)) * 100);
+
         for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
             pm::edge_handle edgeHandle = it.handle.edge();
             auto from = mPositions[it.handle.vertex_from()];
             auto to = mPositions[it.handle.vertex_to()];
+            auto anotherPos = from + approxNormalDir;
             auto normalEdge = tg::cross(to - from, normalFace);
-            mEdges[edgeHandle] = Plane::from_pos_normal(from, normalEdge);
+            mEdges[edgeHandle] = Plane::from_points(from, to, anotherPos);
+            //mEdges[edgeHandle] = Plane::from_pos_normal(from, normalEdge);
+            auto test1 = ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]);
+            auto test2 = ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]);
+            TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0); //TODO: Remove
+            //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]) > 0);
+            mHalfEdges[it.handle] = 1;
         }
         return face;
     }
 
+    void generatePlanes(pm::face_handle& face) {
+        pm::face_edge_ring edgeRing = face.edges();
+        TG_ASSERT(edgeRing.count() >= 3);
+
+        auto randomEdge = face.any_halfedge();
+        auto x = mPositions[randomEdge.vertex_from()];
+        auto y = mPositions[randomEdge.vertex_to()];
+        auto z = mPositions[randomEdge.next().vertex_to()];
+
+        auto dir1 = y - x;
+        auto dir2 = z - x;
+
+        auto normalDir = tg::cross(dir1, dir2);
+        vec_t approxNormalDir = vec_t(tg::normalize(tg::f64vec3(normalDir)) * 100);
+
+        for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
+            pm::edge_handle edgeHandle = it.handle.edge();
+            auto from = mPositions[it.handle.vertex_from()];
+            auto to = mPositions[it.handle.vertex_to()];
+            auto anotherPos = from + approxNormalDir;
+            if (mEdges[edgeHandle] == mEdges.get_default_value()) {
+                mEdges[edgeHandle] = Plane::from_points(from, to, anotherPos);
+                //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], posInFace) < 0); //TODO 
+                TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0); //TODO: Remove
+                //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), edge(edgeHandle)) < 0);
+                mHalfEdges[it.handle] = 1;
+            }
+            else {
+                if (useHalfedges) {
+                    if (ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0)
+                        mHalfEdges[it.handle] = 1;
+                    else
+                        mHalfEdges[it.handle] = -1;
+                }
+            }
+        }
+    }
+
     void planesTriangles(int sideLen, std::vector<tg::triangle3>& insertVec) {
+        
         auto faces = mMesh.faces();
         for (auto face : faces) {
             tg::dplane3 dplane = mFaces[face].to_dplane();
@@ -125,8 +197,8 @@ public:
         return { face, mPositions, mFaces, mEdges };
     }
 
-    uint8_t signDistance(const pm::face_handle& polygon, const pm::vertex_handle& point) const {
-        return 0;
+    int8_t signDistanceToBasePlane(const pm::face_handle& polygon, const pm::vertex_handle& point) const {
+        return ob::classify_vertex(pos(point), mFaces[polygon]);
     }
 
     pm::vertex_attribute<geometry128::pos_t>& positions() {
@@ -141,6 +213,73 @@ public:
         return mEdges;
     }
 
+    pm::halfedge_attribute<int8_t>& halfEdges() {
+        return mHalfEdges;
+    }
+
+    const pm::halfedge_attribute<int8_t>& halfEdges() const {
+        return mHalfEdges;
+    }
+
+    Plane& face(const pm::face_handle& face) {
+        return mFaces[face];
+    }
+
+    Plane& edge(const pm::edge_handle& edge) {
+        return mEdges[edge];
+    }
+
+    int8_t halfedge(const pm::halfedge_handle& edge) {
+        return mHalfEdges[edge];
+    }
+
+    const Plane& face(const pm::face_handle& face) const {
+        return mFaces[face];
+    }
+
+    const Plane& edge(const pm::edge_handle& edge) const{
+        return mEdges[edge];
+    }
+
+    const int8_t halfedge(const pm::halfedge_handle& edge) const {
+        return mHalfEdges[edge];
+    }
+
+    SubDet pos(const pm::vertex_handle& vertex) const {
+        auto he1 = vertex.any_incoming_halfedge();
+        auto he2 = he1.next();
+        auto face = he1.face();     
+        return pos(he1, he2, face);
+    }
+
+    SubDet pos(pm::halfedge_handle he1, pm::halfedge_handle he2, pm::face_handle face) const {
+        TG_ASSERT(face.is_valid() && he1.is_valid() && he2.is_valid());
+        return pos(mFaces[face], mEdges[he1.edge()], mEdges[he2.edge()]);
+    }
+
+    SubDet pos(pm::halfedge_handle he, pm::face_handle face1, pm::face_handle face2) const {
+        TG_ASSERT(he.is_valid() && face1.is_valid() && face2.is_valid());
+        return pos(mFaces[face1], mFaces[face2], mEdges[he.edge()]);
+    }
+
+    SubDet pos(const plane128 &p1, const plane128 &p2, const plane128 &p3) const {
+        SubDet subDet;
+        ob::compute_subdeterminants(p1, p2, p3, subDet);
+        return subDet;
+    }
+
+    pos_t posInt(const pm::vertex_handle& vertex) const {
+        return mPositions[vertex];
+    }
+
+    pm::halfedge_handle findEdge(const pm::vertex_handle& from, const pm::vertex_handle& to) const {
+        for (pm::halfedge_handle edge : from.outgoing_halfedges()) {
+            if (edge.vertex_to() == to) {
+                return edge;
+            }
+        }
+    }
+
     pm::Mesh& mesh() {
         return mMesh;
     }
@@ -151,6 +290,14 @@ public:
 
     const Plane& getPlane(const pm::face_handle& face) const {
         return mFaces[face];
+    }
+
+    Plane& getPlane(const pm::edge_handle edge) {
+        return mEdges[edge];
+    }
+
+    const Plane& getPlane(const pm::edge_handle& edge) const {
+        return mEdges[edge];
     }
 
     const pm::Mesh& mesh() const {
@@ -170,23 +317,45 @@ private:
             const auto vh1 = h.vertex_to();
             const auto vh2 = h.next().vertex_to();
 
+            //TODO: check if point lie on same lane 
             auto pos1 = mPositions[vh0];
             auto pos2 = mPositions[vh1];
             auto pos3 = mPositions[vh2];
 
-            auto normalFace = tg::cross(pos2 - pos1, pos2 - pos3);
+            auto dir1 = pos2 - pos1;
+            auto dir2 = pos3 - pos1;
+
+            //TODO: Assert dir > abs((1, 1, 1))
+            pos_t posInFace = pos1 + vec_t((dir1 / 4) + (dir2 / 4));
+
+            auto normalDir = tg::cross(dir1, dir2);
             mFaces[f] = Plane::from_points(pos1, pos2, pos3);
-            dir_t normal_dir = dir_t(tg::normalize(tg::f64vec3(normalFace) * 100));
+            vec_t approxNormalDir = vec_t(tg::normalize(tg::f64vec3(normalDir)) * 100); //Note: Not to far, max len resolution
 
             pm::face_edge_ring edgeRing = f.edges();
-            TG_ASSERT(edgeRing.count() == 3);
+            TG_ASSERT(edgeRing.count() >= 3);
 
+
+            //TODO: extra function
             for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
                 pm::edge_handle edgeHandle = it.handle.edge();
                 auto from = mPositions[it.handle.vertex_from()];
                 auto to = mPositions[it.handle.vertex_to()];
-                auto random_pos = from + normal_dir;
-                mEdges[edgeHandle] = Plane::from_points(from, to, random_pos);
+                auto anotherPos = from + approxNormalDir; 
+                if (mEdges[edgeHandle] == mEdges.get_default_value()) {
+                    mEdges[edgeHandle] = Plane::from_points(from, to, anotherPos);
+                    //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], posInFace) < 0); //TODO 
+                    TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0);
+                    mHalfEdges[it.handle] = 1;
+                }                
+                else {
+                    if (useHalfedges) {
+                        if(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0)
+                            mHalfEdges[it.handle] = 1;
+                        else
+                            mHalfEdges[it.handle] = -1;
+                    }
+                }
             }
         }
     }
@@ -196,52 +365,11 @@ private:
     VertexAttribute mPositions;
     pm::face_attribute<Plane> mFaces;
     pm::edge_attribute<Plane> mEdges;
-    bool useHalfedges;
+    pm::halfedge_attribute<int8_t> mHalfEdges;
+    int8_t useHalfedges;
     int mID;
     static int instances;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*class PlaneMesh {
     using geometry128 = ob::geometry<32, 21>;

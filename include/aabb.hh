@@ -252,10 +252,10 @@ namespace ob {
     }*/
 
     struct IntersectionHandle {
-        using VertexTuple = std::tuple<pm::vertex_handle, pm::vertex_handle>;
+        //using VertexTuple = std::tuple<pm::vertex_handle, pm::vertex_handle>;
         intersection_result intersection;
-        VertexTuple intersection1;
-        VertexTuple intersection2;
+        pm::halfedge_handle intersectionEdge1;
+        pm::halfedge_handle intersectionEdge2;
     };
 
     template <class GeometryT>
@@ -269,39 +269,127 @@ namespace ob {
     {
         int sign = 0;
         int index = 0;
-        auto vertices = polygon.vertices().to_vector([](pm::vertex_handle i) { return i; });
-        pm::vertex_handle verticesHandle[4];
         
-        sign = mesh.signDistance(planeBase, vertices[0]);
-        for (int i = 1; i < vertices.size(); ++i) {
-            int signTmp = mesh.signDistance(planeBase, vertices[i]);
+        auto halfedges = polygon.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
+        pm::halfedge_handle halfedgeHandles[2];
+        
+        sign = mesh.signDistanceToBasePlane(planeBase, halfedges[0].vertex_from());
+        int signAcc = 0;
+        bool startWithSign0 = (sign == 0);
+        for (int i = 0; i < halfedges.size(); ++i) {
+            int signTmp = mesh.signDistanceToBasePlane(planeBase, halfedges[i].vertex_to());
+            signAcc += std::abs(signTmp);
             if (signTmp == sign)
                 continue;
 
+            if (signTmp == 0 && (index == 0 || !startWithSign0))
+                continue;
+
+            if (sign == 0) {
+                sign == signTmp;
+                continue;
+            }
+
             sign = signTmp;
-            verticesHandle[index] = vertices[i - 1];
-            verticesHandle[index + 1] = vertices[i];
-            index += 2;
+            halfedgeHandles[index] = halfedges[i];
+            index ++;
         }
 
         IntersectionHandle intersection;
         if (index == 0) {
-            if(sign == 0)
+            if(signAcc == 0)
                 intersection.intersection = intersection_result::co_planar;
             else
                 intersection.intersection = intersection_result::non_intersecting;
             return intersection;
         } 
-
+        TG_ASSERT(index == 2 && "On a Convex Polygon are now exactly 2 intersections");
         intersection.intersection = intersection_result::proper_intersection;
-        intersection.intersection1 = std::make_tuple(verticesHandle[0], verticesHandle[1]);
-        intersection.intersection1 = std::make_tuple(verticesHandle[2], verticesHandle[3]);
+        intersection.intersectionEdge1 = halfedgeHandles[0];
+        intersection.intersectionEdge2 = halfedgeHandles[1];
         return intersection;
     }
 
-    void handleCoplanar();
+    static std::tuple<bool, bool> isInnerPointisEdgePoint(const std::vector<int8_t>& signDistanceToPlane) {
+        bool isInnerPoint = true;
+        bool isEdgePoint = false;
+        for (int i = 0; i < signDistanceToPlane.size(); ++i) {
+            if (signDistanceToPlane[i] == 1)
+                isInnerPoint = false;
 
+            if (signDistanceToPlane[i] == 0) {
+                isEdgePoint = true;
+                isInnerPoint = false;
+                break;
+            }
+        }
+        return std::make_tuple(isInnerPoint, isEdgePoint);
+    }
 
+    static bool handleCoplanar_FirstPointNotOnEdge(const PlaneMesh& mesh, std::vector<int8_t>& signsFirstPoint,
+        const std::vector<pm::halfedge_handle>& edges1,
+        const std::vector<pm::halfedge_handle>& edges2) 
+    {
+        for (int i = 1; i < edges1.size(); ++i) {
+            pm::vertex_handle qOld = edges1[i - 1].vertex_from();
+            pm::vertex_handle q = edges1[i].vertex_from();
+            for (int j = 0; j < edges2.size(); ++j) {
+                int8_t signStorageTmp = ob::classify_vertex(mesh.pos(q), mesh.edge(edges2[j].edge())) * mesh.halfedge(edges2[j]);
+                if (signStorageTmp != signsFirstPoint[j] && signStorageTmp != 0) {
+                    auto pos1 = edges2[j].vertex_from();
+                    auto pos2 = edges2[j].vertex_to();
+                    auto edge = mesh.findEdge(q, qOld).edge();
+                    int8_t sign = ob::classify_vertex(mesh.pos(pos1), mesh.edge(edge));
+                    int8_t sign2 = ob::classify_vertex(mesh.pos(pos2), mesh.edge(edge));
+                    if (sign != sign2 && sign != 0 && sign2 != 0)
+                        return true;
+                    signsFirstPoint[j] = signStorageTmp;
+                }
+                //For all signStorageTmp != signStorage check if edge2[j] from and to intersects edge (q-1, q)
+            }
+        }
+        return false;
+    }
+
+    static bool handleCoplanar_FirstPointIsEdgePoint() {
+        return true;
+    }
+
+    static bool handleCoplanar(const PlaneMesh& mesh, pm::face_handle const& polygon1, pm::face_handle const& polygon2) {
+        std::vector<pm::halfedge_handle> edges1 = polygon1.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
+        std::vector<pm::halfedge_handle> edges2 = polygon2.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
+        
+        auto e1 = edges1[0];
+        auto p1 = e1.vertex_from();
+        std::vector<int8_t> signStorage(edges2.size());
+        for (int i = 0; i < edges2.size(); ++i) {
+            signStorage[i] = ob::classify_vertex(mesh.pos(p1), mesh.edge(edges2[i].edge())) * mesh.halfedge(edges2[i]);
+            if (signStorage[i] == 0) {
+                signStorage[i] = 1;
+            }
+        }
+
+        auto pointCase = isInnerPointisEdgePoint(signStorage);
+        bool isInnerPoint = std::get<0>(pointCase);
+        bool isEdgePoint = std::get<1>(pointCase);
+
+        TG_ASSERT(!isEdgePoint);
+        if (isInnerPoint)
+            return true;
+
+        //Check inner point from edge to. Avoids Poylygon in Polygon
+        {
+            auto p2 = edges2[0].vertex_from();
+            std::vector<int8_t> signStorage2(edges1.size());
+            for (int i = 0; i < edges1.size(); ++i) {
+                signStorage2[i] = ob::classify_vertex(mesh.pos(p2), mesh.edge(edges1[i].edge())) * mesh.halfedge(edges1[i]);
+            }
+            if (std::get<0>(isInnerPointisEdgePoint(signStorage2)))
+                return true;
+        }
+        
+        return handleCoplanar_FirstPointNotOnEdge(mesh, signStorage, edges1, edges2);
+    }
 
     static std::vector<i64> addMulCarryI256(i256 v0, i256 v1, i256 v2, i256 v3) {
         //i64 l00 = v0.v0;
@@ -387,88 +475,6 @@ namespace ob {
 
         return false;
     }
-    
-
-    static void testAABBFunctions() {
-        std::cout << "** TEST isAbGreaterCd **" << std::endl;
-        
-        i192 t1_1 = { 0xFF, 0xFF, 0xFF };
-        i256 t1_2 = { 0xFF, 0xFF, 0xFF, 0xFF };    
-        i192 t1_3 = { 0xF, 0xF, 0xF };
-        i256 t1_4 = { 0xFF, 0xFF, 0xFF, 0xFF };      
-        i192 t1_5 = { 0xF, 0xFF, 0xFF };
-        i192 t1_6 = { 0xFF, 0xFF, 0xF };
-        i256 t1_7 = { 0xFF, 0xFF, 0xF, 0xFF };
-        i256 t1_8 = { 0xF, 0xFF, 0xFF, 0xFF };
-        i256 t1_9 = { 0xFF, 0xFF, 0xFF, 0xFFF };
-        i192 t1_10 = { 0x1, 0xFF, 0xFF };
-        i192 t1_11 = { 0x2, 0xFF, 0xFF };
-        i192 t1_12 = { 0x0, 0x0, 0x0 };
-       
-        TG_ASSERT(isAbGreaterCd(t1_1, t1_2, t1_3, t1_4) == 1);
-        TG_ASSERT(isAbGreaterCd(t1_1, t1_2, t1_5, t1_4) == 1);
-        TG_ASSERT(isAbGreaterCd(t1_1, t1_2, t1_6, t1_4) == 1);
-        TG_ASSERT(isAbGreaterCd(t1_1, t1_2, t1_1, t1_9) == -1);
-        TG_ASSERT(isAbGreaterCd(t1_3, t1_4, t1_1, t1_2) == -1);
-        TG_ASSERT(isAbGreaterCd(t1_1, t1_2, t1_3, t1_7) == 1);
-        TG_ASSERT(isAbGreaterCd(t1_1, t1_2, t1_3, t1_8) == 1);
-        TG_ASSERT(isAbGreaterCd(t1_1, t1_8, t1_1, t1_2) == -1);
-        TG_ASSERT(isAbGreaterCd(t1_12, t1_2, t1_3, t1_8) == -1);
-        TG_ASSERT(isAbGreaterCd(t1_12, t1_2, t1_1, t1_4) == -1);
-
-        std::cout << "[TEST]: SUCESS" << std::endl;
-
-        std::cout << "** TEST overlapInterval **" << std::endl;
-
-        Fraction<geometry128> t2_1 = { i256(1) , i192(3) };
-        Fraction<geometry128> t2_2 = { i256(2) , i192(3) };
-        Fraction<geometry128> t2_3 = { i256(6) , i192(9) };
-        Fraction<geometry128> t2_4 = { i256(8) , i192(9) };
-        Fraction<geometry128> t2_5 = { i256(7) , i192(9) };
-
-        Fraction<geometry128> t2_1_1 = { { 0xFF, 0xFF, 0xFF, 1 } ,{ 0xFF, 0xFF, 3 } };
-        Fraction<geometry128> t2_2_1 = { { 0xFF, 0xFF, 0xFF, 2 } ,{ 0xFF, 0xFF, 3 } };
-        Fraction<geometry128> t2_3_1 = { { 0xFF, 0xFF, 0xFF, 2 } ,{ 0xFF, 0xFF, 3 } }; //TODO: t2_2_1 * 3 nehmen
-        Fraction<geometry128> t2_4_1 = { { 0xFF, 0xFF, 0xFF, 8 } ,{ 0xFF, 0xFF, 9 } };
-        Fraction<geometry128> t2_5_1 = { { 0xFF, 0xFF, 0xFF, 7 } ,{ 0xFF, 0xFF, 9 } };
-
-        Fraction<geometry128> t2_1_2 = { { 1, 0xFF, 0xFF, 0xFF } ,{ 3, 0xFF, 0xFF } };
-        Fraction<geometry128> t2_2_2 = { { 2, 0xFF, 0xFF, 0xFF } ,{ 3, 0xFF, 0xFF } };
-        Fraction<geometry128> t2_3_2 = { { 2, 0xFF, 0xFF, 0xFF } ,{ 3, 0xFF, 0xFF } }; //TODO: t2_2_1 * 3 nehmen
-        Fraction<geometry128> t2_4_2 = { { 8, 0xFF, 0xFF, 0xFF } ,{ 9, 0xFF, 0xFF } };
-        Fraction<geometry128> t2_5_2 = { { 7, 0xFF, 0xFF, 0xFF } ,{ 9, 0xFF, 0xFF } };
-
-        //Test all cases
-        TG_ASSERT(overlapTest(t2_1, t2_2, t2_3, t2_4) == true);
-        TG_ASSERT(overlapTest(t2_1, t2_2, t2_5, t2_4) == false);
-        TG_ASSERT(overlapTest(t2_1, t2_5, t2_3, t2_4) == true);
-        TG_ASSERT(overlapTest(t2_1, t2_4, t2_2, t2_5) == true);
-
-        //switch intervals
-        TG_ASSERT(overlapTest(t2_3, t2_4, t2_1, t2_2) == true);
-        TG_ASSERT(overlapTest(t2_5, t2_4, t2_1, t2_2) == false);
-        TG_ASSERT(overlapTest(t2_3, t2_4, t2_1, t2_5) == true);
-        TG_ASSERT(overlapTest(t2_2, t2_5, t2_1, t2_4) == true);
-
-
-        TG_ASSERT(overlapTest(t2_3_1, t2_4_1, t2_1_1, t2_2_1) == true);
-        TG_ASSERT(overlapTest(t2_5_1, t2_4_1, t2_1_1, t2_2_1) == false);
-        TG_ASSERT(overlapTest(t2_3_1, t2_4_1, t2_1_1, t2_5_1) == true);
-        TG_ASSERT(overlapTest(t2_2_1, t2_5_1, t2_1_1, t2_4_1) == true);
-
-        TG_ASSERT(overlapTest(t2_3_2, t2_4_2, t2_1_2, t2_2_2) == true);
-        TG_ASSERT(overlapTest(t2_5_2, t2_4_2, t2_1_2, t2_2_2) == false);
-        TG_ASSERT(overlapTest(t2_3_2, t2_4_2, t2_1_2, t2_5_2) == true);
-        TG_ASSERT(overlapTest(t2_2_2, t2_5_2, t2_1_2, t2_4_2) == true);
-
-        std::cout << "[TEST]: SUCESS" << std::endl;
-
-        std::cout << "** TEST intersect **" << std::endl;
-
-        std::cout << "[TEST]: SUCESS" << std::endl;
-
-
-    }
 
     template <class GeometryT>
     bool overlapIntervalStrongAxis(Interval<GeometryT> first, Interval<GeometryT> second, uint8_t axis) {
@@ -507,36 +513,79 @@ namespace ob {
     {
         using normalScalar = fixed_int<GeometryT::bits_normal * 2>;
         using normalVec = tg::vec<3, normalScalar>;
+        static constexpr int NormalOutBits = GeometryT::bits_normal * 2;
 
-        IntersectionHandle intersection = planeBaseIntersection(mesh, polygon1, polygon2);
-        if (intersection.intersection == intersection_result::non_intersecting)
+        IntersectionHandle intersection1 = planeBaseIntersection(mesh, polygon1, polygon2);
+        if (intersection1.intersection == intersection_result::non_intersecting)
             return false;
 
-        intersection = planeBaseIntersection(mesh, polygon1, polygon2);
-        if (intersection.intersection == intersection_result::non_intersecting)
-            return false;
+        if (intersection1.intersection == intersection_result::co_planar)
+            return handleCoplanar(mesh, polygon1, polygon2); //TODO
 
-        if (intersection.intersection == intersection_result::co_planar)
-            handleCoplanar(); //TODO
+        IntersectionHandle intersection2 = planeBaseIntersection(mesh, polygon2, polygon1);
+        if (intersection2.intersection == intersection_result::non_intersecting)
+            return false;
 
         const Plane& basePlane1 = mesh.getPlane(polygon1);
         const Plane& basePlane2 = mesh.getPlane(polygon2);
 
+        if (false && "without plane direction") {
+            auto const crossa = mul<NormalOutBits>(basePlane1.b, basePlane2.c) - mul<NormalOutBits>(basePlane1.c, basePlane2.b);
+            auto const crossb = mul<NormalOutBits>(basePlane1.c, basePlane2.a) - mul<NormalOutBits>(basePlane1.a, basePlane2.c);
+            auto const crossc = mul<NormalOutBits>(basePlane1.a, basePlane2.b) - mul<NormalOutBits>(basePlane1.b, basePlane2.a);
+            normalVec normal = normalVec({ crossa , crossb , crossc });
 
-        normalVec normal1{ normalScalar(basePlane1.a), normalScalar(basePlane1.b), normalScalar(basePlane1.c) };
-        normalVec normal2{ normalScalar(basePlane2.a), normalScalar(basePlane2.b), normalScalar(basePlane2.c) };
-        normalVec normal = tg::cross(normal1, normal2);
+            uint8_t strongAxis = 0;
+            if (normal.x > normal.y)
+                strongAxis = normal.x > normal.z ? 0 : 2;
+            else
+                strongAxis = normal.y > normal.z ? 1 : 2;
+        }
+        else {
+            auto edge1_1_1 = mesh.posInt(intersection1.intersectionEdge1.vertex_from());
+            auto edge1_1_2 = mesh.posInt(intersection1.intersectionEdge1.vertex_to());
+            auto edge1_2_1 = mesh.posInt(intersection1.intersectionEdge2.vertex_from());
+            auto edge1_2_2 = mesh.posInt(intersection1.intersectionEdge2.vertex_to());
+            auto edge2_1_1 = mesh.posInt(intersection2.intersectionEdge1.vertex_from());
+            auto edge2_1_2 = mesh.posInt(intersection2.intersectionEdge1.vertex_to());
+            auto edge2_2_1 = mesh.posInt(intersection2.intersectionEdge2.vertex_from());
+            auto edge2_2_2 = mesh.posInt(intersection2.intersectionEdge2.vertex_to());
+            SubDet subdet1 = mesh.pos(intersection1.intersectionEdge1, polygon1, polygon2);
+            SubDet subdet2 = mesh.pos(intersection1.intersectionEdge2, polygon1, polygon2);
+            int8_t sign1 = ob::classify_vertex(subdet1, mesh.edge(intersection2.intersectionEdge1.edge()));
+            sign1 *= mesh.halfedge(intersection2.intersectionEdge1);
+            //Changed direction. Direction computation with plane edge not det edge ...
+            int8_t sign2 = ob::classify_vertex(subdet2, mesh.edge(intersection2.intersectionEdge1.edge()));
+            sign2 *= mesh.halfedge(intersection2.intersectionEdge1);
+            TG_ASSERT(sign1 != 0 || sign2 != 0);
+            bool sharedPoint = false;
+            if (sign1 == 0 || sign2 == 0)
+                sharedPoint = true;
 
-        uint8_t strongAxis = 0;
-        if (normal.x > normal.y)
-            strongAxis = normal.x > normal.z ? 0 : 2;
-        else
-            strongAxis = normal.y > normal.z ? 1 : 2;
+            if (sign1 != sign2 && !sharedPoint)
+                return true;
 
-       
-        //auto normal = basePlane1.
+            int8_t sign = sign1 != 0 ? sign1 : sign2;
+            sign1 = ob::classify_vertex(subdet1, mesh.edge(intersection2.intersectionEdge2.edge()));
+            sign1 *= mesh.halfedge(intersection2.intersectionEdge2);
 
-        return true; //overlapInterval(IntersectionHandle& intersection);
+            if (sharedPoint && sign1 == 0)
+                return true;
+
+            if (sign == sign1 && sign1 != 0)
+                return true;
+
+            sign2 = ob::classify_vertex(subdet2, mesh.edge(intersection2.intersectionEdge2.edge()));
+            sign2 *= mesh.halfedge(intersection2.intersectionEdge2);
+            TG_ASSERT(sign1 != 0 || sign2 != 0);
+
+            if (sharedPoint && sign2 == 0)
+                return true;
+
+            if (sign == sign2 && sign2 != 0)
+                return true;
+        }             
+        return false; //overlapInterval(IntersectionHandle& intersection);
     }
 }
 
