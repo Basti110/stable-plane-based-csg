@@ -17,6 +17,7 @@ void testIntersectionTriangleNormal();
 void testIntersectionTrianglePlanar();
 void testIntersectionPolygon();
 void testIntersection();
+void test_color_in_mesh();
 void test_plane_visu();
 void test_octree();
 void test_transpose();
@@ -29,8 +30,6 @@ int main() {
     nx::Nexus tests;
     tests.run();
     pm::vertex_attribute<tg::pos3> test3;
-
-    
 
     std::vector<tg::ipos3> positions;
     positions.push_back({ 2, 0, 0 });
@@ -46,6 +45,7 @@ int main() {
     //testIntersectionPolygon();
     //test_plane_visu();
     //test_transpose();
+    test_color_in_mesh();
     //test_octree();
     //test_octree_two_meshes();
 
@@ -169,6 +169,23 @@ void test_transpose() {
 
     auto view = gv::view(pos1);
     gv::view(pos2);
+    /*auto view = gv::view(gv::lines(pos1).line_width_world(1));
+    gv::view(gv::lines(pos2).line_width_world(1));*/
+}
+
+void test_color_in_mesh() {
+    pm::Mesh mesh1;
+    pm::vertex_attribute<tg::pos3> pos1(mesh1);
+    pm::load("../data/mesh/fox.obj", mesh1, pos1);
+
+    auto translation1 = tg::translation(tg::vec{ 0.f, -50.f, 15.f });
+    auto rotatation1 = tg::rotation_x(tg::angle::from_degree(-90));
+    auto trans1 = translation1 * rotatation1;
+    transformation(pos1, trans1);
+
+    auto test = mesh1.faces().make_attribute_with_default(tg::color3::cyan);
+    test[mesh1.faces().first()] = tg::color3::black;
+    auto view = gv::view(pos1, test);
     /*auto view = gv::view(gv::lines(pos1).line_width_world(1));
     gv::view(gv::lines(pos2).line_width_world(1));*/
 }

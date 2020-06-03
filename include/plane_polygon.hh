@@ -237,7 +237,7 @@ public:
         return pos(mFaces[face1], mFaces[face2], mEdges[he.edge()]);
     }
 
-    SubDet pos(const plane128 &p1, const plane128 &p2, const plane128 &p3) const {
+    static SubDet pos(const plane128 &p1, const plane128 &p2, const plane128 &p3) {
         SubDet subDet;
         ob::compute_subdeterminants(p1, p2, p3, subDet);
         return subDet;

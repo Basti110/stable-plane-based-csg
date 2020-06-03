@@ -265,7 +265,7 @@ namespace ob {
     };
 
     //Coplanar
-    static IntersectionHandle planeBaseIntersection(const PlaneMesh& mesh, pm::face_handle const& planeBase, pm::face_handle const& polygon)
+    static IntersectionHandle planeBaseIntersection(const PlaneMesh& mesh1, pm::face_handle const& planeBase, const PlaneMesh& mesh2, pm::face_handle const& polygon)
     {
         int sign = 0;
         int index = 0;
@@ -273,11 +273,12 @@ namespace ob {
         auto halfedges = polygon.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
         pm::halfedge_handle halfedgeHandles[2];
         
-        sign = mesh.signDistanceToBasePlane(planeBase, halfedges[0].vertex_from());
+        sign = ob::classify_vertex(mesh2.pos(halfedges[0].vertex_from()), mesh1.face(planeBase));
+        //sign = mesh1.signDistanceToBasePlane(planeBase, halfedges[0].vertex_from());
         int signAcc = 0;
         bool startWithSign0 = (sign == 0);
         for (int i = 0; i < halfedges.size(); ++i) {
-            int signTmp = mesh.signDistanceToBasePlane(planeBase, halfedges[i].vertex_to());
+            int signTmp = ob::classify_vertex(mesh2.pos(halfedges[i].vertex_to()), mesh1.face(planeBase));
             signAcc += std::abs(signTmp);
             if (signTmp == sign)
                 continue;
@@ -326,7 +327,9 @@ namespace ob {
         return std::make_tuple(isInnerPoint, isEdgePoint);
     }
 
-    static bool handleCoplanar_FirstPointNotOnEdge(const PlaneMesh& mesh, std::vector<int8_t>& signsFirstPoint,
+    static bool handleCoplanar_FirstPointNotOnEdge(const PlaneMesh& mesh1, 
+        const PlaneMesh& mesh2, 
+        std::vector<int8_t>& signsFirstPoint,
         const std::vector<pm::halfedge_handle>& edges1,
         const std::vector<pm::halfedge_handle>& edges2) 
     {
@@ -334,13 +337,13 @@ namespace ob {
             pm::vertex_handle qOld = edges1[i - 1].vertex_from();
             pm::vertex_handle q = edges1[i].vertex_from();
             for (int j = 0; j < edges2.size(); ++j) {
-                int8_t signStorageTmp = ob::classify_vertex(mesh.pos(q), mesh.edge(edges2[j].edge())) * mesh.halfedge(edges2[j]);
+                int8_t signStorageTmp = ob::classify_vertex(mesh1.pos(q), mesh2.edge(edges2[j].edge())) * mesh2.halfedge(edges2[j]);
                 if (signStorageTmp != signsFirstPoint[j] && signStorageTmp != 0) {
                     auto pos1 = edges2[j].vertex_from();
                     auto pos2 = edges2[j].vertex_to();
-                    auto edge = mesh.findEdge(q, qOld).edge();
-                    int8_t sign = ob::classify_vertex(mesh.pos(pos1), mesh.edge(edge));
-                    int8_t sign2 = ob::classify_vertex(mesh.pos(pos2), mesh.edge(edge));
+                    auto edge = mesh1.findEdge(q, qOld).edge();
+                    int8_t sign = ob::classify_vertex(mesh2.pos(pos1), mesh1.edge(edge));
+                    int8_t sign2 = ob::classify_vertex(mesh2.pos(pos2), mesh1.edge(edge));
                     if (sign != sign2 && sign != 0 && sign2 != 0)
                         return true;
                     signsFirstPoint[j] = signStorageTmp;
@@ -355,7 +358,7 @@ namespace ob {
         return true;
     }
 
-    static bool handleCoplanar(const PlaneMesh& mesh, pm::face_handle const& polygon1, pm::face_handle const& polygon2) {
+    static bool handleCoplanar(const PlaneMesh& mesh1, const pm::face_handle& polygon1, const PlaneMesh& mesh2, const pm::face_handle& polygon2) {
         std::vector<pm::halfedge_handle> edges1 = polygon1.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
         std::vector<pm::halfedge_handle> edges2 = polygon2.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
         
@@ -363,7 +366,7 @@ namespace ob {
         auto p1 = e1.vertex_from();
         std::vector<int8_t> signStorage(edges2.size());
         for (int i = 0; i < edges2.size(); ++i) {
-            signStorage[i] = ob::classify_vertex(mesh.pos(p1), mesh.edge(edges2[i].edge())) * mesh.halfedge(edges2[i]);
+            signStorage[i] = ob::classify_vertex(mesh1.pos(p1), mesh2.edge(edges2[i].edge())) * mesh2.halfedge(edges2[i]);
             if (signStorage[i] == 0) {
                 signStorage[i] = 1;
             }
@@ -382,13 +385,13 @@ namespace ob {
             auto p2 = edges2[0].vertex_from();
             std::vector<int8_t> signStorage2(edges1.size());
             for (int i = 0; i < edges1.size(); ++i) {
-                signStorage2[i] = ob::classify_vertex(mesh.pos(p2), mesh.edge(edges1[i].edge())) * mesh.halfedge(edges1[i]);
+                signStorage2[i] = ob::classify_vertex(mesh2.pos(p2), mesh1.edge(edges1[i].edge())) * mesh1.halfedge(edges1[i]);
             }
             if (std::get<0>(isInnerPointisEdgePoint(signStorage2)))
                 return true;
         }
         
-        return handleCoplanar_FirstPointNotOnEdge(mesh, signStorage, edges1, edges2);
+        return handleCoplanar_FirstPointNotOnEdge(mesh1, mesh2, signStorage, edges1, edges2);
     }
 
     static std::vector<i64> addMulCarryI256(i256 v0, i256 v1, i256 v2, i256 v3) {
@@ -509,25 +512,25 @@ namespace ob {
 
     //TODO: PlanePolygon? 
     template <class GeometryT>
-    static bool intersect(const PlaneMesh& mesh, pm::face_handle const& polygon1, pm::face_handle const& polygon2)
+    static bool intersect(const PlaneMesh& mesh1, const pm::face_handle& polygon1, const PlaneMesh& mesh2, const pm::face_handle& polygon2)
     {
         using normalScalar = fixed_int<GeometryT::bits_normal * 2>;
         using normalVec = tg::vec<3, normalScalar>;
         static constexpr int NormalOutBits = GeometryT::bits_normal * 2;
 
-        IntersectionHandle intersection1 = planeBaseIntersection(mesh, polygon1, polygon2);
+        IntersectionHandle intersection1 = planeBaseIntersection(mesh1, polygon1, mesh2, polygon2);
         if (intersection1.intersection == intersection_result::non_intersecting)
             return false;
 
         if (intersection1.intersection == intersection_result::co_planar)
-            return handleCoplanar(mesh, polygon1, polygon2); //TODO
+            return handleCoplanar(mesh1, polygon1, mesh2, polygon2); //TODO
 
-        IntersectionHandle intersection2 = planeBaseIntersection(mesh, polygon2, polygon1);
+        IntersectionHandle intersection2 = planeBaseIntersection(mesh2, polygon2, mesh1, polygon1);
         if (intersection2.intersection == intersection_result::non_intersecting)
             return false;
 
-        const Plane& basePlane1 = mesh.getPlane(polygon1);
-        const Plane& basePlane2 = mesh.getPlane(polygon2);
+        const Plane& basePlane1 = mesh1.getPlane(polygon1);
+        const Plane& basePlane2 = mesh2.getPlane(polygon2);
 
         if (false && "without plane direction") {
             auto const crossa = mul<NormalOutBits>(basePlane1.b, basePlane2.c) - mul<NormalOutBits>(basePlane1.c, basePlane2.b);
@@ -542,21 +545,21 @@ namespace ob {
                 strongAxis = normal.y > normal.z ? 1 : 2;
         }
         else {
-            auto edge1_1_1 = mesh.posInt(intersection1.intersectionEdge1.vertex_from());
-            auto edge1_1_2 = mesh.posInt(intersection1.intersectionEdge1.vertex_to());
-            auto edge1_2_1 = mesh.posInt(intersection1.intersectionEdge2.vertex_from());
-            auto edge1_2_2 = mesh.posInt(intersection1.intersectionEdge2.vertex_to());
-            auto edge2_1_1 = mesh.posInt(intersection2.intersectionEdge1.vertex_from());
-            auto edge2_1_2 = mesh.posInt(intersection2.intersectionEdge1.vertex_to());
-            auto edge2_2_1 = mesh.posInt(intersection2.intersectionEdge2.vertex_from());
-            auto edge2_2_2 = mesh.posInt(intersection2.intersectionEdge2.vertex_to());
-            SubDet subdet1 = mesh.pos(intersection1.intersectionEdge1, polygon1, polygon2);
-            SubDet subdet2 = mesh.pos(intersection1.intersectionEdge2, polygon1, polygon2);
-            int8_t sign1 = ob::classify_vertex(subdet1, mesh.edge(intersection2.intersectionEdge1.edge()));
-            sign1 *= mesh.halfedge(intersection2.intersectionEdge1);
+            auto edge1_1_1 = mesh2.posInt(intersection1.intersectionEdge1.vertex_from());
+            auto edge1_1_2 = mesh2.posInt(intersection1.intersectionEdge1.vertex_to());
+            auto edge1_2_1 = mesh2.posInt(intersection1.intersectionEdge2.vertex_from());
+            auto edge1_2_2 = mesh2.posInt(intersection1.intersectionEdge2.vertex_to());
+            auto edge2_1_1 = mesh1.posInt(intersection2.intersectionEdge1.vertex_from());
+            auto edge2_1_2 = mesh1.posInt(intersection2.intersectionEdge1.vertex_to());
+            auto edge2_2_1 = mesh1.posInt(intersection2.intersectionEdge2.vertex_from());
+            auto edge2_2_2 = mesh1.posInt(intersection2.intersectionEdge2.vertex_to());
+            SubDet subdet1 = mesh1.pos(mesh2.edge(intersection1.intersectionEdge1.edge()), mesh1.face(polygon1), mesh2.face(polygon2));
+            SubDet subdet2 = mesh1.pos(mesh2.edge(intersection1.intersectionEdge2.edge()), mesh1.face(polygon1), mesh2.face(polygon2));
+            int8_t sign1 = ob::classify_vertex(subdet1, mesh1.edge(intersection2.intersectionEdge1.edge()));
+            sign1 *= mesh1.halfedge(intersection2.intersectionEdge1);
             //Changed direction. Direction computation with plane edge not det edge ...
-            int8_t sign2 = ob::classify_vertex(subdet2, mesh.edge(intersection2.intersectionEdge1.edge()));
-            sign2 *= mesh.halfedge(intersection2.intersectionEdge1);
+            int8_t sign2 = ob::classify_vertex(subdet2, mesh1.edge(intersection2.intersectionEdge1.edge()));
+            sign2 *= mesh1.halfedge(intersection2.intersectionEdge1);
             TG_ASSERT(sign1 != 0 || sign2 != 0);
             bool sharedPoint = false;
             if (sign1 == 0 || sign2 == 0)
@@ -566,8 +569,8 @@ namespace ob {
                 return true;
 
             int8_t sign = sign1 != 0 ? sign1 : sign2;
-            sign1 = ob::classify_vertex(subdet1, mesh.edge(intersection2.intersectionEdge2.edge()));
-            sign1 *= mesh.halfedge(intersection2.intersectionEdge2);
+            sign1 = ob::classify_vertex(subdet1, mesh1.edge(intersection2.intersectionEdge2.edge()));
+            sign1 *= mesh1.halfedge(intersection2.intersectionEdge2);
 
             if (sharedPoint && sign1 == 0)
                 return true;
@@ -575,8 +578,8 @@ namespace ob {
             if (sign == sign1 && sign1 != 0)
                 return true;
 
-            sign2 = ob::classify_vertex(subdet2, mesh.edge(intersection2.intersectionEdge2.edge()));
-            sign2 *= mesh.halfedge(intersection2.intersectionEdge2);
+            sign2 = ob::classify_vertex(subdet2, mesh1.edge(intersection2.intersectionEdge2.edge()));
+            sign2 *= mesh1.halfedge(intersection2.intersectionEdge2);
             TG_ASSERT(sign1 != 0 || sign2 != 0);
 
             if (sharedPoint && sign2 == 0)
