@@ -174,18 +174,45 @@ void test_transpose() {
 }
 
 void test_color_in_mesh() {
+
     pm::Mesh mesh1;
     pm::vertex_attribute<tg::pos3> pos1(mesh1);
     pm::load("../data/mesh/fox.obj", mesh1, pos1);
+
+    pm::Mesh mesh2;
+    pm::vertex_attribute<tg::pos3> pos2(mesh2);
+    pm::load("../data/mesh/fox.obj", mesh2, pos2);
 
     auto translation1 = tg::translation(tg::vec{ 0.f, -50.f, 15.f });
     auto rotatation1 = tg::rotation_x(tg::angle::from_degree(-90));
     auto trans1 = translation1 * rotatation1;
     transformation(pos1, trans1);
 
-    auto test = mesh1.faces().make_attribute_with_default(tg::color3::cyan);
-    test[mesh1.faces().first()] = tg::color3::black;
-    auto view = gv::view(pos1, test);
+    scalar_t scale = 1e5;
+    PlaneMesh planeMesh1(mesh1, pos1, scale);
+    PlaneMesh planeMesh2(mesh2, pos2, scale);
+
+    auto faceColors1 = planeMesh1.mesh().faces().make_attribute_with_default(tg::color3::cyan);
+    auto faceColors2 = planeMesh2.mesh().faces().make_attribute_with_default(tg::color3::magenta);
+    int intersectionCount = 0;
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    for (pm::face_handle face1 : planeMesh1.mesh().faces()) {
+        for (pm::face_handle face2 : planeMesh2.mesh().faces()) {
+            if (ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face2)) {
+                faceColors1[face1] = tg::color3::black;
+                faceColors2[face2] = tg::color3::black;
+            }
+            intersectionCount++;
+            //std::cout << intersectionCount << std::endl;
+        }
+    }
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds> (end - begin).count();
+    std::cout << intersectionCount << " intersections in " << seconds << "seconds" << std::endl;
+    //test[mesh1.faces().first()] = tg::color3::black;
+    auto view = gv::view(planeMesh1.positions(), faceColors1);
+    gv::view(planeMesh2.positions(), faceColors2);
     /*auto view = gv::view(gv::lines(pos1).line_width_world(1));
     gv::view(gv::lines(pos2).line_width_world(1));*/
 }
