@@ -39,9 +39,10 @@ int main() {
     positions.push_back({ 1, 0, -2 });
 
     //test_trianle_classification();
-    //testIntersectionPolygon();
-    testIntersectionTriangleNormal();
-    testIntersectionTrianglePlanar();
+    
+    //testIntersectionTriangleNormal();
+    //testIntersectionTrianglePlanar();
+    testIntersectionPolygon();
     //test_plane_visu();
     //test_transpose();
     //test_octree();
@@ -276,8 +277,8 @@ void testIntersectionTrianglePlanar() {
     TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face7) == false);
     TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face8) == false);
 
-    auto view = gv::view(planeMesh.positions());
-    gv::view(gv::lines(planeMesh.positions()).line_width_world(0.1));
+    //auto view = gv::view(planeMesh.positions());
+    //gv::view(gv::lines(planeMesh.positions()).line_width_world(0.1));
 }
 
 void testIntersectionTriangleNormal() {
@@ -313,8 +314,8 @@ void testIntersectionTriangleNormal() {
     TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face9) == false);
     TG_ASSERT(ob::intersect<geometry128>(planeMesh, face5, face9) == true);
 
-    auto view = gv::view(planeMesh.positions());
-    gv::view(gv::lines(planeMesh.positions()).line_width_world(0.1));
+    //auto view = gv::view(planeMesh.positions());
+    //gv::view(gv::lines(planeMesh.positions()).line_width_world(0.1));
 }
 
 void testIntersectionPolygon() {
@@ -377,7 +378,7 @@ void testIntersectionPolygon() {
     polygon8[2] = { 5, 1, 10 };
     polygon8[3] = { -5, 1, 10 };
 
-    auto addPolygon = [&](std::vector<pos_t> polygon) {
+    /*auto addPolygon = [&](std::vector<pos_t> polygon) {
         std::vector<pm::vertex_handle> handles;
         for (auto p : polygon) {
             auto handle = mesh.vertices().add();
@@ -394,11 +395,30 @@ void testIntersectionPolygon() {
     addPolygon(polygon5);
     addPolygon(polygon6);
     addPolygon(polygon7);
-    addPolygon(polygon8);
+    addPolygon(polygon8);*/
 
-    PlaneMesh planeMesh(mesh, positions);
+
+    //PlaneMesh planeMesh(mesh, positions);
     //std::vector<tg::triangle3> planes;
     //planeMesh.planesTriangles(30, planes);
+    PlaneMesh planeMesh;
+    auto face1 = planeMesh.insertPolygon(polygon1);
+    auto face2 = planeMesh.insertPolygon(polygon2);
+    auto face3 = planeMesh.insertPolygon(polygon3);
+    auto face4 = planeMesh.insertPolygon(polygon4);
+    auto face5 = planeMesh.insertPolygon(polygon5);
+    auto face6 = planeMesh.insertPolygon(polygon6);
+    auto face7 = planeMesh.insertPolygon(polygon7);
+    auto face8 = planeMesh.insertPolygon(polygon8);
+
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face2) == true);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face3) == true);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face4) == true);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face5) == false);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face6) == false);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face7) == false);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh, face1, face8) == false);
+
 
     auto view = gv::view(planeMesh.positions());
     gv::view(gv::lines(planeMesh.positions()).line_width_world(0.1));

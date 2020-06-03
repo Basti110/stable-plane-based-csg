@@ -66,24 +66,7 @@ public:
     }
 
     //void only test
-    /*pm::face_handle insertPolygon(pos_t x, pos_t y, pos_t z) {      
-        const auto vh0 = mMesh.vertices().add();
-        const auto vh1 = mMesh.vertices().add();
-        const auto vh2 = mMesh.vertices().add();
-        //pm::load("test", mMesh, mPositions);
-
-        mPositions[vh0] = x;
-        mPositions[vh1] = y;
-        mPositions[vh2] = z;
-
-        pm::face_handle face = mMesh.faces().add(vh0, vh1, vh2);
-        generatePlanes(face);
-        return face;
-    }*/
-
-    pm::face_handle insertPolygon(pos_t x, pos_t y, pos_t z) {
-        auto normalFace = tg::cross(y - x, y - z);
-
+    pm::face_handle insertPolygon(pos_t x, pos_t y, pos_t z) {      
         const auto vh0 = mMesh.vertices().add();
         const auto vh1 = mMesh.vertices().add();
         const auto vh2 = mMesh.vertices().add();
@@ -95,30 +78,22 @@ public:
 
         pm::face_handle face = mMesh.faces().add(vh0, vh1, vh2);
         mFaces[face] = Plane::from_points(x, y, z);
+        generatePlanes(face);
+        return face;
+    }
 
-        pm::face_edge_ring edgeRing = face.edges();
-        TG_ASSERT(edgeRing.count() == 3);
-
-        auto dir1 = y - x;
-        auto dir2 = z - x;
-
-        auto normalDir = tg::cross(dir1, dir2);
-        vec_t approxNormalDir = vec_t(tg::normalize(tg::f64vec3(normalDir)) * 100);
-
-        for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
-            pm::edge_handle edgeHandle = it.handle.edge();
-            auto from = mPositions[it.handle.vertex_from()];
-            auto to = mPositions[it.handle.vertex_to()];
-            auto anotherPos = from + approxNormalDir;
-            auto normalEdge = tg::cross(to - from, normalFace);
-            mEdges[edgeHandle] = Plane::from_points(from, to, anotherPos);
-            //mEdges[edgeHandle] = Plane::from_pos_normal(from, normalEdge);
-            auto test1 = ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]);
-            auto test2 = ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]);
-            TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0); //TODO: Remove
-            //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]) > 0);
-            mHalfEdges[it.handle] = 1;
+    //void only test
+    pm::face_handle insertPolygon(std::vector<pos_t> polygon) {
+        TG_ASSERT(polygon.size() >= 3);
+        std::vector<pm::vertex_handle> positions(polygon.size());
+        for (int i = 0; i < polygon.size(); ++i) {
+            positions[i] = mMesh.vertices().add();
+            mPositions[positions[i]] = polygon[i];
         }
+
+        pm::face_handle face = mMesh.faces().add(positions);
+        mFaces[face] = Plane::from_points(mPositions[positions[0]], mPositions[positions[1]], mPositions[positions[2]]);
+        generatePlanes(face);
         return face;
     }
 

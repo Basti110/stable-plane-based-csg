@@ -286,7 +286,7 @@ namespace ob {
                 continue;
 
             if (sign == 0) {
-                sign == signTmp;
+                sign = signTmp;
                 continue;
             }
 
