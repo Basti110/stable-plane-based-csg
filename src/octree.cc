@@ -121,6 +121,23 @@ SharedBranchNode LeafNode::split()
     return branchNode;
 }
 
+void LeafNode::markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {
+    if (mFacesMeshA.size() <= 0 || mFacesMeshB.size() <= 0)
+        return;
+
+    for (pm::face_index face1Index : mFacesMeshA) {
+        auto face1 = face1Index.of(mOctree->mMeshA->mesh());
+        for (pm::face_index face2Index : mFacesMeshB) {
+            auto face2 = face2Index.of(mOctree->mMeshB->mesh());
+            if (ob::intersect<geometry128>(*(mOctree->mMeshA), face1, *(mOctree->mMeshB), face2)) {
+                faceColor1[face1] = tg::color3::green;
+                faceColor2[face2] = tg::color3::red;
+                mOctree->intersectionCounterTMP++;
+            }
+        }
+    }
+}
+
 
 //#############################################################################
 //#                             BranchNode                                    #

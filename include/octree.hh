@@ -43,9 +43,11 @@ public:
     //virtual OctreeNode& childNodeRef(int idx) = 0;
     virtual NodeType nodeBase() = 0;
     virtual SharedOctreeNode parent() = 0;
+    virtual void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {}
     bool isInTree();
     bool hasParent();
     bool polygonInAABB(int meshIdx, pm::face_index faceIdx);
+    
 
     Octree* getOctree();
 
@@ -73,11 +75,13 @@ public:
     int maxValues() { return mMaxValues; }
     SharedBranchNode split();
 
+    void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2);
+
 private: 
     std::vector<uint32_t> mValueIndices;
     std::vector<pm::face_index> mFacesMeshA;
     std::vector<pm::face_index> mFacesMeshB;
-    int mMaxValues = 50;
+    int mMaxValues = 15;
 };
 
 class BranchNode : public OctreeNode, public std::enable_shared_from_this<BranchNode>{
@@ -95,6 +99,11 @@ public:
     void pushDown(int meshIdx, pm::face_index faceIdx);
     void initLeafNodes();
     //void initEmptyNodes();
+
+    void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override {
+        for (auto child : mChildNodes)
+            child->markIntersections(faceColor1, faceColor2);
+    }
     
 private: 
     
@@ -145,6 +154,14 @@ public:
         else if(uint32_t(option) && uint32_t(Options::SPLIT_TWO_MESHES))
             mSplitOnlyOneMesh = false;
     }
+
+    int markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {
+        intersectionCounterTMP = 0;
+        mRoot->markIntersections(faceColor1, faceColor2);
+        int count = intersectionCounterTMP;
+        intersectionCounterTMP = 0;
+        return count;
+    }
     //PlaneMesh& meshA() { return mMeshA; }
     //PlaneMesh& meshB() { return mMeshB; }
 
@@ -156,4 +173,5 @@ private:
     SharedBranchNode mRoot;
     PlaneMesh* mMeshA;
     PlaneMesh* mMeshB;
+    int intersectionCounterTMP = 0;
 };

@@ -194,22 +194,36 @@ void test_color_in_mesh() {
 
     auto faceColors1 = planeMesh1.mesh().faces().make_attribute_with_default(tg::color3::cyan);
     auto faceColors2 = planeMesh2.mesh().faces().make_attribute_with_default(tg::color3::magenta);
-    int intersectionCount = 0;
-
+    /*int intersectionCount = 0;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     for (pm::face_handle face1 : planeMesh1.mesh().faces()) {
         for (pm::face_handle face2 : planeMesh2.mesh().faces()) {
             if (ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face2)) {
-                faceColors1[face1] = tg::color3::black;
-                faceColors2[face2] = tg::color3::black;
-            }
-            intersectionCount++;
+                faceColors1[face1] = tg::color3::green;
+                faceColors2[face2] = tg::color3::red;
+                intersectionCount++;
+            }      
             //std::cout << intersectionCount << std::endl;
         }
+
+    }*/
+    AABB box({ -60 * scale, -60 * scale, -40 * scale }, { 60 * scale, 60 * scale, 80 * scale });
+    SharedOctree octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
+
+    for (auto f : planeMesh1.allFaces()) {
+        octree->insert_polygon(planeMesh1.id(), f);
     }
+
+    for (auto f : planeMesh2.allFaces()) {
+        octree->insert_polygon(planeMesh2.id(), f);
+    }
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    int intersectionCount = octree->markIntersections(faceColors1, faceColors2);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds> (end - begin).count();
-    std::cout << intersectionCount << " intersections in " << seconds << "seconds" << std::endl;
+    auto seconds = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
+
+    std::cout << intersectionCount << " intersections in " << seconds << "ms" << std::endl;
     //test[mesh1.faces().first()] = tg::color3::black;
     auto view = gv::view(planeMesh1.positions(), faceColors1);
     gv::view(planeMesh2.positions(), faceColors2);
