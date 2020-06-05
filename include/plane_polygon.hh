@@ -3,6 +3,7 @@
 #include <iostream>
 #include <typed-geometry/tg.hh>
 #include <geometry.hh>
+#include <iostream>
 #include <polymesh/pm.hh>
 
 using geometry128 = ob::geometry<48, 49>;//ob::geometry<32, 21>;
@@ -112,6 +113,9 @@ public:
         auto normalDir = tg::cross(dir1, dir2);
         vec_t approxNormalDir = vec_t(tg::normalize(tg::f64vec3(normalDir)) * 100);
 
+
+
+
         for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
             pm::edge_handle edgeHandle = it.handle.edge();
             auto from = mPositions[it.handle.vertex_from()];
@@ -124,7 +128,7 @@ public:
                 //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), edge(edgeHandle)) < 0);
                 mHalfEdges[it.handle] = 1;
             }
-            else {
+            else {            
                 if (useHalfedges) {
                     if (ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0)
                         mHalfEdges[it.handle] = 1;
@@ -297,14 +301,16 @@ private:
             auto pos2 = mPositions[vh1];
             auto pos3 = mPositions[vh2];
 
-            auto dir1 = pos2 - pos1;
+            mFaces[f] = Plane::from_points(pos1, pos2, pos3);
+            generatePlanes(f);
+
+            /*auto dir1 = pos2 - pos1;
             auto dir2 = pos3 - pos1;
 
             //TODO: Assert dir > abs((1, 1, 1))
             pos_t posInFace = pos1 + vec_t((dir1 / 4) + (dir2 / 4));
 
-            auto normalDir = tg::cross(dir1, dir2);
-            mFaces[f] = Plane::from_points(pos1, pos2, pos3);
+            auto normalDir = tg::cross(dir1, dir2);            
             vec_t approxNormalDir = vec_t(tg::normalize(tg::f64vec3(normalDir)) * 100); //Note: Not to far, max len resolution
 
             pm::face_edge_ring edgeRing = f.edges();
@@ -331,17 +337,21 @@ private:
                             mHalfEdges[it.handle] = -1;
                     }
                 }
-            }
+            }*/
         }
+        std::cout << "normal: " << debugNormalEdges << std::endl;
+        std::cout << "inverted: " << debugInvertedEdges << std::endl;
     }
 
 private: 
+    int debugNormalEdges = 0;
+    int debugInvertedEdges = 0;
     pm::Mesh mMesh;
     VertexAttribute mPositions;
     pm::face_attribute<Plane> mFaces;
     pm::edge_attribute<Plane> mEdges;
     pm::halfedge_attribute<int8_t> mHalfEdges;
-    int8_t useHalfedges;
+    bool useHalfedges = true;
     int mID;
     static int instances;
 };
