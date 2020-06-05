@@ -303,41 +303,6 @@ private:
 
             mFaces[f] = Plane::from_points(pos1, pos2, pos3);
             generatePlanes(f);
-
-            /*auto dir1 = pos2 - pos1;
-            auto dir2 = pos3 - pos1;
-
-            //TODO: Assert dir > abs((1, 1, 1))
-            pos_t posInFace = pos1 + vec_t((dir1 / 4) + (dir2 / 4));
-
-            auto normalDir = tg::cross(dir1, dir2);            
-            vec_t approxNormalDir = vec_t(tg::normalize(tg::f64vec3(normalDir)) * 100); //Note: Not to far, max len resolution
-
-            pm::face_edge_ring edgeRing = f.edges();
-            TG_ASSERT(edgeRing.count() >= 3);
-
-
-            //TODO: extra function
-            for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
-                pm::edge_handle edgeHandle = it.handle.edge();
-                auto from = mPositions[it.handle.vertex_from()];
-                auto to = mPositions[it.handle.vertex_to()];
-                auto anotherPos = from + approxNormalDir; 
-                if (mEdges[edgeHandle] == mEdges.get_default_value()) {
-                    mEdges[edgeHandle] = Plane::from_points(from, to, anotherPos);
-                    //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], posInFace) < 0); //TODO 
-                    TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0);
-                    mHalfEdges[it.handle] = 1;
-                }                
-                else {
-                    if (useHalfedges) {
-                        if(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0)
-                            mHalfEdges[it.handle] = 1;
-                        else
-                            mHalfEdges[it.handle] = -1;
-                    }
-                }
-            }*/
         }
         std::cout << "normal: " << debugNormalEdges << std::endl;
         std::cout << "inverted: " << debugInvertedEdges << std::endl;
