@@ -509,7 +509,11 @@ namespace ob {
         }
         return overlapTest(first_1, first_2, second_1, second_2);
     }
-
+    template <class GeometryT>
+    static bool intersect(const PlaneMesh& mesh1, const pm::face_index& polygon1, const PlaneMesh& mesh2, const pm::face_index& polygon2)
+    {
+        return intersect<GeometryT>(mesh1, polygon1.of(mesh1.mesh()), mesh2, polygon2.of(mesh2.mesh()));
+    }
     //TODO: PlanePolygon? 
     template <class GeometryT>
     static bool intersect(const PlaneMesh& mesh1, const pm::face_handle& polygon1, const PlaneMesh& mesh2, const pm::face_handle& polygon2)

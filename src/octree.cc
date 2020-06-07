@@ -138,6 +138,20 @@ void LeafNode::markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm:
     }
 }
 
+void LeafNode::splitAccordingToIntersection(pm::face_index triangle)
+{
+    for (pm::face_index t2 : mFacesMeshB) {
+        pm::Mesh& meshA = mOctree->mMeshA->mesh();
+        pm::Mesh& meshB = mOctree->mMeshB->mesh();
+        if (ob::intersect<geometry128>(*(mOctree->mMeshA), triangle, *(mOctree->mMeshB), t2)) {
+            auto splits = split(triangle, t2);
+            splitAccordingToIntersection(std::get<0>(splits));
+            splitAccordingToIntersection(std::get<1>(splits));
+            break;
+        }
+    }
+}
+
 
 //#############################################################################
 //#                             BranchNode                                    #

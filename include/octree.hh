@@ -4,7 +4,7 @@
 #include <memory>
 #include <array>
 #include <unordered_map>
-
+//#include <set>
 #include "plane_polygon.hh"
 
 class OctreeNode;
@@ -74,8 +74,22 @@ public:
     bool mustSplitIfFull();
     int maxValues() { return mMaxValues; }
     SharedBranchNode split();
-
     void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2);
+
+    void splitAccordingToIntersection() {
+        std::vector<pm::face_index> Triangles = mFacesMeshA;
+        //std::set<pm::face_index> checkedTriangles;
+        for (auto t : Triangles) {
+            splitAccordingToIntersection(t);
+        }
+    }
+
+    void splitAccordingToIntersection(pm::face_index triangle);
+
+    std::tuple<pm::face_index, pm::face_index> split(pm::face_index t1, pm::face_index t2) {
+        std::tuple<pm::face_index, pm::face_index> split;
+        return split;
+    }
 
 private: 
     std::vector<uint32_t> mValueIndices;
