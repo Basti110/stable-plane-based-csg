@@ -208,6 +208,10 @@ public:
         return mEdges[edge];
     }
 
+    Plane& edge(const pm::halfedge_handle& edge) {
+        return mEdges[edge.edge()];
+    }
+
     int8_t halfedge(const pm::halfedge_handle& edge) {
         return mHalfEdges[edge];
     }
@@ -218,6 +222,10 @@ public:
 
     const Plane& edge(const pm::edge_handle& edge) const{
         return mEdges[edge];
+    }
+
+    const Plane& edge(const pm::halfedge_handle& edge) const {
+        return mEdges[edge.edge()];
     }
 
     const int8_t halfedge(const pm::halfedge_handle& edge) const {
