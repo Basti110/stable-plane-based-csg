@@ -328,7 +328,13 @@ namespace ob {
         return std::make_tuple(isInnerPoint, isEdgePoint);
     }
 
-    static bool isInnerPoint(SubDet& pos, const std::vector<TrianlgeIntersectionPlanar::EdgeData>& edges) {
+    static bool isInnerPoint(SubDet& pos, const std::vector<TrianlgeIntersectionPlanar::EdgeData>& edges, const PlaneMesh& edgesMesh) {
+        for (const TrianlgeIntersectionPlanar::EdgeData& edge : edges) {
+            int8_t direction = ob::classify_vertex(pos, edgesMesh.edge(edge.edge));
+            direction *= edgesMesh.halfedge(edge.edge);
+            if (direction >= 0)
+                return false;
+        }
         return true;
     }
 
@@ -339,18 +345,17 @@ namespace ob {
     {
         auto potentialIntersectionEdge = intersectionData.edge;
         const Plane& planeIntersectionEdge = edgeMesh.edge(edgeData.edge);
-        const Plane& planePrev = edgeMesh.edge(potentialIntersectionEdge.prev());
-        int signPrev = edgeMesh.halfedge(potentialIntersectionEdge.prev());
+        const Plane& planePrev = edgeMesh.edge(edgeData.edge.prev());
+        int signPrev = edgeMesh.halfedge(edgeData.edge.prev());
         while (true) {
-            //TG_ASSERT(intersectionEdge != potentialIntersectionEdge);
-            const Plane& planePotIntersectionEdge = edgeMesh.edge(potentialIntersectionEdge);
+            const Plane& planePotIntersectionEdge = intersectionMesh.edge(potentialIntersectionEdge);
             if (!ob::are_parallel(planePotIntersectionEdge, planeIntersectionEdge)) {
                 SubDet pos;
                 ob::compute_subdeterminants(edgeMesh.face(edgeData.edge.face()), planeIntersectionEdge, planePotIntersectionEdge, pos);
                 auto sign = ob::classify_vertex(pos, planePrev) * signPrev;
                 if (sign < 0) {
-                    auto pos1 = edgeMesh.pos(potentialIntersectionEdge.vertex_from());
-                    auto pos2 = edgeMesh.pos(potentialIntersectionEdge.vertex_to());
+                    auto pos1 = intersectionMesh.pos(potentialIntersectionEdge.vertex_from());
+                    auto pos2 = intersectionMesh.pos(potentialIntersectionEdge.vertex_to());
                     auto sign1 = ob::classify_vertex(pos1, planeIntersectionEdge);
                     auto sign2 = ob::classify_vertex(pos2, planeIntersectionEdge);
                     if (sign1 != sign2) {
@@ -358,10 +363,10 @@ namespace ob {
                             potentialIntersectionEdge = potentialIntersectionEdge.prev();
                         break;
                     }
-                    else
-                        potentialIntersectionEdge = potentialIntersectionEdge.next();
                 }
             }
+            potentialIntersectionEdge = potentialIntersectionEdge.next();
+            TG_ASSERT(intersectionData.edge != potentialIntersectionEdge);
         }
         return potentialIntersectionEdge;
     }
@@ -375,17 +380,16 @@ namespace ob {
         const Plane& planeIntersectionEdge = edgeMesh.edge(edgeData.edge);
         while (true) {
             TG_ASSERT(intersectionEdge != potentialIntersectionEdge);
-            const Plane& planePotIntersectionEdge = edgeMesh.edge(potentialIntersectionEdge);
+            const Plane& planePotIntersectionEdge = intersectionMesh.edge(potentialIntersectionEdge);
             if (!ob::are_parallel(planePotIntersectionEdge, planeIntersectionEdge)) {
-                auto pos1 = edgeMesh.pos(potentialIntersectionEdge.vertex_from());
-                auto pos2 = edgeMesh.pos(potentialIntersectionEdge.vertex_from());
+                auto pos1 = intersectionMesh.pos(potentialIntersectionEdge.vertex_from());
+                auto pos2 = intersectionMesh.pos(potentialIntersectionEdge.vertex_to());
                 auto sign1 = ob::classify_vertex(pos1, planeIntersectionEdge);
                 auto sign2 = ob::classify_vertex(pos2, planeIntersectionEdge);
                 if (sign1 != sign2)
                     break;
-                else
-                    potentialIntersectionEdge = potentialIntersectionEdge.next();
             }
+            potentialIntersectionEdge = potentialIntersectionEdge.next();
         }
         return potentialIntersectionEdge;
     }
@@ -399,10 +403,10 @@ namespace ob {
         typedef TrianlgeIntersectionPlanar::EdgeData EdgeData;
         typedef TrianlgeIntersectionPlanar::PlanarState PlanarState;
 
-        bool innerPoint = isInnerPoint(edgeMesh.pos(edgesData[0].edge.vertex_from()), intersectionData);
+        bool innerPoint = isInnerPoint(edgeMesh.pos(edgesData[0].edge.vertex_from()), intersectionData, intersectionMesh);
         for (EdgeData& edgeData : edgesData) {
             if (edgeData.state == PlanarState::UNKNOWN) {
-                if (!innerPoint) {
+                if (innerPoint) {
                     auto newIntersectionEdge = computeIntersectionEdgeHelper1(edgeMesh, edgeData, intersectionMesh, intersectionData[0]);
                     edgeData.intersectionEdges.intersectionEdge1 = newIntersectionEdge;
                     edgeData.state = PlanarState::NON_INTERSECTING_IN;
@@ -434,9 +438,9 @@ namespace ob {
     {
         TrianlgeIntersectionPlanar intersectionPlanar(edges1, edges2);
 
-        for (int i = 1; i < edges1.size(); ++i) {
-            pm::vertex_handle qOld = edges1[i - 1].vertex_from();
-            pm::vertex_handle q = edges1[i].vertex_from();
+        for (int i = 0; i < edges1.size(); ++i) {
+            pm::vertex_handle qOld = edges1[i].vertex_from();
+            pm::vertex_handle q = edges1[(i + 1) % 3].vertex_from();
             TrianlgeIntersectionPlanar::EdgeData& edge1Data = intersectionPlanar.getEdgeDataT1(i);
 
             for (int j = 0; j < edges2.size(); ++j) {
@@ -704,6 +708,7 @@ namespace ob {
                 strongAxis = normal.y > normal.z ? 1 : 2;
         }
         else {
+            //Debug
             auto edge1_1_1 = mesh2.posInt(intersection1.intersectionEdge1.vertex_from());
             auto edge1_1_2 = mesh2.posInt(intersection1.intersectionEdge1.vertex_to());
             auto edge1_2_1 = mesh2.posInt(intersection1.intersectionEdge2.vertex_from());
