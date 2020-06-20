@@ -2,12 +2,6 @@
 #include <map>
 #include <polymesh/pm.hh>
 
-struct IntersectionHandle {
-    TrianlgeIntersection::IntersectionState intersection;
-    pm::halfedge_handle intersectionEdge1;
-    pm::halfedge_handle intersectionEdge2;
-};
-
 class TrianlgeIntersection {
 public:
     struct IntersectionEdges {
@@ -63,10 +57,7 @@ public:
         mEdgeDataT2.resize(edges2.size());
         for (int i = 0; i < edges2.size(); ++i)
             mEdgeDataT2[i].edge = edges2[i];
-    }
-         
-    TrianlgeIntersectionPlanar() 
-    {
+
         intersectionState = IntersectionState::PLANAR;
     }
 
@@ -100,10 +91,18 @@ public:
         return mEdgeDataT2;
     }
 
+    bool isIntersecting = false;
+
 private:
 
     std::vector<EdgeData> mEdgeDataT1;
     //std::map<pm::vertex_handle, bool> vertexIsInnerPointT1;
     std::vector<EdgeData> mEdgeDataT2;
     //std::map<pm::vertex_handle, bool> vertexIsInnerPointT2;
+};
+
+struct IntersectionHandle {
+    TrianlgeIntersection::IntersectionState intersection;
+    pm::halfedge_handle intersectionEdge1;
+    pm::halfedge_handle intersectionEdge2;
 };

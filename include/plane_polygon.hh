@@ -265,6 +265,7 @@ public:
                 return edge;
             }
         }
+        return pm::halfedge_handle();
     }
 
     pm::Mesh& mesh() {

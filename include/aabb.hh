@@ -448,6 +448,7 @@ namespace ob {
                     int8_t sign = ob::classify_vertex(mesh2.pos(pos1), mesh1.edge(edge));
                     int8_t sign2 = ob::classify_vertex(mesh2.pos(pos2), mesh1.edge(edge));
                     if (sign != sign2 && sign != 0 && sign2 != 0) {
+                        intersectionPlanar.isIntersecting = true;
                         if (edge1Data.state == TrianlgeIntersectionPlanar::PlanarState::UNKNOWN) {
                             edge1Data.intersectionEdges.intersectionEdge1 = edges2[j];
                             edge1Data.state = TrianlgeIntersectionPlanar::PlanarState::ONE_EDGE;
@@ -478,7 +479,8 @@ namespace ob {
                 }
             }
         }
-        classifyNotIntersectionEdges();
+
+        classifyNotIntersectionEdges(mesh1, mesh2, intersectionPlanar);
         return intersectionPlanar;
     }
 
@@ -504,10 +506,31 @@ namespace ob {
         bool isInnerPoint = std::get<0>(pointCase);
         bool isEdgePoint = std::get<1>(pointCase);
 
+        auto result = handleCoplanar_FirstPointNotOnEdge(mesh1, mesh2, signStorage, edges1, edges2);
+
+        if (!result.isIntersecting) {
+            for (auto& it : result.getEdgeDataT1()) {
+                if (it.state == TrianlgeIntersectionPlanar::PlanarState::NON_INTERSECTING_IN) {
+                    result.isIntersecting = true;
+                    break;
+                }                    
+            }
+        }
+
+        if (!result.isIntersecting) {
+            for (auto& it : result.getEdgeDataT2()) {
+                if (it.state == TrianlgeIntersectionPlanar::PlanarState::NON_INTERSECTING_IN) {
+                    result.isIntersecting = true;
+                    break;
+                }
+            }
+        }
+
         TG_ASSERT(!isEdgePoint);
         if (isInnerPoint)
-            return true;
+            result.isIntersecting = true;
 
+        /*
         //Check inner point from edge to. Avoids Poylygon in Polygon
         {
             auto p2 = edges2[0].vertex_from();
@@ -517,9 +540,9 @@ namespace ob {
             }
             if (std::get<0>(isInnerPointisEdgePoint(signStorage2)))
                 return true;
-        }
-        
-        return handleCoplanar_FirstPointNotOnEdge(mesh1, mesh2, signStorage, edges1, edges2);
+        }*/
+
+        return result;
     }
 
     static std::vector<i64> addMulCarryI256(i256 v0, i256 v1, i256 v2, i256 v3) {
@@ -654,8 +677,12 @@ namespace ob {
         if (intersection1.intersection == intersection_result::non_intersecting)
             return false;
 
-        if (intersection1.intersection == intersection_result::co_planar)
-            return handleCoplanar(mesh1, polygon1, mesh2, polygon2); //TODO
+        if (intersection1.intersection == intersection_result::co_planar) {
+            auto testCoplanar = handleCoplanar(mesh1, polygon1, mesh2, polygon2);
+            if (testCoplanar.isIntersecting)
+                return true;
+            return false;
+        }
 
         IntersectionHandle intersection2 = planeBaseIntersection(mesh2, polygon2, mesh1, polygon1);
         if (intersection2.intersection == intersection_result::non_intersecting)

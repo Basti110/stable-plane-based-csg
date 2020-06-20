@@ -45,23 +45,25 @@ TEST("Test::Intersection_Triangle_Planar") {
     PlaneMesh planeMesh2;
     auto face1 = planeMesh1.insertPolygon({ 0, 0, -20 }, { 10, 0, 0 }, { -10, 0, 0 });
     auto face2 = planeMesh2.insertPolygon({ 0, 0, -15 }, { 5, 0, -5 }, { -5, 0, -5 });
-    auto face3 = planeMesh2.insertPolygon({ 0, 0, -10 }, { 20, 0, -10 }, { 10, 0, -30 });
+    /*auto face3 = planeMesh2.insertPolygon({ 0, 0, -10 }, { 20, 0, -10 }, { 10, 0, -30 });
     auto face4 = planeMesh2.insertPolygon({ -5, 0, -15 }, { -10, 0, 10 }, { 0, 0, 10 });
     auto face5 = planeMesh2.insertPolygon({ 10, 0, -5 }, { 5, 0, 5 }, { 15, 0, 5 });
     auto face6 = planeMesh2.insertPolygon({ 0, 0, -20 }, { -20, 0, -20 }, { -10, 0, 0 });
     auto face7 = planeMesh2.insertPolygon({ -13, 0, -5 }, { -8, 0, 5 }, { -18, 0, 5 });
-    auto face8 = planeMesh2.insertPolygon({ 0, 0, -30 }, { 5, 0, -20 }, { -5, 0, -20 });
+    auto face8 = planeMesh2.insertPolygon({ 0, 0, -30 }, { 5, 0, -20 }, { -5, 0, -20 });*/
 
     TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face2) == true);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face3) == true);
+    /*TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face3) == true);
     TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face4) == true);
     TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face5) == true);
     TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face6) == false);
     TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face7) == false);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face8) == false);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face8) == false);*/
 
-    //auto view = gv::view(planeMesh.positions());
-    //gv::view(gv::lines(planeMesh.positions()).line_width_world(0.1));
+    auto view = gv::view(planeMesh1.positions());
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1));
+    gv::view(planeMesh2.positions());
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1));
 }
 
 TEST("Test::Intersection_Polygon") {
