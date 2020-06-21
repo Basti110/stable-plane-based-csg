@@ -29,15 +29,15 @@ TEST("Test::Intersection_Triangle_Normal") {
     auto face9 = planeMesh2.insertTriangle(triangle9);
     
     
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face2).intersectionState == state::NON_PLANAR);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face3).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face4).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face5).intersectionState == state::NON_PLANAR);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face6).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face7).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face8).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face9).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh2, face5, planeMesh2, face9).intersectionState == state::NON_PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face2)->intersectionState == state::NON_PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face3)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face4)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face5)->intersectionState == state::NON_PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face6)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face7)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face8)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face9)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh2, face5, planeMesh2, face9)->intersectionState == state::NON_PLANAR);
 
     //auto view = gv::view(planeMesh.positions());
     //gv::view(gv::lines(planeMesh.positions()).line_width_world(0.1));
@@ -55,13 +55,13 @@ TEST("Test::Intersection_Triangle_Planar") {
     auto face7 = planeMesh2.insertPolygon({ -13, 0, -5 }, { -8, 0, 5 }, { -18, 0, 5 });
     auto face8 = planeMesh2.insertPolygon({ 0, 0, -30 }, { 5, 0, -20 }, { -5, 0, -20 });
 
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face2).intersectionState == state::PLANAR);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face3).intersectionState == state::PLANAR);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face4).intersectionState == state::PLANAR);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face5).intersectionState == state::PLANAR);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face6).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face7).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face8).intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face2)->intersectionState == state::PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face3)->intersectionState == state::PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face4)->intersectionState == state::PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face5)->intersectionState == state::PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face6)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face7)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face8)->intersectionState == state::NON_INTERSECTING);
 
     /*auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1));
@@ -139,13 +139,13 @@ TEST("Test::Intersection_Polygon") {
     auto face7 = planeMesh2.insertPolygon(polygon7);
     auto face8 = planeMesh2.insertPolygon(polygon8);
 
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face2).intersectionState == state::PLANAR);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face3).intersectionState == state::NON_PLANAR);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face4).intersectionState == state::NON_PLANAR);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face5).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face6).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face7).intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face8).intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face2)->intersectionState == state::PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face3)->intersectionState == state::NON_PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face4)->intersectionState == state::NON_PLANAR);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face5)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face6)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face7)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(ob::intersect<geometry128>(planeMesh1, face1, planeMesh2, face8)->intersectionState == state::NON_INTERSECTING);
 
     /*auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1));

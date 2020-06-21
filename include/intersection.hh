@@ -105,6 +105,6 @@ struct IntersectionHandle {
     pm::halfedge_handle intersectionEdge2;
 };
 
-using UniqueTriIntersect = std::unique_ptr<TrianlgeIntersection>;
-using UniqueTriIntersectNonPlanar = std::unique_ptr<TrianlgeIntersectionNonPlanar>;
-using UniqueTriIntersectPlanar = std::unique_ptr<TrianlgeIntersectionPlanar>;
+using SharedTriIntersect = std::shared_ptr<TrianlgeIntersection>;
+using SharedTriIntersectNonPlanar = std::shared_ptr<TrianlgeIntersectionNonPlanar>;
+using SharedTriIntersectPlanar = std::shared_ptr<TrianlgeIntersectionPlanar>;
