@@ -3,7 +3,6 @@
 #include <geometry.hh>
 
 
-
 class PlaneTriangle {
     using geometry128 = ob::geometry<32, 21>;
     using plane128 = geometry128::plane_t;

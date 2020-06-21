@@ -91,8 +91,6 @@ public:
         return mEdgeDataT2;
     }
 
-    bool isIntersecting = false;
-
 private:
 
     std::vector<EdgeData> mEdgeDataT1;
@@ -106,3 +104,7 @@ struct IntersectionHandle {
     pm::halfedge_handle intersectionEdge1;
     pm::halfedge_handle intersectionEdge2;
 };
+
+using UniqueTriIntersect = std::unique_ptr<TrianlgeIntersection>;
+using UniqueTriIntersectNonPlanar = std::unique_ptr<TrianlgeIntersectionNonPlanar>;
+using UniqueTriIntersectPlanar = std::unique_ptr<TrianlgeIntersectionPlanar>;
