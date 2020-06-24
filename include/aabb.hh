@@ -417,8 +417,12 @@ namespace ob {
             }             
             else if (edgeData.state == PlanarState::ONE_EDGE) {
                 if (!innerPoint) {
+                    edgeData.state = PlanarState::ONE_EDGE_TO_IN;
                     auto newIntersectionEdge = computeIntersectionEdgeHelper2(edgeMesh, edgeData, intersectionMesh);
                     edgeData.intersectionEdges.intersectionEdge2 = newIntersectionEdge;
+                }
+                else {
+                    edgeData.state = PlanarState::ONE_EDGE_TO_OUT;
                 }
                 innerPoint = !innerPoint;
             }            

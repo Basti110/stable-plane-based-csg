@@ -37,6 +37,8 @@ public:
         UNKNOWN,
         NON_INTERSECTING_IN,
         NON_INTERSECTING_OUT,
+        ONE_EDGE_TO_IN,
+        ONE_EDGE_TO_OUT,
         ONE_EDGE,
         TWO_EDGES,
     };

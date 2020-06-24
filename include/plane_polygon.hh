@@ -168,6 +168,22 @@ public:
         insertVec.push_back({ pos_c , pos_d, pos_a });
     }
 
+    void checkAndComputePositions() {
+        //mMesh.polymesh::Mesh::compactify();
+        for (auto vertex : mMesh.vertices()) {
+            if (mPositions[vertex] == pos_t(0, 0, 0)) {
+                auto h1 = vertex.any_incoming_halfedge();
+                auto h2 = h1.next();
+                auto face = h1.face();
+                Plane plane1 = mEdges[h1.edge()];
+                Plane plane2 = mEdges[h2.edge()];
+                Plane plane3 = mFaces[face];
+                pos_t pos = pos_t(ob::compute_intersection(mEdges[h1.edge()], mEdges[h2.edge()], mFaces[face]));
+                mPositions[vertex] = pos;
+            }
+        }
+    }
+
     PlanePolygon planePolygon(const pm::face_index& face) {
         return {face.of(mMesh), mPositions, mFaces, mEdges };
     }
@@ -198,6 +214,18 @@ public:
 
     const pm::halfedge_attribute<int8_t>& halfEdges() const {
         return mHalfEdges;
+    }
+
+    void setFace(const pm::face_handle& face, Plane& plane) {
+        mFaces[face] = plane;
+    }
+
+    void setEdge(const pm::edge_handle& edge, Plane& plane) {
+        mEdges[edge] = plane;
+    }
+
+    void setHalfedge(const pm::halfedge_handle& edge, int8_t& sign) {
+        mHalfEdges[edge] = sign;
     }
 
     Plane& face(const pm::face_handle& face) {
