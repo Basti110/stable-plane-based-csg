@@ -338,11 +338,12 @@ namespace ob {
         return true;
     }
 
-    static pm::halfedge_handle computeIntersectionEdgeHelper1(const PlaneMesh& edgeMesh,
+    static bool computeIntersectionEdgeHelper1(const PlaneMesh& edgeMesh,
         TrianlgeIntersectionPlanar::EdgeData& edgeData,
         const PlaneMesh& intersectionMesh,
         const TrianlgeIntersectionPlanar::EdgeData& intersectionData) 
     {
+        bool intersectVertex = false;
         auto potentialIntersectionEdge = intersectionData.edge;
         const Plane& planeIntersectionEdge = edgeMesh.edge(edgeData.edge);
         const Plane& planePrev = edgeMesh.edge(edgeData.edge.prev());
@@ -358,9 +359,15 @@ namespace ob {
                     auto pos2 = intersectionMesh.pos(potentialIntersectionEdge.vertex_to());
                     auto sign1 = ob::classify_vertex(pos1, planeIntersectionEdge);
                     auto sign2 = ob::classify_vertex(pos2, planeIntersectionEdge);
+                    
                     if (sign1 != sign2) {
-                        if (sign1 = 0)
+                        if (sign1 == 0) {
                             potentialIntersectionEdge = potentialIntersectionEdge.prev();
+                            intersectVertex = true;
+                        }                      
+                        else if (sign2 == 0) {
+                            intersectVertex = true;
+                        }
                         break;
                     }
                 }
@@ -368,13 +375,15 @@ namespace ob {
             potentialIntersectionEdge = potentialIntersectionEdge.next();
             TG_ASSERT(intersectionData.edge != potentialIntersectionEdge);
         }
-        return potentialIntersectionEdge;
+        edgeData.intersectionEdges.intersectionEdge2 = potentialIntersectionEdge;
+        return intersectVertex;
     }
 
-    static pm::halfedge_handle computeIntersectionEdgeHelper2(const PlaneMesh& edgeMesh,
+    static bool computeIntersectionEdgeHelper2(const PlaneMesh& edgeMesh,
         TrianlgeIntersectionPlanar::EdgeData& edgeData,
         const PlaneMesh& intersectionMesh)
     {
+        bool intersectVertex = false;
         auto intersectionEdge = edgeData.intersectionEdges.intersectionEdge1;
         auto potentialIntersectionEdge = intersectionEdge.next();
         const Plane& planeIntersectionEdge = edgeMesh.edge(edgeData.edge);
@@ -386,12 +395,31 @@ namespace ob {
                 auto pos2 = intersectionMesh.pos(potentialIntersectionEdge.vertex_to());
                 auto sign1 = ob::classify_vertex(pos1, planeIntersectionEdge);
                 auto sign2 = ob::classify_vertex(pos2, planeIntersectionEdge);
-                if (sign1 != sign2)
+                if (sign1 != sign2) {
+                    if (sign2 == 0)
+                        intersectVertex = true;
+                    TG_ASSERT(sign1 != 0);
                     break;
+                }
+                    
             }
             potentialIntersectionEdge = potentialIntersectionEdge.next();
         }
-        return potentialIntersectionEdge;
+        edgeData.intersectionEdges.intersectionEdge2 = potentialIntersectionEdge;
+        return intersectVertex;
+    }
+
+    static void fillNextIntersectionEdges(const TrianlgeIntersectionPlanar::EdgeData& edgeData, TrianlgeIntersectionPlanar::EdgeData& edgeDataNext) {
+        typedef TrianlgeIntersectionPlanar::PlanarState PlanarState;
+        if (edgeDataNext.state == PlanarState::NON_INTERSECTING_IN) {
+            edgeDataNext.intersectionEdges.intersectionEdge1 = edgeData.intersectionEdges.intersectionEdge2;
+        }
+        else if (edgeDataNext.state == PlanarState::ONE_EDGE_TO_OUT) {
+            edgeDataNext.intersectionEdges.intersectionEdge1 = edgeData.intersectionEdges.intersectionEdge2;
+        }
+        /*else {
+            TG_ASSERT(false && "Not Possible");
+        }*/
     }
 
 
@@ -403,13 +431,17 @@ namespace ob {
         typedef TrianlgeIntersectionPlanar::EdgeData EdgeData;
         typedef TrianlgeIntersectionPlanar::PlanarState PlanarState;
 
+        size_t edgesSize = edgesData.size();
         bool innerPoint = isInnerPoint(edgeMesh.pos(edgesData[0].edge.vertex_from()), intersectionData, intersectionMesh);
-        for (EdgeData& edgeData : edgesData) {
+        for (int i = 0; i < edgesSize; ++i) {
+            EdgeData& edgeData = edgesData[i];
+            EdgeData& edgeDataNext = edgesData[(i + 1) % edgesSize];
             if (edgeData.state == PlanarState::UNKNOWN) {
                 if (innerPoint) {
-                    auto newIntersectionEdge = computeIntersectionEdgeHelper1(edgeMesh, edgeData, intersectionMesh, intersectionData[0]);
-                    edgeData.intersectionEdges.intersectionEdge1 = newIntersectionEdge;
-                    edgeData.state = PlanarState::NON_INTERSECTING_IN;
+                    bool newIntersectionEdge = computeIntersectionEdgeHelper1(edgeMesh, edgeData, intersectionMesh, intersectionData[0]);                  
+                    edgeData.state = PlanarState::NON_INTERSECTING_IN;                   
+                    fillNextIntersectionEdges(edgeData, edgeDataNext);
+                    //edgeData.intersectionEdges.intersectionEdge1 = newIntersectionEdge;
                 }
                 else {
                     edgeData.state = PlanarState::NON_INTERSECTING_OUT;
@@ -418,8 +450,9 @@ namespace ob {
             else if (edgeData.state == PlanarState::ONE_EDGE) {
                 if (!innerPoint) {
                     edgeData.state = PlanarState::ONE_EDGE_TO_IN;
-                    auto newIntersectionEdge = computeIntersectionEdgeHelper2(edgeMesh, edgeData, intersectionMesh);
-                    edgeData.intersectionEdges.intersectionEdge2 = newIntersectionEdge;
+                    bool newIntersectionEdge = computeIntersectionEdgeHelper2(edgeMesh, edgeData, intersectionMesh);
+                    fillNextIntersectionEdges(edgeData, edgeDataNext);
+                    //edgeData.intersectionEdges.intersectionEdge2 = newIntersectionEdge;
                 }
                 else {
                     edgeData.state = PlanarState::ONE_EDGE_TO_OUT;
