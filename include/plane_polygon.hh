@@ -172,9 +172,18 @@ public:
         //mMesh.polymesh::Mesh::compactify();
         for (auto vertex : mMesh.vertices()) {
             if (mPositions[vertex] == pos_t(0, 0, 0)) {
-                auto h1 = vertex.any_incoming_halfedge();
+                
+                auto h1 = vertex.any_incoming_halfedge();   
+                TG_ASSERT(h1.is_valid());
                 auto h2 = h1.next();
+                TG_ASSERT(h2.is_valid());
+                
                 auto face = h1.face();
+                bool t = face.is_valid();
+
+                if (!t)
+                    continue;
+                
                 Plane plane1 = mEdges[h1.edge()];
                 Plane plane2 = mEdges[h2.edge()];
                 Plane plane3 = mFaces[face];
@@ -224,7 +233,7 @@ public:
         mEdges[edge] = plane;
     }
 
-    void setHalfedge(const pm::halfedge_handle& edge, int8_t& sign) {
+    void setHalfedge(const pm::halfedge_handle& edge, int8_t sign) {
         mHalfEdges[edge] = sign;
     }
 
@@ -262,6 +271,7 @@ public:
 
     SubDet pos(const pm::vertex_handle& vertex) const {
         auto he1 = vertex.any_incoming_halfedge();
+        auto t = vertex.incoming_halfedges();
         auto he2 = he1.next();
         auto face = he1.face();     
         return pos(he1, he2, face);

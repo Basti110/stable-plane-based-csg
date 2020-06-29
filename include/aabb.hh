@@ -704,13 +704,13 @@ namespace ob {
         return overlapTest(first_1, first_2, second_1, second_2);
     }
     template <class GeometryT>
-    static bool intersect(const PlaneMesh& mesh1, const pm::face_index& polygon1, const PlaneMesh& mesh2, const pm::face_index& polygon2)
+    static bool intersect( PlaneMesh& mesh1, const pm::face_index& polygon1, PlaneMesh& mesh2, const pm::face_index& polygon2)
     {
         return intersect<GeometryT>(mesh1, polygon1.of(mesh1.mesh()), mesh2, polygon2.of(mesh2.mesh()))->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING;
     }
     //TODO: PlanePolygon? 
     template <class GeometryT>
-    static SharedTriIntersect intersect(const PlaneMesh& mesh1, const pm::face_handle& polygon1, const PlaneMesh& mesh2, const pm::face_handle& polygon2)
+    static SharedTriIntersect intersect( PlaneMesh& mesh1, const pm::face_handle& polygon1,  PlaneMesh& mesh2, const pm::face_handle& polygon2)
     {
         using normalScalar = fixed_int<GeometryT::bits_normal * 2>;
         using normalVec = tg::vec<3, normalScalar>;
@@ -746,6 +746,8 @@ namespace ob {
         }
         else {
             //Debug
+            //mesh1.checkAndComputePositions();
+            //mesh2.checkAndComputePositions();
             auto edge1_1_1 = mesh2.posInt(intersection1.intersectionEdge1.vertex_from());
             auto edge1_1_2 = mesh2.posInt(intersection1.intersectionEdge1.vertex_to());
             auto edge1_2_1 = mesh2.posInt(intersection1.intersectionEdge2.vertex_from());

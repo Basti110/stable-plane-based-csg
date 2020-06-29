@@ -53,25 +53,34 @@ std::tuple<pm::face_handle, pm::face_handle> split(PlaneMeshInfo& planeMesh, Int
     auto newFace1 = addHalfFaceDependOnSplitEdges(mesh, h1, h2, v1New, v2New);
     auto newFace2 = addHalfFaceDependOnSplitEdges(mesh, h2, h1, v2New, v1New);
 
+    TG_ASSERT(newFace1.is_valid());
+    TG_ASSERT(newFace2.is_valid());
+
     //Todo: Remove data in attributes
     Plane planeH1 = planeMesh.planeMesh.edge(h1);
     Plane planeH2 = planeMesh.planeMesh.edge(h2);
     int8_t signH1 = planeMesh.planeMesh.halfedge(h1);
     int8_t signH2 = planeMesh.planeMesh.halfedge(h2);
 
-    auto edge = mesh.halfedges().add_or_get(v1New, v2New).edge();
-    auto edge1_1 = mesh.halfedges().add_or_get(h1.vertex_from(), v1New);
-    auto edge1_2 = mesh.halfedges().add_or_get(v1New, h1.vertex_to());
-    auto edge2_1 = mesh.halfedges().add_or_get(h2.vertex_from(), v2New);
-    auto edge2_2 = mesh.halfedges().add_or_get(v2New, h2.vertex_to());
+    auto edgeFace1 = mesh.halfedges().add_or_get(v2New, v1New);
+    auto edgeFace2 = mesh.halfedges().add_or_get(v1New, v2New);
+
+    auto edge1_1 = mesh.halfedges().add_or_get(v1New, h1.vertex_to());
+    auto edge1_2 = mesh.halfedges().add_or_get(h1.vertex_from(), v1New);
+    
+    auto edge2_1 = mesh.halfedges().add_or_get(v2New, h2.vertex_to());
+    auto edge2_2 = mesh.halfedges().add_or_get(h2.vertex_from(), v2New);
+    
 
     mesh.halfedges().remove_edge(h1);
     mesh.halfedges().remove_edge(h2);
+    //mesh.halfedges().remove_edge();
+    //mesh.halfedges().remove_edge(h2.opposite());
 
     //Init Data
     planeMesh.planeMesh.setFace(newFace1, plane);
     planeMesh.planeMesh.setFace(newFace2, plane);
-    planeMesh.planeMesh.setEdge(edge, iSectPlane);
+    planeMesh.planeMesh.setEdge(edgeFace1.edge(), iSectPlane);
     planeMesh.planeMesh.setEdge(edge1_1.edge(), planeH1);
     planeMesh.planeMesh.setEdge(edge1_2.edge(), planeH1);
     planeMesh.planeMesh.setEdge(edge2_1.edge(), planeH2);
@@ -81,6 +90,12 @@ std::tuple<pm::face_handle, pm::face_handle> split(PlaneMeshInfo& planeMesh, Int
     planeMesh.planeMesh.setHalfedge(edge1_2, signH1);
     planeMesh.planeMesh.setHalfedge(edge2_1, signH2);
     planeMesh.planeMesh.setHalfedge(edge2_2, signH2);
+
+    auto pos = planeMesh.planeMesh.pos(edgeFace1.next().vertex_to());
+    auto sign = ob::classify_vertex(pos, iSectPlane);
+
+    planeMesh.planeMesh.setHalfedge(edgeFace1, sign * -1);
+    planeMesh.planeMesh.setHalfedge(edgeFace2, sign);
 
     return std::make_tuple(newFace1, newFace2);
 }
@@ -191,9 +206,9 @@ TEST("Test::Cut_Triangle_Normal") {
     scalar_t scale = 100;
 
     auto face1 = planeMesh1.insertTriangle(triangle1 * scale);
-    faces.push_back(planeMesh2.insertTriangle(triangle2 * scale));
+    //faces.push_back(planeMesh2.insertTriangle(triangle2 * scale));
     faces.push_back(planeMesh2.insertTriangle(triangle3 * scale));
-    //faces.push_back(planeMesh2.insertTriangle(triangle4 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle4 * scale));
 
     splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
     
