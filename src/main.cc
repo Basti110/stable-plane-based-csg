@@ -45,7 +45,7 @@ int main() {
     //testIntersectionPolygon();
     //test_plane_visu();
     //test_transpose();
-    test_color_in_mesh();
+    //test_color_in_mesh();
     //test_octree();
     //test_octree_two_meshes();
 

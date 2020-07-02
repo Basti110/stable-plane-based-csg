@@ -375,7 +375,7 @@ namespace ob {
             potentialIntersectionEdge = potentialIntersectionEdge.next();
             TG_ASSERT(intersectionData.edge != potentialIntersectionEdge);
         }
-        edgeData.intersectionEdges.intersectionEdge2 = potentialIntersectionEdge;
+        edgeData.intersectionEdges.intersectionEdge2 = potentialIntersectionEdge.next();
         return intersectVertex;
     }
 
@@ -405,7 +405,7 @@ namespace ob {
             }
             potentialIntersectionEdge = potentialIntersectionEdge.next();
         }
-        edgeData.intersectionEdges.intersectionEdge2 = potentialIntersectionEdge;
+        edgeData.intersectionEdges.intersectionEdge2 = potentialIntersectionEdge.next();
         return intersectVertex;
     }
 
@@ -489,7 +489,7 @@ namespace ob {
                     auto edge = mesh1.findEdge(q, qOld).edge();
                     int8_t sign = ob::classify_vertex(mesh2.pos(pos1), mesh1.edge(edge));
                     int8_t sign2 = ob::classify_vertex(mesh2.pos(pos2), mesh1.edge(edge));
-                    if (sign != sign2 && sign != 0 && sign2 != 0) {
+                    if ((sign != sign2) && sign2 != 0) {
                         isIntersecting = true;
                         if (edge1Data.state == TrianlgeIntersectionPlanar::PlanarState::UNKNOWN) {
                             edge1Data.intersectionEdges.intersectionEdge1 = edges2[j];

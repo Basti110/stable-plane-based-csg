@@ -173,24 +173,39 @@ public:
         for (auto vertex : mMesh.vertices()) {
             if (mPositions[vertex] == pos_t(0, 0, 0)) {
                 
-                auto h1 = vertex.any_incoming_halfedge();   
-                TG_ASSERT(h1.is_valid());
-                auto h2 = h1.next();
-                TG_ASSERT(h2.is_valid());
-                
-                auto face = h1.face();
-                bool t = face.is_valid();
+                auto h0 = vertex.any_incoming_halfedge(); 
+                auto h1 = h0.opposite();
+                auto face1 = h0.face();
+                auto face2 = h1.face();
 
-                if (!t)
-                    continue;
-                
-                Plane plane1 = mEdges[h1.edge()];
-                Plane plane2 = mEdges[h2.edge()];
+                TG_ASSERT(face1.is_valid() || face2.is_valid());
+
+                auto hIn = face1.is_valid() ? h0 : h1;
+                auto face = face1.is_valid() ? face1 : face2;
+                //auto hOut = hIn.next();
+
+                Plane plane1 = mEdges[hIn.edge()];
+                Plane plane2;
+                for (auto h : vertex.outgoing_halfedges()) {
+                    plane2 = mEdges[h];
+                    if (!ob::are_parallel(plane1, plane2))
+                        break;
+                }
+                              
+             
                 Plane plane3 = mFaces[face];
-                pos_t pos = pos_t(ob::compute_intersection(mEdges[h1.edge()], mEdges[h2.edge()], mFaces[face]));
+                pos_t pos = pos_t(ob::compute_intersection(plane1, plane2, plane3));
                 mPositions[vertex] = pos;
             }
         }
+    }
+
+    bool existsEdgesWithoutFace() {
+        for (auto edge : mMesh.edges()){
+            if (!edge.faceA().is_valid() && !edge.faceB().is_valid())
+                return true;
+        }
+        return false;
     }
 
     PlanePolygon planePolygon(const pm::face_index& face) {

@@ -7,6 +7,8 @@ public:
     struct IntersectionEdges {
         pm::halfedge_handle intersectionEdge1;
         pm::halfedge_handle intersectionEdge2;
+        bool intersectVertex1;
+        bool intersectVertex2;
     };
 
     enum class IntersectionState

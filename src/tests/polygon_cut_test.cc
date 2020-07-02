@@ -19,23 +19,27 @@ struct NewFaces {
 
 typedef TrianlgeIntersection::IntersectionEdges IntersectionEdges;
 
-pm::face_handle addHalfFaceDependOnSplitEdges(pm::Mesh& mesh, pm::halfedge_handle& h1, pm::halfedge_handle& h2, pm::vertex_handle vStart, pm::vertex_handle vEnd) {
-    auto h1From = h1.vertex_from();
+static pm::vertex_handle splitHalfEdgeLowAPI(pm::Mesh& mesh, pm::halfedge_handle& h) {
+    return mesh.handle_of(pm::low_level_api(&mesh).halfedge_split(h.idx));
+}
+
+pm::face_handle addHalfFaceDependOnSplitEdges(pm::Mesh& mesh, pm::halfedge_handle& edgeOnFace, pm::vertex_handle firstVertex, pm::vertex_handle secondVertex) {
+    TG_ASSERT(edgeOnFace.vertex_from() == secondVertex && "Edge must go out from vertex 2");
+    /*auto h1From = h1.vertex_from();
     auto h1To = h1.vertex_to();
     auto h2From = h2.vertex_from();
-    auto h2To = h2.vertex_to();
+    auto h2To = h2.vertex_to();*/
 
     std::vector<pm::halfedge_handle> hEdges;
-    hEdges.push_back(mesh.halfedges().add_or_get(vStart, h1To));
-    auto hTmp = h1.next();
+    //hEdges.push_back(mesh.halfedges().add_or_get(vStart, h1To));
+    auto hTmp = edgeOnFace;
 
     while (true) {
-        if (hTmp == h2) {
-            hEdges.push_back(mesh.halfedges().add_or_get(h2From, vEnd));
-            hEdges.push_back(mesh.halfedges().add_or_get(vEnd, vStart));
+        hEdges.push_back(hTmp);
+        if (hTmp.vertex_to() == firstVertex) {
+            hEdges.push_back(mesh.halfedges().add_or_get(firstVertex, secondVertex));
             break;
         }
-        hEdges.push_back(hTmp);
         hTmp = hTmp.next();
     }
     return mesh.faces().add(hEdges);
@@ -43,18 +47,46 @@ pm::face_handle addHalfFaceDependOnSplitEdges(pm::Mesh& mesh, pm::halfedge_handl
 
 std::tuple<pm::face_handle, pm::face_handle> split(PlaneMeshInfo& planeMesh, IntersectionEdges& intersectionEdges, Plane& iSectPlane) {
     pm::Mesh& mesh = planeMesh.planeMesh.mesh();
-
+    int countEdges1 = mesh.halfedges().count();
+    //int countFaces1 = mesh.faces().count();
     auto h1 = intersectionEdges.intersectionEdge1;
     auto h2 = intersectionEdges.intersectionEdge2;
-    auto v1New = mesh.vertices().add();
-    auto v2New = mesh.vertices().add();
+    auto h1From = h1.vertex_from();
+    auto h1To = h1.vertex_to();
+    auto h2From = h2.vertex_from();
+    auto h2To = h2.vertex_to();
+
+
+
+    // split edges
+    auto v1New = splitHalfEdgeLowAPI(mesh, h1);
+    auto v2New = splitHalfEdgeLowAPI(mesh, h2);
+
+    //Oder andersrum? vertex_to == new?
+    TG_ASSERT(h1.vertex_to() == v1New);
+    TG_ASSERT(h2.vertex_to() == v2New);
+    
     Plane plane = planeMesh.planeMesh.face(planeMesh.face);
     mesh.faces().remove(planeMesh.face);
-    auto newFace1 = addHalfFaceDependOnSplitEdges(mesh, h1, h2, v1New, v2New);
-    auto newFace2 = addHalfFaceDependOnSplitEdges(mesh, h2, h1, v2New, v1New);
+    int countEdges4 = mesh.halfedges().count();
 
+    //bool faceTest1 = h1.opposite().face().is_valid();
+    //bool faceTest2 = h2.opposite().face().is_valid();
+    auto h1Next = h1.next();
+    auto h2Next = h2.next();
+    
+    auto newFace1 = addHalfFaceDependOnSplitEdges(mesh, h1Next, v2New, v1New);
+    int countEdges5 = mesh.halfedges().count();
+    auto newFace2 = addHalfFaceDependOnSplitEdges(mesh, h2Next, v1New, v2New);
+    int countEdges6 = mesh.halfedges().count();
+
+    //faceTest1 = h1.opposite().face().is_valid();
+    //faceTest2 = h2.opposite().face().is_valid();
     TG_ASSERT(newFace1.is_valid());
     TG_ASSERT(newFace2.is_valid());
+
+    bool invalidEdges = planeMesh.planeMesh.existsEdgesWithoutFace();
+    TG_ASSERT(!invalidEdges);
 
     //Todo: Remove data in attributes
     Plane planeH1 = planeMesh.planeMesh.edge(h1);
@@ -65,19 +97,22 @@ std::tuple<pm::face_handle, pm::face_handle> split(PlaneMeshInfo& planeMesh, Int
     auto edgeFace1 = mesh.halfedges().add_or_get(v2New, v1New);
     auto edgeFace2 = mesh.halfedges().add_or_get(v1New, v2New);
 
-    auto edge1_1 = mesh.halfedges().add_or_get(v1New, h1.vertex_to());
-    auto edge1_2 = mesh.halfedges().add_or_get(h1.vertex_from(), v1New);
+    auto edge1_1 = mesh.halfedges().add_or_get(v1New, h1To);
+    auto edge1_2 = mesh.halfedges().add_or_get(h1From, v1New);
     
-    auto edge2_1 = mesh.halfedges().add_or_get(v2New, h2.vertex_to());
-    auto edge2_2 = mesh.halfedges().add_or_get(h2.vertex_from(), v2New);
+    auto edge2_1 = mesh.halfedges().add_or_get(v2New, h2To);
+    auto edge2_2 = mesh.halfedges().add_or_get(h2From, v2New);
     
+    //int countEdges3 = mesh.halfedges().count();
+    //mesh.halfedges().remove_edge(h1);
+    //mesh.halfedges().remove_edge(h2);
 
-    mesh.halfedges().remove_edge(h1);
-    mesh.halfedges().remove_edge(h2);
+
     //mesh.halfedges().remove_edge();
     //mesh.halfedges().remove_edge(h2.opposite());
 
     //Init Data
+    
     planeMesh.planeMesh.setFace(newFace1, plane);
     planeMesh.planeMesh.setFace(newFace2, plane);
     planeMesh.planeMesh.setEdge(edgeFace1.edge(), iSectPlane);
@@ -97,50 +132,140 @@ std::tuple<pm::face_handle, pm::face_handle> split(PlaneMeshInfo& planeMesh, Int
     planeMesh.planeMesh.setHalfedge(edgeFace1, sign * -1);
     planeMesh.planeMesh.setHalfedge(edgeFace2, sign);
 
+    int countEdges2 = mesh.halfedges().count();
+    int countFaces2 = mesh.faces().count();
+
+    invalidEdges = planeMesh.planeMesh.existsEdgesWithoutFace();
+    TG_ASSERT(!invalidEdges);
+
     return std::make_tuple(newFace1, newFace2);
 }
 
-std::vector<pm::face_handle> splitPlanar(PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2, std::vector<EdgeData> edgesData) {
+std::vector<pm::face_handle> splitPlanar(PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2, std::vector<EdgeData> iSectData) {
     PlaneMesh& planeMesh1 = planeMeshInfo1.planeMesh;
     PlaneMesh& planeMesh2 = planeMeshInfo2.planeMesh;
-    std::vector<pm::vertex_handle> vertices;
+    std::vector<pm::face_handle> faces;
     std::vector<pm::halfedge_handle> halfEdgesToDelete;
     bool deleteFace = false;
 
-    for (int i = 0; i < edgesData.size(); ++i) {
-        TG_ASSERT(edgesData[i].state != PlanarState::ONE_EDGE && edgesData[i].state != PlanarState::UNKNOWN);
-        if (edgesData[i].state == PlanarState::NON_INTERSECTING_OUT)
+    Plane plane = planeMesh1.face(planeMeshInfo1.face);
+    planeMesh1.mesh().faces().remove(planeMeshInfo1.face);
+
+    for (int i = 0; i < iSectData.size(); ++i) {
+        TG_ASSERT(iSectData[i].state != PlanarState::ONE_EDGE && iSectData[i].state != PlanarState::UNKNOWN);
+        if (iSectData[i].state == PlanarState::NON_INTERSECTING_OUT)
             continue;
 
-        if (edgesData[i].state == PlanarState::NON_INTERSECTING_IN) {
-            auto newNodeIn = planeMesh2.mesh().vertices().add();
-            auto newNodeOut = planeMesh2.mesh().vertices().add();
-            auto intersectEdgeIn = edgesData[i].intersectionEdges.intersectionEdge1;
-            auto intersectEdgeOut = edgesData[i].intersectionEdges.intersectionEdge2;
-            halfEdgesToDelete.push_back(intersectEdgeIn);
-            halfEdgesToDelete.push_back(intersectEdgeOut);
-            vertices.push_back(newNodeIn);
-            vertices.push_back(newNodeOut);
+        auto iSectEdge1 = iSectData[i].intersectionEdges.intersectionEdge1;
+        auto iSectEdge2 = iSectData[i].intersectionEdges.intersectionEdge2;
+        pm::halfedge_handle prevNewEdge;
+        pm::halfedge_handle startEdgeNext;
+        std::vector<pm::halfedge_handle> halfEdges = {};
 
-            std::vector<pm::halfedge_handle> halfEdges;
-            auto halfEdge1 = planeMesh2.mesh().halfedges().add_or_get(newNodeIn, intersectEdgeIn.vertex_to());
-            auto halfEdge = intersectEdgeIn.next();
-            while (halfEdge != intersectEdgeOut) {
-                halfEdges.push_back(halfEdge);
+        if (iSectData[i].state == PlanarState::NON_INTERSECTING_IN) {
+            pm::vertex_handle start;
+            pm::halfedge_handle hTmp;
+            if (iSectData[i].intersectionEdges.intersectVertex1) {
+                start = iSectEdge1.vertex_from();
+                hTmp = iSectEdge1;
             }
-            auto halfEdge2 = planeMesh2.mesh().halfedges().add_or_get(halfEdge.vertex_from(), newNodeOut);
-            auto halfEdge3 = planeMesh2.mesh().halfedges().add_or_get(newNodeIn, newNodeOut);
-            halfEdges.push_back(halfEdge1);
-            halfEdges.push_back(halfEdge2);
-            halfEdges.push_back(halfEdge3);
-            planeMesh2.mesh().faces().add(halfEdges);
+            else {             
+                start = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge1);  
+                hTmp = iSectEdge1.next();
+                TG_ASSERT(hTmp.vertex_from() == start); //Only Test
+            }
+
+            pm::vertex_handle end;
+            while (true) {
+                halfEdges.push_back(hTmp);
+                if (hTmp == iSectEdge2) {
+                    if (iSectData[i].intersectionEdges.intersectVertex2) {
+                        end = iSectEdge2.vertex_to();
+                        startEdgeNext = iSectEdge2.next();
+                    }
+                    else {
+                        end = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge2);
+                        startEdgeNext = iSectEdge2.next();
+                        TG_ASSERT(startEdgeNext.vertex_from() == end);
+                    }
+                    prevNewEdge = planeMesh2.mesh().halfedges().add_or_get(end, start);
+                    // Add Data
+                    halfEdges.push_back(prevNewEdge);
+                    break;
+                }
+                hTmp = hTmp.next();
+            }
+            faces.push_back(planeMesh1.mesh().faces().add(halfEdges));
         }
 
-        if (edgesData[i].state == PlanarState::NON_INTERSECTING_IN) {
+        if (iSectData[i].state == PlanarState::NON_INTERSECTING_IN) {
+            pm::vertex_handle start = startEdgeNext.vertex_from();
+            pm::vertex_handle end = startEdgeNext.vertex_from();
+            auto hTmp = startEdgeNext;
+            while (true) {
+                halfEdges.push_back(hTmp);
+                if (hTmp == iSectEdge2) {
+                    if (iSectData[i].intersectionEdges.intersectVertex2) {
+                        end = iSectEdge2.vertex_to();
+                        startEdgeNext = iSectEdge2.next();
+                    }
+                    else {
+                        end = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge2);
+                        startEdgeNext = iSectEdge2.next();
+                        TG_ASSERT(startEdgeNext.vertex_from() == end); // Test
+                    }
+                    auto newVertex = splitHalfEdgeLowAPI(planeMesh1.mesh(), prevNewEdge);
+                    prevNewEdge = planeMesh2.mesh().halfedges().add_or_get(end, newVertex);
+                    // Add Data
+                    halfEdges.push_back(prevNewEdge);
+                    halfEdges.push_back(prevNewEdge.next());
+                    TG_ASSERT(prevNewEdge.next().vertex_from() == newVertex); // Test
+                    break;
+                }
+                hTmp = hTmp.next();
+            }
+            faces.push_back(planeMesh1.mesh().faces().add(halfEdges));
+        }
 
+        if (iSectData[i].state == PlanarState::TWO_EDGES) {
+            pm::vertex_handle start;
+            pm::vertex_handle end;
+            pm::halfedge_handle hTmp;
+
+            if (iSectData[i].intersectionEdges.intersectVertex1) {
+                start = iSectEdge1.vertex_from();
+                hTmp = iSectEdge1;
+            }
+            else {
+                start = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge1);
+                hTmp = iSectEdge1.next();
+                TG_ASSERT(hTmp.vertex_from() == start); //Only Test
+            }
+
+            while (true) {
+                halfEdges.push_back(hTmp);
+                if (hTmp == iSectEdge2) {
+                    if (iSectData[i].intersectionEdges.intersectVertex2) {
+                        end = iSectEdge2.vertex_to();
+                        startEdgeNext = iSectEdge2.next();
+                    }
+                    else {
+                        end = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge2);
+                        startEdgeNext = iSectEdge2.next();
+                        TG_ASSERT(startEdgeNext.vertex_from() == end); // Test
+                    }
+                    prevNewEdge = planeMesh1.mesh().halfedges().add_or_get(end, start);
+                    // Add Data
+                    //planeMesh1.setEdge(prevNewEdge.)
+                    halfEdges.push_back(prevNewEdge);
+                    break;
+                }
+                hTmp = hTmp.next();
+            }
+            faces.push_back(planeMesh1.mesh().faces().add(halfEdges));
         }
     }
-
+    return std::vector<pm::face_handle>();
     //TODO: delete Face
 }
 
@@ -158,8 +283,6 @@ NewFaces split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, 
     }
     else if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
         SharedTriIntersectPlanar isectNonPlanar = std::static_pointer_cast<TrianlgeIntersectionPlanar>(intersection);
-        //Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMesh2.face);
-        //Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMesh1.face);
         //splitFaces.facesT1 = splitPlanar(planeMeshInfo1, planeMeshInfo2, isectNonPlanar->getEdgeDataT1());
         //splitFaces.facesT2 = splitPlanar(planeMeshInfo2, planeMeshInfo1, isectNonPlanar->getEdgeDataT2());
     }
@@ -206,7 +329,7 @@ TEST("Test::Cut_Triangle_Normal") {
     scalar_t scale = 100;
 
     auto face1 = planeMesh1.insertTriangle(triangle1 * scale);
-    //faces.push_back(planeMesh2.insertTriangle(triangle2 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle2 * scale));
     faces.push_back(planeMesh2.insertTriangle(triangle3 * scale));
     faces.push_back(planeMesh2.insertTriangle(triangle4 * scale));
 
