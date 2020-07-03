@@ -13,8 +13,8 @@ struct PlaneMeshInfo {
 };
 
 struct NewFaces {
-    std::tuple<pm::face_handle, pm::face_handle> facesT1;
-    std::tuple<pm::face_handle, pm::face_handle> facesT2;
+    std::vector<pm::face_handle> facesT1;
+    std::vector<pm::face_handle> facesT2;
 };
 
 typedef TrianlgeIntersection::IntersectionEdges IntersectionEdges;
@@ -45,7 +45,7 @@ pm::face_handle addHalfFaceDependOnSplitEdges(pm::Mesh& mesh, pm::halfedge_handl
     return mesh.faces().add(hEdges);
 }
 
-std::tuple<pm::face_handle, pm::face_handle> split(PlaneMeshInfo& planeMesh, IntersectionEdges& intersectionEdges, Plane& iSectPlane) {
+std::vector<pm::face_handle> split(PlaneMeshInfo& planeMesh, IntersectionEdges& intersectionEdges, Plane& iSectPlane) {
     pm::Mesh& mesh = planeMesh.planeMesh.mesh();
     int countEdges1 = mesh.halfedges().count();
     //int countFaces1 = mesh.faces().count();
@@ -138,7 +138,7 @@ std::tuple<pm::face_handle, pm::face_handle> split(PlaneMeshInfo& planeMesh, Int
     invalidEdges = planeMesh.planeMesh.existsEdgesWithoutFace();
     TG_ASSERT(!invalidEdges);
 
-    return std::make_tuple(newFace1, newFace2);
+    return std::vector<pm::face_handle>{newFace1, newFace2};
 }
 
 std::vector<pm::face_handle> splitPlanar(PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2, std::vector<EdgeData> iSectData) {
@@ -269,6 +269,146 @@ std::vector<pm::face_handle> splitPlanar(PlaneMeshInfo& planeMeshInfo1, PlaneMes
     //TODO: delete Face
 }
 
+/*static void assignEdgeHelper1(bool isVertex, IntersectionEdges& iSectEdges, pm::halfedge_handle& edge) {
+    if (!foundFirst) {
+        iSectEdges.intersectionEdge1 = edge;
+        iSectEdges.intersectVertex1 = true;
+    }
+    else {
+        iSectEdges.intersectionEdge2 = edge;
+        iSectEdges.intersectVertex2 = true;
+    }
+}*/
+
+static IntersectionEdges getIntersectionEdges(PlaneMeshInfo& faceInfo, Plane& plane, int8_t planeSign) {
+    
+    pm::face_handle face = faceInfo.face;
+    int facCount = face.halfedges().count();
+    PlaneMesh& planeMesh = faceInfo.planeMesh;
+    IntersectionEdges iSectEdges;
+    bool foundFirst = false;
+ 
+    auto firstEdge = face.any_halfedge();
+    auto firstPos = firstEdge.vertex_from();
+    int8_t tmpSign = ob::classify_vertex(planeMesh.pos(firstPos), plane);
+
+    if (tmpSign == 0) {
+        iSectEdges.intersectionEdge1 = firstEdge;
+        iSectEdges.intersectVertex1 = true;
+        foundFirst = true;
+    }
+       
+    auto hTmp = firstEdge;
+    while (true) {
+        hTmp = hTmp.next();
+
+        auto det = planeMesh.pos(hTmp.vertex_from());
+        int8_t sign = ob::classify_vertex(det, plane);
+
+        TG_ASSERT(sign || tmpSign);
+        if ((sign != tmpSign || sign == 0) && tmpSign != 0) {
+            if (foundFirst) {
+                iSectEdges.intersectionEdge2 = sign == 0 ? hTmp : hTmp.prev();
+                iSectEdges.intersectVertex2 = sign == 0;
+                break;
+            }
+
+            iSectEdges.intersectionEdge1 = sign == 0 ? hTmp : hTmp.prev();
+            iSectEdges.intersectVertex1 = sign == 0;
+            foundFirst = true;
+        }
+        tmpSign = sign;
+
+        if (hTmp == firstEdge)
+            TG_ASSERT(false && "No Intersection Edges found");
+    }
+    return iSectEdges;
+}
+
+//Schnitt Plane Erstes Face (direction * plane) zeigt nach auﬂen (signed distance = -1)
+//Schnitt Plane Zweites Face (direction * plane) zeigt nach innen (signed distance = 1)
+static std::tuple<pm::face_handle, pm::face_handle> splitFace(PlaneMeshInfo& faceInfo, Plane& plane, int8_t direction) {
+    pm::halfedge_handle hTmp;
+    pm::vertex_handle start;
+    pm::vertex_handle end;
+    pm::Mesh& mesh = faceInfo.planeMesh.mesh();
+
+    IntersectionEdges iSectEdges = getIntersectionEdges(faceInfo, plane, 1);
+    auto iSectEdge1 = iSectEdges.intersectionEdge1;
+    auto iSectEdge2 = iSectEdges.intersectionEdge2;
+    std::vector<pm::halfedge_handle> halfEdges = {};
+    
+    if (iSectEdges.intersectVertex1) {
+        start = iSectEdge1.vertex_from();
+        hTmp = iSectEdge1;
+    }
+    else {
+        start = splitHalfEdgeLowAPI(mesh, iSectEdge1);
+        Plane edgePlane = faceInfo.planeMesh.edge(iSectEdge1.edge());
+        faceInfo.planeMesh.setEdge(iSectEdge1.next().edge(), edgePlane);
+        hTmp = iSectEdge1.next();
+    }
+    TG_ASSERT(hTmp.vertex_from() == start); //Only Test
+    int8_t signToFace1 = ob::classify_vertex(faceInfo.planeMesh.pos(hTmp.vertex_from()), plane);
+    int8_t wantedDirection = signToFace1 * direction;
+    
+    while (true) {
+        if (hTmp == iSectEdge2) {
+            break;
+        }
+        halfEdges.push_back(hTmp);
+        hTmp = hTmp.next();
+    }
+
+    pm::halfedge_handle startEdgeNext;
+    if (iSectEdges.intersectVertex2) {
+        end = iSectEdge2.vertex_from();
+        startEdgeNext = iSectEdge2;
+    }
+    else {
+        end = splitHalfEdgeLowAPI(mesh, iSectEdge2);
+        Plane edgePlane = faceInfo.planeMesh.edge(iSectEdge2.edge());
+        faceInfo.planeMesh.setEdge(iSectEdge2.next().edge(), edgePlane);
+        halfEdges.push_back(iSectEdge2);
+        startEdgeNext = iSectEdge2.next();
+        TG_ASSERT(iSectEdge2.vertex_to() == end); //Only Test
+        TG_ASSERT(startEdgeNext.vertex_from() == end); // Test
+    }
+    Plane facePlane = faceInfo.planeMesh.face(faceInfo.face);
+    mesh.faces().remove(faceInfo.face);
+    auto newEdge = mesh.halfedges().add_or_get(end, start);
+    faceInfo.planeMesh.setEdge(newEdge.edge(), plane);
+    // Add Data
+    //planeMesh1.setEdge(prevNewEdge.)
+    halfEdges.push_back(newEdge);
+    
+
+    auto face1 = mesh.faces().add(halfEdges);
+    halfEdges.clear();
+
+    hTmp = startEdgeNext;
+    while (true) {
+        halfEdges.push_back(hTmp);
+        if (hTmp.vertex_to() == start) {
+            break;
+        }
+        hTmp = hTmp.next();
+    }
+    halfEdges.push_back(newEdge.opposite());
+    auto face2 = mesh.faces().add(halfEdges);
+    faceInfo.planeMesh.setFace(face1, facePlane);
+    faceInfo.planeMesh.setFace(face2, facePlane);
+
+    //halfedge Attribut = 1 wenn signed distance = -1 und umgekehrt
+    faceInfo.planeMesh.setHalfedge(newEdge, -1 * signToFace1);
+    faceInfo.planeMesh.setHalfedge(newEdge.opposite(), signToFace1);
+    
+    if(wantedDirection == -1)
+        return std::tuple<pm::face_handle, pm::face_handle>(face1, face2);
+    else
+        return std::tuple<pm::face_handle, pm::face_handle>(face2, face1);
+}
+
 
 NewFaces split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2) {
     TG_ASSERT(intersection->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING);
@@ -282,9 +422,42 @@ NewFaces split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, 
         splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
     }
     else if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
-        SharedTriIntersectPlanar isectNonPlanar = std::static_pointer_cast<TrianlgeIntersectionPlanar>(intersection);
-        //splitFaces.facesT1 = splitPlanar(planeMeshInfo1, planeMeshInfo2, isectNonPlanar->getEdgeDataT1());
-        //splitFaces.facesT2 = splitPlanar(planeMeshInfo2, planeMeshInfo1, isectNonPlanar->getEdgeDataT2());
+        SharedTriIntersectPlanar isectPlanar = std::static_pointer_cast<TrianlgeIntersectionPlanar>(intersection);
+        std::vector<pm::face_handle> faces1;
+        auto edgeDataT1 = isectPlanar->getEdgeDataT1();
+        auto edgeDataT2 = isectPlanar->getEdgeDataT2();
+        auto face = planeMeshInfo2.face;
+        for (auto& edgeData : edgeDataT1) {
+            if (edgeData.state == PlanarState::ONE_EDGE_TO_IN 
+                || edgeData.state == PlanarState::NON_INTERSECTING_IN 
+                || edgeData.state == PlanarState::ONE_EDGE_TO_OUT) {
+
+                PlaneMeshInfo newFaceInfo = { planeMeshInfo2.planeMesh, face };
+                Plane plane = planeMeshInfo1.planeMesh.edge(edgeData.edge);
+                int8_t dir = planeMeshInfo1.planeMesh.halfedge(edgeData.edge);
+                auto newFaces = splitFace(newFaceInfo, plane, dir);
+                faces1.push_back(std::get<0>(newFaces));
+                face = std::get<1>(newFaces);
+            }
+        }
+        faces1.push_back(face);
+
+        face = planeMeshInfo1.face;
+        std::vector<pm::face_handle> faces2;
+        for (auto& edgeData : edgeDataT2) {
+            if (edgeData.state == PlanarState::ONE_EDGE_TO_IN
+                || edgeData.state == PlanarState::NON_INTERSECTING_IN
+                || edgeData.state == PlanarState::ONE_EDGE_TO_OUT) {
+
+                PlaneMeshInfo newFaceInfo = { planeMeshInfo1.planeMesh, face };
+                Plane plane = planeMeshInfo2.planeMesh.edge(edgeData.edge);
+                int8_t dir = planeMeshInfo2.planeMesh.halfedge(edgeData.edge);
+                auto newFaces = splitFace(newFaceInfo, plane, dir);
+                faces2.push_back(std::get<0>(newFaces));
+                face = std::get<1>(newFaces);
+            }
+        }
+        faces2.push_back(face);
     }
     return splitFaces;
 }
@@ -307,10 +480,14 @@ void splitAccordingToIntersection(pm::face_handle triangle, std::vector<pm::face
                 gv::view(planeMesh2.positions());
                 gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1));
             }*/
-            splitAccordingToIntersection(std::get<0>(splits.facesT1), triangles, planeMesh1, planeMesh2);
-            splitAccordingToIntersection(std::get<1>(splits.facesT1), triangles, planeMesh1, planeMesh2);
-            triangles.push_back(std::get<0>(splits.facesT2));
-            triangles.push_back(std::get<1>(splits.facesT2));
+            for (auto& triangle : splits.facesT1) {
+                splitAccordingToIntersection(triangle, triangles, planeMesh1, planeMesh2);
+            }
+
+            for (auto& triangle : splits.facesT2) {
+                triangles.push_back(triangle);
+            }
+
             break;
         }
     }
@@ -335,6 +512,63 @@ TEST("Test::Cut_Triangle_Normal") {
 
     splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
     
+    planeMesh1.checkAndComputePositions();
+    planeMesh2.checkAndComputePositions();
+
+    /*auto view = gv::view(planeMesh1.positions());
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
+    gv::view(planeMesh2.positions());
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));*/
+}
+
+TEST("Test::Cut_Triangle_Planar_1") {
+    PlaneMesh planeMesh1;
+    PlaneMesh planeMesh2;
+    auto face1 = planeMesh1.insertPolygon({ 0, 0, -20 }, { 10, 0, 0 }, { -10, 0, 0 });
+    auto face2 = planeMesh2.insertPolygon({ 0, 2, -7 }, { 0, -2, -9 }, { 0, -2, -5 });
+    //auto face3 = planeMesh2.insertPolygon({ -3, 2, -7 }, { -3, -2, -9 }, { -3, -2, -5 });
+    /*auto face4 = planeMesh2.insertPolygon({ -5, 0, -15 }, { -10, 0, 10 }, { 0, 0, 10 });
+    auto face5 = planeMesh2.insertPolygon({ 10, 0, -5 }, { 5, 0, 5 }, { 15, 0, 5 });
+    auto face6 = planeMesh2.insertPolygon({ 0, 0, -20 }, { -20, 0, -20 }, { -10, 0, 0 });
+    auto face7 = planeMesh2.insertPolygon({ -13, 0, -5 }, { -8, 0, 5 }, { -18, 0, 5 });
+    auto face8 = planeMesh2.insertPolygon({ 0, 0, -30 }, { 5, 0, -20 }, { -5, 0, -20 });*/
+    PlaneMeshInfo info = { planeMesh1, face1 };
+    splitFace(info, planeMesh2.face(face2), 1);
+    planeMesh1.checkAndComputePositions();
+
+    /*auto view = gv::view(planeMesh1.positions());
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1));
+    gv::view(planeMesh2.positions());
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1));*/
+}
+
+TEST("Test::Cut_Triangle_Planar_2") {
+    tg::triangle<3, scalar_t> triangle1({ { 0, 0, -20 }, { 10, 0, 0 }, { -10, 0, 0 } });
+    tg::triangle<3, scalar_t> triangle2({ { 0, 0, -15 }, { 5, 0, -5 }, { -5, 0, -5 } });
+    tg::triangle<3, scalar_t> triangle3({ { 0, 0, -10 }, { 20, 0, -10 }, { 10, 0, -30 } });
+    tg::triangle<3, scalar_t> triangle4({ { -5, 0, -15 }, { -10, 0, 10 }, { 0, 0, 10 } });
+    tg::triangle<3, scalar_t> triangle5({ { 10, 0, -5 }, { 5, 0, 5 }, { 15, 0, 5 } });
+    tg::triangle<3, scalar_t> triangle6({ { 0, 0, -20 }, { -20, 0, -20 }, { -10, 0, 0 } });
+    tg::triangle<3, scalar_t> triangle7({ { -13, 0, -5 }, { -8, 0, 5 }, { -18, 0, 5 } });
+    tg::triangle<3, scalar_t> triangle8({ { 0, 0, -30 }, { 5, 0, -20 }, { -5, 0, -20 } });
+
+    PlaneMesh planeMesh1;
+    PlaneMesh planeMesh2;
+
+    std::vector<pm::face_handle> faces;
+    scalar_t scale = 100;
+
+    auto face1 = planeMesh1.insertTriangle(triangle1 * scale);
+    faces.push_back(planeMesh2.insertTriangle(triangle2 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle3 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle4 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle5 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle6 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle7 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle8 * scale));
+
+    splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
+
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
 

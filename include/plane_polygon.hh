@@ -186,6 +186,7 @@ public:
 
                 Plane plane1 = mEdges[hIn.edge()];
                 Plane plane2;
+                int count = vertex.outgoing_halfedges().count();
                 for (auto h : vertex.outgoing_halfedges()) {
                     plane2 = mEdges[h];
                     if (!ob::are_parallel(plane1, plane2))
