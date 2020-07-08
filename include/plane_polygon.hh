@@ -125,6 +125,7 @@ public:
                 mEdges[edgeHandle] = Plane::from_points(from, to, anotherPos);
                 //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], posInFace) < 0); //TODO 
                 TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0); //TODO: Remove
+                //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]) == -1);
                 //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), edge(edgeHandle)) < 0);
                 mHalfEdges[it.handle] = 1;
             }
@@ -136,6 +137,11 @@ public:
                         mHalfEdges[it.handle] = -1;
                 }
             }
+        }
+
+        for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
+            pm::edge_handle edgeHandle = it.handle.edge();
+            TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]) == -1);
         }
     }
 
@@ -287,14 +293,25 @@ public:
 
     SubDet pos(const pm::vertex_handle& vertex) const {
         auto he1 = vertex.any_incoming_halfedge();
-        auto t = vertex.incoming_halfedges();
-        auto he2 = he1.next();
+        auto hEdges = vertex.outgoing_halfedges();
+        pm::halfedge_handle he2;
+        for (auto h : hEdges) {
+            Plane p1 = mEdges[he1.edge()];
+            Plane p2 = mEdges[h.edge()];
+            if (!(p1 == p2))
+                he2 = h;
+
+        }
+        //auto he2 = he1.next();
         auto face = he1.face();     
         return pos(he1, he2, face);
     }
 
     SubDet pos(pm::halfedge_handle he1, pm::halfedge_handle he2, pm::face_handle face) const {
         TG_ASSERT(face.is_valid() && he1.is_valid() && he2.is_valid());
+        Plane T1 = mFaces[face];
+        Plane T2 = mEdges[he1.edge()];
+        Plane T3 = mEdges[he2.edge()];
         return pos(mFaces[face], mEdges[he1.edge()], mEdges[he2.edge()]);
     }
 

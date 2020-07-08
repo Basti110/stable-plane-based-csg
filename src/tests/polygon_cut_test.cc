@@ -280,8 +280,35 @@ std::vector<pm::face_handle> splitPlanar(PlaneMeshInfo& planeMeshInfo1, PlaneMes
     }
 }*/
 
+void planeTriangle(Plane& plane, int sideLen, std::vector<tg::triangle3>& insertVec) {
+    tg::vec3 upNormal = tg::normalize(tg::vec3(plane.to_dplane().normal));
+    tg::vec3 upNormalFace = upNormal != tg::vec3(0, 0, -1) && upNormal != tg::vec3(0, 0, 1)  ? tg::vec3(0, 0, -1) : tg::vec3(0, 1, 0);
+    tg::dplane3 dplane = plane.to_dplane();
+    tg::vec3 normal = tg::vec3(dplane.normal);
+    auto ortho_vec1 = tg::normalize(tg::cross(normal, upNormalFace));
+    auto ortho_vec2 = tg::normalize(tg::cross(normal, ortho_vec1));
+    auto plane_pos = normal * dplane.dis;
+    auto pos_a = tg::pos3(plane_pos + 0.5 * sideLen * ortho_vec1 + 0.5 * sideLen * ortho_vec2);
+    auto pos_b = tg::pos3(plane_pos + 0.5 * sideLen * ortho_vec1 - 0.5 * sideLen * ortho_vec2);
+    auto pos_c = tg::pos3(plane_pos - 0.5 * sideLen * ortho_vec1 - 0.5 * sideLen * ortho_vec2);
+    auto pos_d = tg::pos3(plane_pos - 0.5 * sideLen * ortho_vec1 + 0.5 * sideLen * ortho_vec2);
+    insertVec.push_back({ pos_a , pos_b, pos_c });
+    insertVec.push_back({ pos_c , pos_d, pos_a });
+}
+
 static IntersectionEdges getIntersectionEdges(PlaneMeshInfo& faceInfo, Plane& plane, int8_t planeSign) {
-    
+    std::vector<tg::triangle3> planePositions;
+    planeTriangle(plane, 1000, planePositions); 
+    auto faceColors1 = faceInfo.planeMesh.mesh().faces().make_attribute_with_default(tg::color3::white);
+    faceColors1[faceInfo.face] = tg::color3::red;
+    {
+        faceInfo.planeMesh.checkAndComputePositions();
+        auto view = gv::view(planePositions);
+        gv::view(faceInfo.planeMesh.positions(), faceColors1);
+        gv::view(gv::lines(faceInfo.planeMesh.positions()).line_width_world(10));
+    }
+
+
     pm::face_handle face = faceInfo.face;
     int facCount = face.halfedges().count();
     PlaneMesh& planeMesh = faceInfo.planeMesh;
@@ -291,6 +318,7 @@ static IntersectionEdges getIntersectionEdges(PlaneMeshInfo& faceInfo, Plane& pl
     auto firstEdge = face.any_halfedge();
     auto firstPos = firstEdge.vertex_from();
     int8_t tmpSign = ob::classify_vertex(planeMesh.pos(firstPos), plane);
+
 
     if (tmpSign == 0) {
         iSectEdges.intersectionEdge1 = firstEdge;
@@ -345,11 +373,15 @@ static std::tuple<pm::face_handle, pm::face_handle> splitFace(PlaneMeshInfo& fac
     else {
         start = splitHalfEdgeLowAPI(mesh, iSectEdge1);
         Plane edgePlane = faceInfo.planeMesh.edge(iSectEdge1.edge());
+        int8_t sign = faceInfo.planeMesh.halfedge(iSectEdge1);
         faceInfo.planeMesh.setEdge(iSectEdge1.next().edge(), edgePlane);
+        faceInfo.planeMesh.setHalfedge(iSectEdge1.next(), sign);
+        faceInfo.planeMesh.setHalfedge(iSectEdge1.next().opposite(), -sign);
         hTmp = iSectEdge1.next();
     }
+
     TG_ASSERT(hTmp.vertex_from() == start); //Only Test
-    int8_t signToFace1 = ob::classify_vertex(faceInfo.planeMesh.pos(hTmp.vertex_from()), plane);
+    int8_t signToFace1 = ob::classify_vertex(faceInfo.planeMesh.pos(hTmp.vertex_to()), plane);
     int8_t wantedDirection = signToFace1 * direction;
     
     while (true) {
@@ -368,7 +400,10 @@ static std::tuple<pm::face_handle, pm::face_handle> splitFace(PlaneMeshInfo& fac
     else {
         end = splitHalfEdgeLowAPI(mesh, iSectEdge2);
         Plane edgePlane = faceInfo.planeMesh.edge(iSectEdge2.edge());
+        int8_t sign = faceInfo.planeMesh.halfedge(iSectEdge2);
         faceInfo.planeMesh.setEdge(iSectEdge2.next().edge(), edgePlane);
+        faceInfo.planeMesh.setHalfedge(iSectEdge2.next(), sign);
+        faceInfo.planeMesh.setHalfedge(iSectEdge2.next().opposite(), -sign);
         halfEdges.push_back(iSectEdge2);
         startEdgeNext = iSectEdge2.next();
         TG_ASSERT(iSectEdge2.vertex_to() == end); //Only Test
@@ -403,7 +438,7 @@ static std::tuple<pm::face_handle, pm::face_handle> splitFace(PlaneMeshInfo& fac
     faceInfo.planeMesh.setHalfedge(newEdge, -1 * signToFace1);
     faceInfo.planeMesh.setHalfedge(newEdge.opposite(), signToFace1);
     
-    if(wantedDirection == -1)
+    if(wantedDirection == 1)
         return std::tuple<pm::face_handle, pm::face_handle>(face1, face2);
     else
         return std::tuple<pm::face_handle, pm::face_handle>(face2, face1);
@@ -427,37 +462,76 @@ NewFaces split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, 
         auto edgeDataT1 = isectPlanar->getEdgeDataT1();
         auto edgeDataT2 = isectPlanar->getEdgeDataT2();
         auto face = planeMeshInfo2.face;
+        Plane& planePrev = Plane();
+
+        planeMeshInfo1.planeMesh.checkAndComputePositions();
+        planeMeshInfo2.planeMesh.checkAndComputePositions();
+        {
+            auto faceColors1 = planeMeshInfo1.planeMesh.mesh().faces().make_attribute_with_default(tg::color3::white);
+            faceColors1[planeMeshInfo1.face] = tg::color3::red;
+            auto faceColors2 = planeMeshInfo2.planeMesh.mesh().faces().make_attribute_with_default(tg::color3::white);
+            faceColors2[planeMeshInfo2.face] = tg::color3::blue;
+            auto view = gv::view(planeMeshInfo1.planeMesh.positions(), faceColors1);
+            gv::view(gv::lines(planeMeshInfo1.planeMesh.positions()).line_width_world(10));
+            gv::view(planeMeshInfo2.planeMesh.positions(), faceColors2);
+            gv::view(gv::lines(planeMeshInfo2.planeMesh.positions()).line_width_world(10));
+        }
+
+
         for (auto& edgeData : edgeDataT1) {
             if (edgeData.state == PlanarState::ONE_EDGE_TO_IN 
                 || edgeData.state == PlanarState::NON_INTERSECTING_IN 
-                || edgeData.state == PlanarState::ONE_EDGE_TO_OUT) {
+                || edgeData.state == PlanarState::ONE_EDGE_TO_OUT
+                || edgeData.state == PlanarState::TWO_EDGES ) {
 
                 PlaneMeshInfo newFaceInfo = { planeMeshInfo2.planeMesh, face };
                 Plane plane = planeMeshInfo1.planeMesh.edge(edgeData.edge);
+                if (plane == planePrev)
+                    continue;
+
                 int8_t dir = planeMeshInfo1.planeMesh.halfedge(edgeData.edge);
                 auto newFaces = splitFace(newFaceInfo, plane, dir);
+
                 faces1.push_back(std::get<0>(newFaces));
                 face = std::get<1>(newFaces);
+                planePrev = plane;
             }
         }
         faces1.push_back(face);
 
         face = planeMeshInfo1.face;
         std::vector<pm::face_handle> faces2;
+        planePrev = Plane();
         for (auto& edgeData : edgeDataT2) {
             if (edgeData.state == PlanarState::ONE_EDGE_TO_IN
                 || edgeData.state == PlanarState::NON_INTERSECTING_IN
-                || edgeData.state == PlanarState::ONE_EDGE_TO_OUT) {
-
+                || edgeData.state == PlanarState::ONE_EDGE_TO_OUT 
+                || edgeData.state == PlanarState::TWO_EDGES ) {
                 PlaneMeshInfo newFaceInfo = { planeMeshInfo1.planeMesh, face };
                 Plane plane = planeMeshInfo2.planeMesh.edge(edgeData.edge);
+                //Plane& planePrev = planeMeshInfo2.planeMesh.edge(edgeData.edge.prev());
+                if (plane == planePrev)
+                    continue;
                 int8_t dir = planeMeshInfo2.planeMesh.halfedge(edgeData.edge);
                 auto newFaces = splitFace(newFaceInfo, plane, dir);
+                /*planeMeshInfo1.planeMesh.checkAndComputePositions();
+                planeMeshInfo2.planeMesh.checkAndComputePositions();
+                {
+                    auto view = gv::view(planeMeshInfo1.planeMesh.positions());
+                    gv::view(gv::lines(planeMeshInfo1.planeMesh.positions()).line_width_world(10));
+                }*/
+
+                //gv::view(planeMeshInfo2.planeMesh.positions());
+                //gv::view(gv::lines(planeMeshInfo2.planeMesh.positions()).line_width_world(10));
+
                 faces2.push_back(std::get<0>(newFaces));
                 face = std::get<1>(newFaces);
+                planePrev = plane;
             }
         }
         faces2.push_back(face);
+        splitFaces.facesT1 = faces2;
+        splitFaces.facesT2 = faces1;
     }
     return splitFaces;
 }
