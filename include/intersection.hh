@@ -43,6 +43,7 @@ public:
         ONE_EDGE_TO_OUT,
         ONE_EDGE,
         TWO_EDGES,
+        MARKED,
     };
 
     struct EdgeData {
