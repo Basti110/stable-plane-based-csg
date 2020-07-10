@@ -34,7 +34,6 @@ namespace ob {
         }
     }
 
-
     // returns an enum describing how the triangle and the aabb intersect
     // see https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/tribox.pdf
     template <class geometry_t>

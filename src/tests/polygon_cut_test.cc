@@ -302,10 +302,10 @@ static IntersectionEdges getIntersectionEdges(PlaneMeshInfo& faceInfo, Plane& pl
     auto faceColors1 = faceInfo.planeMesh.mesh().faces().make_attribute_with_default(tg::color3::white);
     faceColors1[faceInfo.face] = tg::color3::red;
     {
-        faceInfo.planeMesh.checkAndComputePositions();
+        /*faceInfo.planeMesh.checkAndComputePositions();
         auto view = gv::view(planePositions);
         gv::view(faceInfo.planeMesh.positions(), faceColors1);
-        gv::view(gv::lines(faceInfo.planeMesh.positions()).line_width_world(10));
+        gv::view(gv::lines(faceInfo.planeMesh.positions()).line_width_world(10));*/
     }
 
 
@@ -464,7 +464,7 @@ NewFaces split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, 
         auto face = planeMeshInfo2.face;
         Plane& planePrev = Plane();
 
-        planeMeshInfo1.planeMesh.checkAndComputePositions();
+        /*planeMeshInfo1.planeMesh.checkAndComputePositions();
         planeMeshInfo2.planeMesh.checkAndComputePositions();
         {
             auto faceColors1 = planeMeshInfo1.planeMesh.mesh().faces().make_attribute_with_default(tg::color3::white);
@@ -475,7 +475,7 @@ NewFaces split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, 
             gv::view(gv::lines(planeMeshInfo1.planeMesh.positions()).line_width_world(10));
             gv::view(planeMeshInfo2.planeMesh.positions(), faceColors2);
             gv::view(gv::lines(planeMeshInfo2.planeMesh.positions()).line_width_world(10));
-        }
+        }*/
 
 
         for (auto& edgeData : edgeDataT1) {
@@ -597,10 +597,10 @@ TEST("Test::Cut_Triangle_Normal") {
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
 
-    /*auto view = gv::view(planeMesh1.positions());
+    auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
     gv::view(planeMesh2.positions());
-    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));*/
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
 }
 
 TEST("Test::Cut_Triangle_Planar_1") {
@@ -663,4 +663,92 @@ TEST("Test::Cut_Triangle_Planar_2") {
         gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
     }
 
+}
+
+TEST("Test::Cut_Triangle_Polygon") {
+    pm::Mesh mesh;
+    pm::vertex_attribute<pos_t> positions(mesh);
+
+    scalar_t scale = 100;
+
+    std::vector<pos_t> polygon1(5);
+    polygon1[0] = pos_t{ -10, 0, 10 } * scale;
+    polygon1[1] = pos_t{ -15, 0, 0 } * scale;
+    polygon1[2] = pos_t{ -10, 0, -10 } * scale;
+    polygon1[3] = pos_t{ 10, 0, -10 } * scale;
+    polygon1[4] = pos_t{ 10, 0, 10 } * scale;
+
+    std::vector<pos_t> polygon2(4);
+    polygon2[0] = pos_t{ 5, 0, -15 } * scale;
+    polygon2[1] = pos_t{ 15, 0, -15 } * scale;
+    polygon2[2] = pos_t{ 15, 0, -5 } * scale;
+    polygon2[3] = pos_t{ 5, 0, -5 } * scale;
+
+    std::vector<pos_t> polygon3(6);
+    polygon3[0] = pos_t{ -2, 5, -2 } * scale;
+    polygon3[1] = pos_t{ 2, 5, -2 } * scale;
+    polygon3[2] = pos_t{ 5, 0, 0 } * scale;
+    polygon3[3] = pos_t{ 2, -5, 2 } * scale;
+    polygon3[4] = pos_t{ -2, -5, 2 } * scale;
+    polygon3[5] = pos_t{ -5, 0, 0 } * scale;
+
+    std::vector<pos_t> polygon4(5);
+    polygon4[0] = pos_t{ -10, 5, -6 } * scale;
+    polygon4[1] = pos_t{ -8, 5, -6 } * scale;
+    polygon4[2] = pos_t{ -8, -5, -2 } * scale;
+    polygon4[3] = pos_t{ -12, -5, -2 } * scale;
+    polygon4[4] = pos_t{ -15, 0, -4 } * scale;
+
+    std::vector<pos_t> polygon5(6);
+    polygon5[0] = pos_t{ -2, -5, -12 } * scale;
+    polygon5[1] = pos_t{ 2, -5, -12 } * scale;
+    polygon5[2] = pos_t{ 5, 0, -10 }  * scale;
+    polygon5[3] = pos_t{ 2, 5, -8 } * scale;
+    polygon5[4] = pos_t{ -2, 5, -8 } * scale;
+    polygon5[5] = pos_t{ -5, 0, -10 } * scale;
+
+    std::vector<pos_t> polygon6(6);
+    polygon6[0] = pos_t{ -7, -5, 13 } * scale;
+    polygon6[1] = pos_t{ -3, -5, 13 } * scale;
+    polygon6[2] = pos_t{ 0, 0, 11 } * scale;
+    polygon6[3] = pos_t{ -3, 5, 9 } * scale;
+    polygon6[4] = pos_t{ -5, 5, 9 } * scale;
+    polygon6[5] = pos_t{ -10, 0, 11 } * scale;
+
+    std::vector<pos_t> polygon7(4);
+    polygon7[0] = pos_t{ 11, 0, 0 } * scale;
+    polygon7[1] = pos_t{ 21, 0, 0 } * scale;
+    polygon7[2] = pos_t{ 21, 0, 10 } * scale;
+    polygon7[3] = pos_t{ 11, 0, 10 } * scale;
+
+    std::vector<pos_t> polygon8(4);
+    polygon8[0] = pos_t{ -5, 1, 0 } * scale;
+    polygon8[1] = pos_t{ 5, 1, 0 } * scale;
+    polygon8[2] = pos_t{ 5, 1, 10 } * scale;
+    polygon8[3] = pos_t{ -5, 1, 10 } * scale;
+
+    PlaneMesh planeMesh1;
+    PlaneMesh planeMesh2;
+
+    std::vector<pm::face_handle> faces;
+    
+
+    auto face1 = planeMesh1.insertPolygon(polygon1);
+    faces.push_back(planeMesh2.insertPolygon(polygon2));
+    faces.push_back(planeMesh2.insertPolygon(polygon3));
+    faces.push_back(planeMesh2.insertPolygon(polygon4));
+    faces.push_back(planeMesh2.insertPolygon(polygon5));
+    faces.push_back(planeMesh2.insertPolygon(polygon6));
+    faces.push_back(planeMesh2.insertPolygon(polygon7));
+    faces.push_back(planeMesh2.insertPolygon(polygon8));
+
+    splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
+
+    planeMesh1.checkAndComputePositions();
+    planeMesh2.checkAndComputePositions();
+
+    auto view = gv::view(planeMesh1.positions());
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
+    gv::view(planeMesh2.positions());
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
 }
