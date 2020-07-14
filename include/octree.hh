@@ -43,6 +43,7 @@ public:
     //virtual OctreeNode& childNodeRef(int idx) = 0;
     virtual NodeType nodeBase() = 0;
     virtual SharedOctreeNode parent() = 0;
+    virtual void cutPolygons() {};
     virtual void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {}
     bool isInTree();
     bool hasParent();
@@ -74,9 +75,10 @@ public:
     bool mustSplitIfFull();
     int maxValues() { return mMaxValues; }
     SharedBranchNode split();
-    void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2);
+    void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override;
+    void cutPolygons() override;
 
-    void splitAccordingToIntersection() {
+    /*void splitAccordingToIntersection() {
         std::vector<pm::face_index> Triangles = mFacesMeshA;
         //std::set<pm::face_index> checkedTriangles;
         for (auto t : Triangles) {
@@ -89,7 +91,7 @@ public:
     std::tuple<pm::face_index, pm::face_index> split(pm::face_index t1, pm::face_index t2) {
         std::tuple<pm::face_index, pm::face_index> split;
         return split;
-    }
+    }*/
 
 private: 
     std::vector<uint32_t> mValueIndices;
@@ -117,6 +119,11 @@ public:
     void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override {
         for (auto child : mChildNodes)
             child->markIntersections(faceColor1, faceColor2);
+    }
+
+    void cutPolygons() override {
+        for (auto child : mChildNodes)
+            child->cutPolygons();
     }
     
 private: 
@@ -175,6 +182,10 @@ public:
         int count = intersectionCounterTMP;
         intersectionCounterTMP = 0;
         return count;
+    }
+
+    void cutPolygons() {
+        mRoot->cutPolygons();
     }
     //PlaneMesh& meshA() { return mMeshA; }
     //PlaneMesh& meshB() { return mMeshB; }

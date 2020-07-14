@@ -1,5 +1,4 @@
 #include "..\include\octree.hh"
-
 //std
 #include <functional>
 
@@ -9,6 +8,9 @@
 //custom
 #include <utils.hh>
 #include <aabb.hh>
+
+//intersection and cut
+#include <intersection_utils.hh>
 
 //#############################################################################
 //#                             OctreeNode                                    #
@@ -121,6 +123,39 @@ SharedBranchNode LeafNode::split()
     return branchNode;
 }
 
+void LeafNode::cutPolygons() {
+    if (mFacesMeshA.size() <= 0 || mFacesMeshB.size() <= 0)
+        return;
+
+    std::vector<pm::face_handle> faces1;
+    std::vector<pm::face_handle> faces2;
+
+    for (pm::face_index& face2Index : mFacesMeshB)
+        faces2.push_back(face2Index.of(mOctree->mMeshB->mesh()));
+
+    for (pm::face_index face1Index : mFacesMeshA) {
+        PlaneMesh* meshA = mOctree->mMeshA;
+        PlaneMesh* meshB = mOctree->mMeshB;
+
+        auto face1 = face1Index.of(mOctree->mMeshA->mesh());
+        auto newFaces1 = splitAccordingToIntersection(face1, faces2, *meshA, *meshB);
+        faces1.insert(faces1.end(), newFaces1.begin(), newFaces1.end());
+    }
+
+    std::vector<pm::face_index> facesMeshA(faces1.size());
+    std::vector<pm::face_index> facesMeshB(faces2.size());
+
+    //Only use face indices
+    for (int i = 0; i < faces1.size(); ++i)
+        facesMeshA[i] = faces1[i].idx;
+
+    for (int i = 0; i < faces2.size(); ++i)
+        facesMeshB[i] = faces2[i].idx;
+
+    mFacesMeshA = facesMeshA;
+    mFacesMeshB = facesMeshB;
+}
+
 void LeafNode::markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {
     if (mFacesMeshA.size() <= 0 || mFacesMeshB.size() <= 0)
         return;
@@ -138,7 +173,7 @@ void LeafNode::markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm:
     }
 }
 
-void LeafNode::splitAccordingToIntersection(pm::face_index triangle)
+/*void LeafNode::splitAccordingToIntersection(pm::face_index triangle)
 {
     for (pm::face_index t2 : mFacesMeshB) {
         pm::Mesh& meshA = mOctree->mMeshA->mesh();
@@ -150,7 +185,7 @@ void LeafNode::splitAccordingToIntersection(pm::face_index triangle)
             break;
         }
     }
-}
+}*/
 
 
 //#############################################################################
