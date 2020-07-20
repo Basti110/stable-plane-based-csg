@@ -141,8 +141,37 @@ public:
 
         for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
             pm::edge_handle edgeHandle = it.handle.edge();
-            TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]) == -1);
+            //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]) == -1);
         }
+    }
+
+    bool allHalfEdgesAreValid() {
+        for (auto h : mMesh.all_halfedges()) {
+            if (h.is_invalid())
+                return false;
+        }
+        return true;
+    }
+
+    bool allFacesAreValid() {
+        for (auto f : mMesh.all_faces()) {
+            if (f.is_removed())
+                continue;
+
+            for (auto h : f.halfedges()) {
+                if (h.is_invalid())
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    bool allFacesAreValidAndNotRemoved() {
+        for (auto f : mMesh.all_faces()) {
+            if (f.is_invalid() || f.is_removed())
+                return false;
+        }
+        return true;
     }
 
     void planesTriangles(int sideLen, std::vector<tg::triangle3>& insertVec) {

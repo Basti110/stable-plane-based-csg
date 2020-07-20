@@ -17,7 +17,8 @@ TEST("Test::Cut_Triangle_Normal") {
     faces.push_back(planeMesh2.insertTriangle(triangle3 * scale));
     faces.push_back(planeMesh2.insertTriangle(triangle4 * scale));
 
-    splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
+    IntersectionCut intersectionCut;
+    intersectionCut.splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
     
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
@@ -43,10 +44,10 @@ TEST("Test::Cut_Triangle_Planar_1") {
     splitFace(info, planeMesh2.face(face2), 1);
     planeMesh1.checkAndComputePositions();
 
-    /*auto view = gv::view(planeMesh1.positions());
+    auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1));
     gv::view(planeMesh2.positions());
-    gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1));*/
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1));
 }
 
 TEST("Test::Cut_Triangle_Planar_2") {
@@ -74,7 +75,8 @@ TEST("Test::Cut_Triangle_Planar_2") {
     faces.push_back(planeMesh2.insertTriangle(triangle7 * scale));
     faces.push_back(planeMesh2.insertTriangle(triangle8 * scale));
 
-    splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
+    IntersectionCut intersectionCut;
+    intersectionCut.splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
 
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
@@ -167,13 +169,13 @@ TEST("Test::Cut_Triangle_Polygon") {
     faces.push_back(planeMesh2.insertPolygon(polygon7));
     faces.push_back(planeMesh2.insertPolygon(polygon8));
 
-    splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
+    //splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
 
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
 
-    auto view = gv::view(planeMesh1.positions());
+    /*auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
     gv::view(planeMesh2.positions());
-    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));*/
 }

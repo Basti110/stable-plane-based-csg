@@ -10,6 +10,7 @@
 #include <aabb.hh>
 #include <nexus/Nexus.hh>
 
+#include <polymesh/algorithms/deduplicate.hh>
 #include <tuple>
 #include <utility>
 
@@ -29,7 +30,7 @@ void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
 int main() {
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
-    tests.run();
+    //tests.run();
     pm::vertex_attribute<tg::pos3> test3;
 
     std::vector<tg::ipos3> positions;
@@ -39,6 +40,8 @@ int main() {
     positions.push_back({ 0, 0, 0 });
     positions.push_back({ 1, 0, -2 });
 
+    test_cut_mesh();
+    //test_color_in_mesh();
     //test_trianle_classification();
     
     //testIntersectionTriangleNormal();
@@ -247,7 +250,7 @@ void test_cut_mesh() {
     auto trans1 = translation1 * rotatation1;
     transformation(pos1, trans1);
 
-    scalar_t scale = 1e5;
+    scalar_t scale = 1e6;
     PlaneMesh planeMesh1(mesh1, pos1, scale);
     PlaneMesh planeMesh2(mesh2, pos2, scale);
 
@@ -269,10 +272,14 @@ void test_cut_mesh() {
 
     std::cout << "Cut in " << seconds << "ms" << std::endl;
 
-    auto view = gv::view(planeMesh1.positions());
-    gv::view(planeMesh2.positions());
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(1));
-    gv::view(gv::lines(planeMesh2.positions()).line_width_world(1));
+    planeMesh1.checkAndComputePositions();
+    planeMesh2.checkAndComputePositions();
+    planeMesh2.mesh().compactify();
+    pm::deduplicate(planeMesh2.mesh(), planeMesh2.positions());
+    auto view = gv::view(gv::polygons(planeMesh1.positions()).face_normals());
+    //gv::view(planeMesh2.positions());
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(50000), tg::color3::red);
+    //gv::view(gv::lines(planeMesh2.positions()).line_width_world(50000));
 }
 
 void test_octree_two_meshes() {

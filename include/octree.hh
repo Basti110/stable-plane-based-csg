@@ -6,6 +6,8 @@
 #include <unordered_map>
 //#include <set>
 #include "plane_polygon.hh"
+//intersection and cut
+#include <intersection_utils.hh>
 
 class OctreeNode;
 class BranchNode;
@@ -43,7 +45,7 @@ public:
     //virtual OctreeNode& childNodeRef(int idx) = 0;
     virtual NodeType nodeBase() = 0;
     virtual SharedOctreeNode parent() = 0;
-    virtual void cutPolygons() {};
+    virtual void cutPolygons(IntersectionCut& lookup) {};
     virtual void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {}
     bool isInTree();
     bool hasParent();
@@ -76,7 +78,7 @@ public:
     int maxValues() { return mMaxValues; }
     SharedBranchNode split();
     void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override;
-    void cutPolygons() override;
+    void cutPolygons(IntersectionCut& lookup) override;
 
     /*void splitAccordingToIntersection() {
         std::vector<pm::face_index> Triangles = mFacesMeshA;
@@ -121,9 +123,9 @@ public:
             child->markIntersections(faceColor1, faceColor2);
     }
 
-    void cutPolygons() override {
+    void cutPolygons(IntersectionCut& lookup) override {
         for (auto child : mChildNodes)
-            child->cutPolygons();
+            child->cutPolygons(lookup);
     }
     
 private: 
@@ -153,10 +155,26 @@ public:
         SPLIT_ONE_MESH = 1,
         SPLIT_TWO_MESHES = 2
     };
+
+    scalar_t getNextPower(scalar_t value) {
+        scalar_t power = 1;
+        while (power < value)
+            power *= 2;
+        return power;
+    }
+
+    AABB getAABBWithNextPowerLen(const AABB& aabb) {
+        scalar_t len = aabb.max.x - aabb.min.x;
+        scalar_t powerLen = getNextPower(len);
+        pos_t max = { aabb.min.x + powerLen, aabb.min.y + powerLen , aabb.min.z + powerLen };
+        return AABB(aabb.min, max);
+    }
+
     Octree(PlaneMesh* a, PlaneMesh* b, const AABB& aabb) {
         mMeshA = a;
         mMeshB = b;
-        mRoot = std::make_shared<BranchNode>(aabb, this);
+        AABB powerOf2AABB = getAABBWithNextPowerLen(aabb);
+        mRoot = std::make_shared<BranchNode>(powerOf2AABB, this);
         //mRoot->setOctree(shared_from_this());
         mRoot->initLeafNodes();
     }
@@ -185,7 +203,12 @@ public:
     }
 
     void cutPolygons() {
-        mRoot->cutPolygons();
+        IntersectionCut faceLookUp(mMeshA, mMeshB);
+        //Todo
+        bool test1 = mMeshA->allFacesAreValidAndNotRemoved();
+        bool test2 = mMeshB->allFacesAreValidAndNotRemoved();
+        mRoot->cutPolygons(faceLookUp);
+        IntersectionCut::printTimes();
     }
     //PlaneMesh& meshA() { return mMeshA; }
     //PlaneMesh& meshB() { return mMeshB; }

@@ -6,6 +6,7 @@
 #include <geometry.hh>
 #include <plane_polygon.hh>
 #include <intersection.hh>
+#include <glow-extras/viewer/view.hh>
 
 namespace ob {
     enum class intersection_result
@@ -269,7 +270,8 @@ namespace ob {
     {
         int sign = 0;
         int index = 0;
-        
+        TG_ASSERT(!polygon.is_removed());
+        TG_ASSERT(polygon.is_valid());
         auto halfedges = polygon.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
         pm::halfedge_handle halfedgeHandles[2];
         
@@ -787,6 +789,43 @@ namespace ob {
     {
         return intersect<GeometryT>(mesh1, polygon1.of(mesh1.mesh()), mesh2, polygon2.of(mesh2.mesh()))->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING;
     }
+
+    static void showFaces(PlaneMesh& mesh1, const pm::face_handle& polygon1, PlaneMesh& mesh2, const pm::face_handle& polygon2) {
+        mesh1.checkAndComputePositions();
+        mesh2.checkAndComputePositions();
+
+        /*auto face1Mask = mesh1.mesh().faces().make_attribute_with_default(false);
+        auto face2Mask = mesh2.mesh().faces().make_attribute_with_default(false);
+        face1Mask[polygon1] = true;
+        face2Mask[polygon2] = true;
+
+        tg::aabb3 viewBox;
+        viewBox.min = tg::pos3(mesh1.posInt(polygon1.any_vertex()));
+        viewBox.max = tg::pos3(mesh2.posInt(polygon1.any_vertex()));*/
+
+        pm::Mesh mesh;
+        pm::vertex_attribute<tg::pos3> pos(mesh);   
+        std::vector<pm::vertex_handle> vertex_handles;
+
+        for (auto vertex : polygon1.vertices()) {
+            auto newVertex = mesh.vertices().add();
+            pos[newVertex] = tg::pos3(mesh1.posInt(vertex));
+            vertex_handles.push_back(newVertex);
+        }
+        mesh.faces().add(vertex_handles);
+
+        vertex_handles.clear();
+        for (auto vertex : polygon2.vertices()) {
+            auto newVertex = mesh.vertices().add();
+            pos[newVertex] = tg::pos3(mesh2.posInt(vertex));
+            vertex_handles.push_back(newVertex);
+        }
+        mesh.faces().add(vertex_handles);
+
+        auto view = gv::view(pos);
+        //gv::view(mesh2.positions(), gv::masked(face2Mask), viewBox);
+    }
+
     //TODO: PlanePolygon? 
     template <class GeometryT>
     static SharedTriIntersect intersect( PlaneMesh& mesh1, const pm::face_handle& polygon1,  PlaneMesh& mesh2, const pm::face_handle& polygon2)
@@ -869,6 +908,13 @@ namespace ob {
 
             sign2 = ob::classify_vertex(subdet2, mesh1.edge(intersection2.intersectionEdge2.edge()));
             sign2 *= mesh1.halfedge(intersection2.intersectionEdge2);
+
+            auto test1 = mesh1.halfedge(intersection2.intersectionEdge2);
+            //auto test1 = mesh1.halfedge(intersection2.intersectionEdge2);
+            
+            if (!(sign1 != 0 || sign2 != 0))
+                showFaces(mesh1, polygon1, mesh2, polygon2);
+            
             TG_ASSERT(sign1 != 0 || sign2 != 0);
 
             if (sharedPoint && sign2 == 0)
