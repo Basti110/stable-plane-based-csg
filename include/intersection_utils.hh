@@ -617,10 +617,10 @@ public:
                 seconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
                 this->splitTimeCount += seconds;
                 
-                planeMesh1.checkAndComputePositions();
-                planeMesh2.checkAndComputePositions();
-                auto testDunpli1 = planeMesh1.noDuplicatedVerticesInFaces();
-                auto testDunpli2 = planeMesh2.noDuplicatedVerticesInFaces();
+                //planeMesh1.checkAndComputePositions();
+                //planeMesh2.checkAndComputePositions();
+                //auto testDunpli1 = planeMesh1.noDuplicatedVerticesInFaces();
+                //auto testDunpli2 = planeMesh2.noDuplicatedVerticesInFaces();
 
                 /*if(!testDunpli1 || !testDunpli2)
                 {
