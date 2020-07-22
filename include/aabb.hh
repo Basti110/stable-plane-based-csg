@@ -258,6 +258,8 @@ namespace ob {
         intersection_result intersection;
         pm::halfedge_handle intersectionEdge1;
         pm::halfedge_handle intersectionEdge2;
+        bool intersectVertex1;
+        bool intersectVertex2;
     };
 
     template <class GeometryT>
@@ -266,6 +268,7 @@ namespace ob {
         subdeterminants<GeometryT> to;
     };
 
+    //Also checks if there is a vertex on the plane
     static IntersectionHandle planeBaseIntersection(const PlaneMesh& mesh1, pm::face_handle const& planeBase, const PlaneMesh& mesh2, pm::face_handle const& polygon)
     {
         int sign = 0;
@@ -274,26 +277,38 @@ namespace ob {
         TG_ASSERT(polygon.is_valid());
         auto halfedges = polygon.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
         pm::halfedge_handle halfedgeHandles[2];
+        bool vertexOnEdge[2];
         
         sign = ob::classify_vertex(mesh2.pos(halfedges[0].vertex_from()), mesh1.face(planeBase));
         //sign = mesh1.signDistanceToBasePlane(planeBase, halfedges[0].vertex_from());
         int signAcc = 0;
         bool startWithSign0 = (sign == 0);
+        int signTmp = sign;
         for (int i = 0; i < halfedges.size(); ++i) {
-            int signTmp = ob::classify_vertex(mesh2.pos(halfedges[i].vertex_to()), mesh1.face(planeBase));
+            bool wasZeroBefore = (signTmp == 0);
+            signTmp = ob::classify_vertex(mesh2.pos(halfedges[i].vertex_to()), mesh1.face(planeBase));
             signAcc += std::abs(signTmp);
             if (signTmp == sign)
                 continue;
 
-            if (signTmp == 0 && (index == 0 || !startWithSign0))
-                continue;
+            if (signTmp == 0) {
+                if ((index == 0 || !startWithSign0))
+                    continue;
 
+                index++;
+                vertexOnEdge[1] = true;
+                halfedgeHandles[1] = halfedges[i].next();
+                break;
+            }                
+
+            //Only happens if start with 0
             if (sign == 0) {
                 sign = signTmp;
                 continue;
             }
 
             sign = signTmp;
+            vertexOnEdge[index] = wasZeroBefore;
             halfedgeHandles[index] = halfedges[i];
             index ++;
         }
@@ -310,6 +325,8 @@ namespace ob {
         intersection.intersection = intersection_result::proper_intersection;
         intersection.intersectionEdge1 = halfedgeHandles[0];
         intersection.intersectionEdge2 = halfedgeHandles[1];
+        intersection.intersectVertex1 = vertexOnEdge[0];
+        intersection.intersectVertex2 = vertexOnEdge[1];
         return intersection;
     }
 
@@ -885,10 +902,16 @@ namespace ob {
             bool sharedPoint = false;
 
             auto nonPlanarIntersection = std::make_shared<TrianlgeIntersectionNonPlanar>();
+            //Edges
             nonPlanarIntersection->triangle1.intersectionEdge1 = intersection2.intersectionEdge1;
             nonPlanarIntersection->triangle1.intersectionEdge2 = intersection2.intersectionEdge2;
             nonPlanarIntersection->triangle2.intersectionEdge1 = intersection1.intersectionEdge1;
             nonPlanarIntersection->triangle2.intersectionEdge2 = intersection1.intersectionEdge2;
+            //Vertices
+            nonPlanarIntersection->triangle1.intersectVertex1 = intersection2.intersectVertex1;
+            nonPlanarIntersection->triangle1.intersectVertex2 = intersection2.intersectVertex2;
+            nonPlanarIntersection->triangle2.intersectVertex1 = intersection1.intersectVertex1;
+            nonPlanarIntersection->triangle2.intersectVertex2 = intersection1.intersectVertex2;
 
             if (sign1 == 0 || sign2 == 0)
                 sharedPoint = true;

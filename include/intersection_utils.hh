@@ -54,16 +54,34 @@ static std::vector<pm::face_handle> split(PlaneMeshInfo& planeMesh, Intersection
     //int countFaces1 = mesh.faces().count();
     auto h1 = intersectionEdges.intersectionEdge1;
     auto h2 = intersectionEdges.intersectionEdge2;
+    auto isectVertex1 = intersectionEdges.intersectVertex1;
+    auto isectVertex2 = intersectionEdges.intersectVertex2;
+
     auto h1From = h1.vertex_from();
     auto h1To = h1.vertex_to();
     auto h2From = h2.vertex_from();
     auto h2To = h2.vertex_to();
 
+    pm::vertex_handle v1New;
+    pm::vertex_handle v2New;
 
+    // split edges or not
+    if (intersectionEdges.intersectVertex1) {
+        v1New = h1.vertex_from();
+        h1 = h1.prev();
+    }     
+    else
+        v1New = splitHalfEdgeLowAPI(mesh, h1);
 
-    // split edges
-    auto v1New = splitHalfEdgeLowAPI(mesh, h1);
-    auto v2New = splitHalfEdgeLowAPI(mesh, h2);
+    if (intersectionEdges.intersectVertex2) {
+        v2New = h2.vertex_from();
+        h2 = h2.prev();
+    }        
+    else
+        v2New = splitHalfEdgeLowAPI(mesh, h2);
+
+    //auto v1New = splitHalfEdgeLowAPI(mesh, h1);
+    //auto v2New = splitHalfEdgeLowAPI(mesh, h2);
     TG_ASSERT(planeMesh.planeMesh.allFacesAreValid());
     //Oder andersrum? vertex_to == new?
     TG_ASSERT(h1.vertex_to() == v1New);
@@ -97,20 +115,39 @@ static std::vector<pm::face_handle> split(PlaneMeshInfo& planeMesh, Intersection
     TG_ASSERT(!invalidEdges);
 
     //Todo: Remove data in attributes
-    Plane planeH1 = planeMesh.planeMesh.edge(h1);
-    Plane planeH2 = planeMesh.planeMesh.edge(h2);
-    int8_t signH1 = planeMesh.planeMesh.halfedge(h1);
-    int8_t signH2 = planeMesh.planeMesh.halfedge(h2);
+    //Set Planes on Faces
+    planeMesh.planeMesh.setFace(newFace1, plane);
+    planeMesh.planeMesh.setFace(newFace2, plane);
 
-    auto edgeFace1 = mesh.halfedges().add_or_get(v2New, v1New);
-    auto edgeFace2 = mesh.halfedges().add_or_get(v1New, v2New);
+    //Set Planes on Edges if needed
+    if (!intersectionEdges.intersectVertex1) {
+        Plane planeH1 = planeMesh.planeMesh.edge(h1);
+        auto edge1_1 = mesh.halfedges().add_or_get(v1New, h1To);
+        auto edge1_2 = mesh.halfedges().add_or_get(h1From, v1New);
+        planeMesh.planeMesh.setEdge(edge1_1.edge(), planeH1);
+        planeMesh.planeMesh.setEdge(edge1_2.edge(), planeH1);
 
-    auto edge1_1 = mesh.halfedges().add_or_get(v1New, h1To);
-    auto edge1_2 = mesh.halfedges().add_or_get(h1From, v1New);
+        int8_t signH1 = planeMesh.planeMesh.halfedge(h1);
+        planeMesh.planeMesh.setHalfedge(edge1_1, signH1);
+        planeMesh.planeMesh.setHalfedge(edge1_2, signH1);
+        planeMesh.planeMesh.setHalfedge(edge1_1.opposite(), -signH1);
+        planeMesh.planeMesh.setHalfedge(edge1_2.opposite(), -signH1);
+    }
 
-    auto edge2_1 = mesh.halfedges().add_or_get(v2New, h2To);
-    auto edge2_2 = mesh.halfedges().add_or_get(h2From, v2New);
+    if (!intersectionEdges.intersectVertex2) {
+        Plane planeH2 = planeMesh.planeMesh.edge(h2);
+        auto edge2_1 = mesh.halfedges().add_or_get(v2New, h2To);
+        auto edge2_2 = mesh.halfedges().add_or_get(h2From, v2New);
+        planeMesh.planeMesh.setEdge(edge2_1.edge(), planeH2);
+        planeMesh.planeMesh.setEdge(edge2_2.edge(), planeH2);
 
+        int8_t signH2 = planeMesh.planeMesh.halfedge(h2);
+        planeMesh.planeMesh.setHalfedge(edge2_1, signH2);
+        planeMesh.planeMesh.setHalfedge(edge2_2, signH2);
+        planeMesh.planeMesh.setHalfedge(edge2_1.opposite(), -signH2);
+        planeMesh.planeMesh.setHalfedge(edge2_2.opposite(), -signH2);
+    }
+    
     //int countEdges3 = mesh.halfedges().count();
     //mesh.halfedges().remove_edge(h1);
     //mesh.halfedges().remove_edge(h2);
@@ -121,23 +158,10 @@ static std::vector<pm::face_handle> split(PlaneMeshInfo& planeMesh, Intersection
 
     //Init Data
 
-    planeMesh.planeMesh.setFace(newFace1, plane);
-    planeMesh.planeMesh.setFace(newFace2, plane);
+    auto edgeFace1 = mesh.halfedges().add_or_get(v2New, v1New);
+    auto edgeFace2 = mesh.halfedges().add_or_get(v1New, v2New);
+
     planeMesh.planeMesh.setEdge(edgeFace1.edge(), iSectPlane);
-    planeMesh.planeMesh.setEdge(edge1_1.edge(), planeH1);
-    planeMesh.planeMesh.setEdge(edge1_2.edge(), planeH1);
-    planeMesh.planeMesh.setEdge(edge2_1.edge(), planeH2);
-    planeMesh.planeMesh.setEdge(edge2_2.edge(), planeH2);
-
-    planeMesh.planeMesh.setHalfedge(edge1_1, signH1);
-    planeMesh.planeMesh.setHalfedge(edge1_2, signH1);
-    planeMesh.planeMesh.setHalfedge(edge2_1, signH2);
-    planeMesh.planeMesh.setHalfedge(edge2_2, signH2);
-    planeMesh.planeMesh.setHalfedge(edge1_1.opposite(), -signH1);
-    planeMesh.planeMesh.setHalfedge(edge1_2.opposite(), -signH1);
-    planeMesh.planeMesh.setHalfedge(edge2_1.opposite(), -signH2);
-    planeMesh.planeMesh.setHalfedge(edge2_2.opposite(), -signH2);
-
     auto pos = planeMesh.planeMesh.pos(edgeFace1.next().vertex_to());
     auto sign = ob::classify_vertex(pos, iSectPlane);
 
@@ -592,6 +616,25 @@ public:
                 end = std::chrono::steady_clock::now();
                 seconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
                 this->splitTimeCount += seconds;
+                
+                planeMesh1.checkAndComputePositions();
+                planeMesh2.checkAndComputePositions();
+                auto testDunpli1 = planeMesh1.noDuplicatedVerticesInFaces();
+                auto testDunpli2 = planeMesh2.noDuplicatedVerticesInFaces();
+
+                /*if(!testDunpli1 || !testDunpli2)
+                {
+                    auto faceColors1 = planeMesh1.mesh().faces().make_attribute_with_default(false);
+                    faceColors1[splits.facesT1[0]] = true;
+                    faceColors1[splits.facesT1[1]] = true;
+                    auto faceColors2 = planeMesh2.mesh().faces().make_attribute_with_default(false);
+                    faceColors2[splits.facesT2[0]] = true;
+                    faceColors2[splits.facesT2[1]] = true;
+                    auto view = gv::view(planeMesh1.positions(), gv::masked(faceColors1));
+                    gv::view(gv::lines(planeMesh1.positions()).line_width_world(1000));
+                    gv::view(planeMesh2.positions(), gv::masked(faceColors2));
+                    gv::view(gv::lines(planeMesh2.positions()).line_width_world(1000));
+                }*/
                 
                 //Todo
                 if (triangle.idx.value == 3108 || t2.idx.value == 3108) {

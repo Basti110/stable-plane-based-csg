@@ -166,6 +166,55 @@ public:
         return true;
     }
 
+    bool noDuplicatedVerticesInFaces(pm::face_attribute<bool>& mask) {  
+        bool noDuplicates = true;
+        for (auto f : mMesh.faces()) {
+            auto vertices = f.vertices().to_vector([](pm::vertex_handle i) { return i; }); 
+            for (auto i = 0; i < vertices.size(); ++i) {
+                for (auto j = i + 1; j < vertices.size(); ++j) {
+                    if (mPositions[vertices[i]] == mPositions[vertices[j]]) {
+                        noDuplicates = false;
+                        mask[f] = true;
+                    }                       
+                }                  
+            }
+        }
+        return noDuplicates;
+    }
+
+    bool noDuplicatedVerticesInFaces() {
+        for (auto f : mMesh.faces()) {
+            auto vertices = f.vertices().to_vector([](pm::vertex_handle i) { return i; });
+            for (auto i = 0; i < vertices.size(); ++i) {
+                for (auto j = i + 1; j < vertices.size(); ++j) {
+                    if (mPositions[vertices[i]] == mPositions[vertices[j]]) {
+                        pos_t postest = mPositions[vertices[i]];
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    bool allFacesHaveEdges() {
+        for (auto f : mMesh.all_faces()) {
+            if (f.is_removed())
+                continue;
+
+            auto h = f.any_halfedge();
+            pm::halfedge_handle hTmp;
+            int count = 0;
+            do {
+                count++;
+                hTmp = h.next();
+            } while (hTmp != h && count <= f.halfedges().count());
+            if (h != hTmp)
+                return false;
+        }
+        return true;
+    }
+
     bool allFacesAreValidAndNotRemoved() {
         for (auto f : mMesh.all_faces()) {
             if (f.is_invalid() || f.is_removed())

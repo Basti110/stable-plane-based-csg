@@ -5,6 +5,7 @@ TEST("Test::Cut_Triangle_Normal") {
     tg::triangle<3, scalar_t> triangle2({ { 0, 5, -15 }, { 5, -5, -5 }, { -5, -5, -5 } });
     tg::triangle<3, scalar_t> triangle3({ { 10, 5, -10 }, { 5, -5, 5 }, { 15, -5, 5 } });
     tg::triangle<3, scalar_t> triangle4({ { 0, 2, -7 }, { 0, -2, -9 }, { 0, -2, -5 } });
+    tg::triangle<3, scalar_t> triangle5({ { 5, -5, 0 }, { 5, 5, 0 }, { 10, 0, -10 } });
 
     PlaneMesh planeMesh1;
     PlaneMesh planeMesh2;
@@ -16,12 +17,18 @@ TEST("Test::Cut_Triangle_Normal") {
     faces.push_back(planeMesh2.insertTriangle(triangle2 * scale));
     faces.push_back(planeMesh2.insertTriangle(triangle3 * scale));
     faces.push_back(planeMesh2.insertTriangle(triangle4 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle5 * scale));
 
     IntersectionCut intersectionCut;
     intersectionCut.splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
     
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
+
+    //planeMesh1.mesh().compactify();
+    //planeMesh2.mesh().compactify();
+    auto test1 = planeMesh1.noDuplicatedVerticesInFaces();
+    auto test2 = planeMesh2.noDuplicatedVerticesInFaces();
 
     auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));

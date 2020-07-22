@@ -28,6 +28,9 @@ void test_trianle_classification();
 void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
 
 int main() {
+    if (bool test = true) {
+        std::cout << test;
+    }
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
     //tests.run();
@@ -192,7 +195,7 @@ void test_color_in_mesh() {
     auto trans1 = translation1 * rotatation1;
     transformation(pos1, trans1);
 
-    scalar_t scale = 1e5;
+    scalar_t scale = 1e6;
     PlaneMesh planeMesh1(mesh1, pos1, scale);
     PlaneMesh planeMesh2(mesh2, pos2, scale);
 
@@ -240,10 +243,14 @@ void test_cut_mesh() {
     pm::Mesh mesh1;
     pm::vertex_attribute<tg::pos3> pos1(mesh1);
     pm::load("../data/mesh/fox.obj", mesh1, pos1);
+    mesh1.compactify();
+    pm::deduplicate(mesh1, pos1);
 
     pm::Mesh mesh2;
     pm::vertex_attribute<tg::pos3> pos2(mesh2);
     pm::load("../data/mesh/fox.obj", mesh2, pos2);
+    mesh2.compactify();
+    pm::deduplicate(mesh2, pos2);
 
     auto translation1 = tg::translation(tg::vec{ 0.f, -50.f, 15.f });
     auto rotatation1 = tg::rotation_x(tg::angle::from_degree(-90));
@@ -271,14 +278,26 @@ void test_cut_mesh() {
     auto seconds = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
 
     std::cout << "Cut in " << seconds << "ms" << std::endl;
+    if (planeMesh1.allFacesHaveEdges())
+        return;
+
+    if (planeMesh2.allFacesHaveEdges())
+        return;
 
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
-    planeMesh2.mesh().compactify();
-    pm::deduplicate(planeMesh2.mesh(), planeMesh2.positions());
-    auto view = gv::view(gv::polygons(planeMesh1.positions()).face_normals());
-    //gv::view(planeMesh2.positions());
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(50000), tg::color3::red);
+
+    planeMesh1.mesh().compactify();
+    auto faceMask1 = planeMesh1.mesh().faces().make_attribute_with_default(false);
+    auto faceMask2 = planeMesh2.mesh().faces().make_attribute_with_default(false);
+
+    auto test1 = planeMesh1.noDuplicatedVerticesInFaces(faceMask1);
+    auto test2 = planeMesh2.noDuplicatedVerticesInFaces(faceMask2);
+
+    //int test = pm::deduplicate(planeMesh1.mesh(), planeMesh1.positions());
+    //auto view = gv::view(planeMesh1.positions(), gv::masked(faceMask1));
+    gv::view(planeMesh2.positions());
+    //gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::red);
     //gv::view(gv::lines(planeMesh2.positions()).line_width_world(50000));
 }
 
