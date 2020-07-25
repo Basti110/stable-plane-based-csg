@@ -25,6 +25,7 @@ void test_octree();
 void test_transpose();
 void test_octree_two_meshes();
 void test_trianle_classification();
+void test_color_lines();
 void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
 
 int main() {
@@ -42,9 +43,10 @@ int main() {
     positions.push_back({ 0, 0, 2 });
     positions.push_back({ 0, 0, 0 });
     positions.push_back({ 1, 0, -2 });
-
+    
+    test_color_in_mesh();
     test_cut_mesh();
-    //test_color_in_mesh();
+    //test_color_lines();
     //test_trianle_classification();
     
     //testIntersectionTriangleNormal();
@@ -217,6 +219,7 @@ void test_color_in_mesh() {
     AABB box({ -60 * scale, -60 * scale, -40 * scale }, { 60 * scale, 60 * scale, 80 * scale });
     SharedOctree octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
 
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     for (auto f : planeMesh1.allFaces()) {
         octree->insert_polygon(planeMesh1.id(), f);
     }
@@ -225,7 +228,6 @@ void test_color_in_mesh() {
         octree->insert_polygon(planeMesh2.id(), f);
     }
 
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     int intersectionCount = octree->markIntersections(faceColors1, faceColors2);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     auto seconds = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
@@ -234,8 +236,36 @@ void test_color_in_mesh() {
     //test[mesh1.faces().first()] = tg::color3::black;
     auto view = gv::view(planeMesh1.positions(), faceColors1);
     gv::view(planeMesh2.positions(), faceColors2);
-    /*auto view = gv::view(gv::lines(pos1).line_width_world(1));
-    gv::view(gv::lines(pos2).line_width_world(1));*/
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000));
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000));
+}
+
+void test_color_lines() {
+
+    pm::Mesh mesh1;
+    pm::vertex_attribute<tg::pos3> pos1(mesh1);
+    pm::load("../data/mesh/fox.obj", mesh1, pos1);
+
+    pm::Mesh mesh2;
+    pm::vertex_attribute<tg::pos3> pos2(mesh2);
+    pm::load("../data/mesh/fox.obj", mesh2, pos2);
+
+    auto translation1 = tg::translation(tg::vec{ 0.f, -50.f, 15.f });
+    auto rotatation1 = tg::rotation_x(tg::angle::from_degree(-90));
+    auto trans1 = translation1 * rotatation1;
+    transformation(pos1, trans1);
+
+    scalar_t scale = 1e6;
+    PlaneMesh planeMesh1(mesh1, pos1, scale);
+    PlaneMesh planeMesh2(mesh2, pos2, scale);
+
+    auto edgeColors1 = planeMesh1.mesh().edges().make_attribute_with_default(tg::color3::cyan);
+    auto edgeColors2 = planeMesh2.mesh().edges().make_attribute_with_default(tg::color3::magenta);
+
+    auto view = gv::view(planeMesh1.positions());
+    gv::view(planeMesh2.positions());
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(100000), edgeColors1);
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(100000), edgeColors2);
 }
 
 void test_cut_mesh() {
@@ -273,7 +303,7 @@ void test_cut_mesh() {
     }
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    octree->cutPolygons();
+    auto iCut = octree->cutPolygons();
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     auto seconds = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
 
@@ -296,9 +326,12 @@ void test_cut_mesh() {
 
     //int test = pm::deduplicate(planeMesh1.mesh(), planeMesh1.positions());
     //auto view = gv::view(planeMesh1.positions(), gv::masked(faceMask1));
-    gv::view(planeMesh2.positions());
-    //gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::red);
-    //gv::view(gv::lines(planeMesh2.positions()).line_width_world(50000));
+    auto view = gv::view(planeMesh2.positions(), tg::color3::color(0.5));
+    //gv::view(gv::lines(planeMesh2.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::color(0.0));
+    gv::view(planeMesh1.positions());
+    //gv::view(gv::lines(planeMesh1.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::color(0.0));
 }
 
 void test_octree_two_meshes() {
@@ -385,4 +418,8 @@ void test_trianle_classification() {
     std::cout << "comp 1 " << comp1 << std::endl;
     std::cout << "comp 2 " << comp2 << std::endl;
     std::cout << "comp 3 " << comp3 << std::endl;
+}
+
+void mark_component_test() {
+
 }

@@ -202,13 +202,14 @@ public:
         return count;
     }
 
-    void cutPolygons() {
+    IntersectionCut cutPolygons() {
         IntersectionCut faceLookUp(mMeshA, mMeshB);
         //Todo
         bool test1 = mMeshA->allFacesAreValidAndNotRemoved();
         bool test2 = mMeshB->allFacesAreValidAndNotRemoved();
         mRoot->cutPolygons(faceLookUp);
         IntersectionCut::printTimes();
+        return faceLookUp;
     }
     //PlaneMesh& meshA() { return mMeshA; }
     //PlaneMesh& meshB() { return mMeshB; }
