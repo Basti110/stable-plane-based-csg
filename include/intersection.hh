@@ -24,11 +24,21 @@ public:
 
 class TrianlgeIntersectionNonPlanar : public TrianlgeIntersection {
 public:
+
+    //Touching: vertex of polygon ... lies on face ...
+    enum class NonPlanarState
+    {
+        TOUCHING_1_ON_2,
+        TOUCHING_2_ON_1,
+        PROPER_INTERSECTION,
+    };
+
     TrianlgeIntersectionNonPlanar() 
     {
         intersectionState = IntersectionState::NON_PLANAR;
     }
 
+    NonPlanarState state = NonPlanarState::PROPER_INTERSECTION;
     IntersectionEdges triangle1;
     IntersectionEdges triangle2;
 };

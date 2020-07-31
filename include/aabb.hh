@@ -281,17 +281,29 @@ namespace ob {
         
         sign = ob::classify_vertex(mesh2.pos(halfedges[0].vertex_from()), mesh1.face(planeBase));
         //sign = mesh1.signDistanceToBasePlane(planeBase, halfedges[0].vertex_from());
-        int signAcc = 0;
+        int signPosAcc = 0;
+        int signNegAcc = 0;
         bool startWithSign0 = (sign == 0);
         int signTmp = sign;
+
+        if (signTmp > 0)
+            signPosAcc++;
+        else if (signTmp < 0)
+            signNegAcc++;
+
         for (int i = 0; i < halfedges.size(); ++i) {
             bool wasZeroBefore = (signTmp == 0);
             signTmp = ob::classify_vertex(mesh2.pos(halfedges[i].vertex_to()), mesh1.face(planeBase));
-            signAcc += std::abs(signTmp);
+
+            if (signTmp > 0)
+                signPosAcc++;
+            else if (signTmp < 0)
+                signNegAcc++;
+
             if (signTmp == sign)
                 continue;
 
-            if (signTmp == 0) {
+            /*if (signTmp == 0) {
                 if ((index == 0 || !startWithSign0))
                     continue;
 
@@ -299,30 +311,50 @@ namespace ob {
                 vertexOnEdge[1] = true;
                 halfedgeHandles[1] = halfedges[i].next();
                 break;
-            }                
+            }*/    
+
+            if (signTmp == 0 && wasZeroBefore) {
+                continue;
+            }
+
+            if (signTmp == 0 && index == 2) {
+                continue;
+            }
 
             //Only happens if start with 0
-            if (sign == 0) {
+            /*if (sign == 0) {
                 sign = signTmp;
+                continue;
+            }*/
+
+            if (wasZeroBefore && signPosAcc != 0 && signNegAcc != 0) {
+                sign = signTmp;
+                vertexOnEdge[index - 1] = true;
+                halfedgeHandles[index - 1] = halfedges[i];
                 continue;
             }
 
             sign = signTmp;
             vertexOnEdge[index] = wasZeroBefore;
             halfedgeHandles[index] = halfedges[i];
-            index ++;
+            index++;
+            TG_ASSERT(index <= 2);
         }
 
         IntersectionHandle intersection;
         if (index == 0) {
-            if(signAcc == 0)
+            if(signPosAcc == 0 && signNegAcc == 0)
                 intersection.intersection = intersection_result::co_planar;
             else
                 intersection.intersection = intersection_result::non_intersecting;
             return intersection;
         } 
         TG_ASSERT(index == 2 && "On a Convex Polygon are now exactly 2 intersections");
-        intersection.intersection = intersection_result::proper_intersection;
+        if(signPosAcc > 0 && signNegAcc > 0)
+            intersection.intersection = intersection_result::proper_intersection;
+        else
+            intersection.intersection = intersection_result::touching;
+
         intersection.intersectionEdge1 = halfedgeHandles[0];
         intersection.intersectionEdge2 = halfedgeHandles[1];
         intersection.intersectVertex1 = vertexOnEdge[0];
@@ -864,6 +896,9 @@ namespace ob {
         if (intersection2.intersection == intersection_result::non_intersecting)
             return std::make_shared<TrianlgeIntersection>();
 
+        if(intersection2.intersection == intersection_result::touching && intersection1.intersection == intersection_result::touching)
+            return std::make_shared<TrianlgeIntersection>();
+
         const Plane& basePlane1 = mesh1.getPlane(polygon1);
         const Plane& basePlane2 = mesh2.getPlane(polygon2);
 
@@ -912,6 +947,15 @@ namespace ob {
             nonPlanarIntersection->triangle1.intersectVertex2 = intersection2.intersectVertex2;
             nonPlanarIntersection->triangle2.intersectVertex1 = intersection1.intersectVertex1;
             nonPlanarIntersection->triangle2.intersectVertex2 = intersection1.intersectVertex2;
+            //state 
+
+            nonPlanarIntersection->state = TrianlgeIntersectionNonPlanar::NonPlanarState::PROPER_INTERSECTION;
+
+            if (intersection2.intersection == intersection_result::touching)
+                nonPlanarIntersection->state = TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_1_ON_2;
+
+            if (intersection1.intersection == intersection_result::touching)
+                nonPlanarIntersection->state = TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_2_ON_1;
 
             if (sign1 == 0 || sign2 == 0)
                 sharedPoint = true;

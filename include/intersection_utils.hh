@@ -519,10 +519,21 @@ NewFaces split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, 
 
     if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::NON_PLANAR) {
         SharedTriIntersectNonPlanar isectNonPlanar = std::static_pointer_cast<TrianlgeIntersectionNonPlanar>(intersection);
-        Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
-        Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
-        splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);
-        splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
+        //TODO: nicht intuitiv
+        if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::PROPER_INTERSECTION) {
+            Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
+            Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
+            splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);
+            splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
+        }
+        else if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_1_ON_2) {
+            Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
+            splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
+        }
+        else if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_2_ON_1) {
+            Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
+            splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);
+        }
     }
     else if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
         SharedTriIntersectPlanar isectPlanar = std::static_pointer_cast<TrianlgeIntersectionPlanar>(intersection);
