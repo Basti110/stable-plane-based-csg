@@ -476,7 +476,7 @@ public:
         return mMesh;
     }
 
-    int id() {
+    int id() const {
         return mID;
     }
 

@@ -385,17 +385,9 @@ public:
             rayWorld = tg::normalize(rayWorld);
 
             auto camPos = cam->getPosition();
-            std::vector<AABB> intersectionBoxes1;
-            std::vector<tg::aabb3> intersectionBoxes2;
-            getAllBoundingBoxes(rayWorld, pos_t(camPos), intersectionBoxes1);
             auto nearestFace = getNearestFace(rayWorld, pos_t(camPos));
-
-            for (auto box : intersectionBoxes1) {
-                intersectionBoxes2.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
-            }
+ 
             auto face = nearestFace.faceIndex;
-            std::cout << face.value << std::endl;
-
             std::vector<pos_t> vertices;
             if (nearestFace.meshID == mMeshA->id() && face.is_valid()) {
                 faceColors1[face.of(mMeshA->mesh())] = tg::color3::red;
@@ -428,6 +420,9 @@ public:
 
             if (ImGui::Button("close viewer"))
                 gv::close_viewer();
+
+            /*if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                handleClick();*/
 
             ImGui::Text("Mouse Pos: %f:%f:%f", rayWorld.x, rayWorld.y, rayWorld.z);
 
