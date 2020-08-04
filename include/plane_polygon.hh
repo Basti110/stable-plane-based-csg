@@ -316,6 +316,18 @@ public:
         return false;
     }
 
+    std::vector<pos_t> getVerticesOfFace(const pm::face_index& face) {
+        return getVerticesOfFace(face.of(mMesh));
+    }
+
+    std::vector<pos_t> getVerticesOfFace(const pm::face_handle& face) {
+        std::vector<pos_t> vertices;
+        vertices.reserve(face.vertices().count());
+        for (auto vertex : face.vertices())
+            vertices.push_back(mPositions[vertex]);
+        return vertices;
+    }
+
     PlanePolygon planePolygon(const pm::face_index& face) {
         return {face.of(mMesh), mPositions, mFaces, mEdges };
     }

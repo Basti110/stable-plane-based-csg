@@ -384,17 +384,6 @@ public:
             tg::vec3 rayWorld = tg::vec3(rayWorld4);
             rayWorld = tg::normalize(rayWorld);
 
-            ImGui::Begin("Move");
-            if (ImGui::Button("make screenshot"))
-                gv::make_screenshot("screenshot.png", 1920, 1080);
-
-            if (ImGui::Button("close viewer"))
-                gv::close_viewer();
-
-
-            ImGui::Text("Mouse Pos: %f:%f:%f", rayWorld.x, rayWorld.y, rayWorld.z);
-            ImGui::End();
-
             auto camPos = cam->getPosition();
             std::vector<AABB> intersectionBoxes1;
             std::vector<tg::aabb3> intersectionBoxes2;
@@ -407,11 +396,16 @@ public:
             auto face = nearestFace.faceIndex;
             std::cout << face.value << std::endl;
 
-            if (nearestFace.meshID == mMeshA->id() && face.is_valid())
+            std::vector<pos_t> vertices;
+            if (nearestFace.meshID == mMeshA->id() && face.is_valid()) {
                 faceColors1[face.of(mMeshA->mesh())] = tg::color3::red;
-            else if (face.is_valid())
+                vertices = mMeshA->getVerticesOfFace(face);
+            }             
+            else if (face.is_valid()) {
                 faceColors2[face.of(mMeshB->mesh())] = tg::color3::red;
-
+                vertices = mMeshB->getVerticesOfFace(face);
+            }
+                
             {
                 auto view = gv::view(mMeshA->positions(), cam, faceColors1);
                 gv::view(mMeshB->positions(), cam, faceColors2);
@@ -427,6 +421,21 @@ public:
                 faceColors1[face.of(mMeshA->mesh())] = tg::color3::white;
             else if (face.is_valid())
                 faceColors2[face.of(mMeshB->mesh())] = tg::color3::white;
+
+            ImGui::Begin("Move");
+            if (ImGui::Button("make screenshot"))
+                gv::make_screenshot("screenshot.png", 1920, 1080);
+
+            if (ImGui::Button("close viewer"))
+                gv::close_viewer();
+
+            ImGui::Text("Mouse Pos: %f:%f:%f", rayWorld.x, rayWorld.y, rayWorld.z);
+
+            for (int i = 0; i < vertices.size(); ++i) {
+                ImGui::Text("Pos %i: %ld:%ld:%ld", i, double(vertices[i].x), double(vertices[i].y), double(vertices[i].z));
+            }
+
+            ImGui::End();
         });
     }
 
