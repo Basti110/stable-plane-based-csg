@@ -9,7 +9,7 @@
 #include "plane_polygon.hh"
 //intersection and cut
 #include <intersection_utils.hh>
-
+#include <face_marker.hh>
 #include <glow-extras/viewer/view.hh>
 #include <glow-extras/viewer/experimental.hh>
 
@@ -365,8 +365,7 @@ public:
         auto const mesh2Render = gv::make_renderable(mMeshB->positions());
         
         NearestFace currentNearestFace;
-        auto faceColors1 = mMeshA->mesh().faces().make_attribute_with_default(tg::color3::white);
-        auto faceColors2 = mMeshB->mesh().faces().make_attribute_with_default(tg::color3::white);
+        FaceMarker2 marker(mMeshA, mMeshB);
 
         gv::interactive([&](auto) {
             auto const mousePos = gv::experimental::interactive_get_mouse_position();
@@ -389,18 +388,17 @@ public:
  
             auto face = nearestFace.faceIndex;
             std::vector<pos_t> vertices;
-            if (nearestFace.meshID == mMeshA->id() && face.is_valid()) {
-                faceColors1[face.of(mMeshA->mesh())] = tg::color3::red;
-                vertices = mMeshA->getVerticesOfFace(face);
-            }             
-            else if (face.is_valid()) {
-                faceColors2[face.of(mMeshB->mesh())] = tg::color3::red;
-                vertices = mMeshB->getVerticesOfFace(face);
+            marker.colorFace(face, nearestFace.meshID);
+            if (face.is_valid()) {
+                if (nearestFace.meshID == mMeshA->id())
+                    vertices = mMeshA->getVerticesOfFace(face);
+                else
+                    vertices = mMeshB->getVerticesOfFace(face);
             }
-                
+
             {
-                auto view = gv::view(mMeshA->positions(), cam, faceColors1);
-                gv::view(mMeshB->positions(), cam, faceColors2);
+                auto view = gv::view(mMeshA->positions(), cam, marker.faceColorsA());
+                gv::view(mMeshB->positions(), cam, marker.faceColorsB());
 
                 if (currentNearestFace.faceIndex != nearestFace.faceIndex) {
                     currentNearestFace = nearestFace;
@@ -409,10 +407,7 @@ public:
 
             }
 
-            if (nearestFace.meshID == mMeshA->id() && face.is_valid())
-                faceColors1[face.of(mMeshA->mesh())] = tg::color3::white;
-            else if (face.is_valid())
-                faceColors2[face.of(mMeshB->mesh())] = tg::color3::white;
+            marker.uncolorFace(face, nearestFace.meshID);
 
             ImGui::Begin("Move");
             if (ImGui::Button("make screenshot"))
@@ -421,8 +416,14 @@ public:
             if (ImGui::Button("close viewer"))
                 gv::close_viewer();
 
-            /*if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                handleClick();*/
+            if (ImGui::Button("save marked polygons"))
+                marker.saveMarkedFacesInFile();
+
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                marker.markFace(face, nearestFace.meshID);
+
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                marker.unmarkFace(face, nearestFace.meshID);
 
             ImGui::Text("Mouse Pos: %f:%f:%f", rayWorld.x, rayWorld.y, rayWorld.z);
 
