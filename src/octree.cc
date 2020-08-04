@@ -145,6 +145,34 @@ void LeafNode::markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm:
     }
 }
 
+NearestFace LeafNode::getNearestFace(tg::vec3 ray, pos_t origin) {
+    NearestFace currentNearest = { -1, pm::face_index(), -1 };
+    
+    for (pm::face_index& face : mFacesMeshA) {
+        PlaneMesh* planeMesh = mOctree->mMeshA;
+        auto distance = planeMesh->rayHitPolygon(face, ray, origin);
+        TG_ASSERT(distance >= -1);
+
+        if (distance == -1)
+            continue;
+
+        if (currentNearest.distance == -1 || distance < currentNearest.distance)
+            currentNearest = { planeMesh->id(), face, distance };
+    }
+
+    for (pm::face_index& face : mFacesMeshB) {
+        PlaneMesh* planeMesh = mOctree->mMeshB;
+        auto distance = planeMesh->rayHitPolygon(face, ray, origin);
+
+        if (distance == -1)
+            continue;
+
+        if (currentNearest.distance == -1 || distance < currentNearest.distance)
+            currentNearest = { planeMesh->id(), face, distance };
+    }
+    return currentNearest;
+}
+
 /*void LeafNode::splitAccordingToIntersection(pm::face_index triangle)
 {
     for (pm::face_index t2 : mFacesMeshB) {

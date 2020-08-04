@@ -1,5 +1,5 @@
 #pragma once
-
+#include <optional>
 #include <functional>
 #include <integer_math.hh>
 #include <typed-geometry/tg.hh>
@@ -165,8 +165,7 @@ bool are_parallel(plane<geometry_t> const& p0, plane<geometry_t> const& p1)
     return is_zero(crossa) && is_zero(crossb) && is_zero(crossc);
 }
 
-/// positive in normal direction.
-template <class geometry_t> // TODO
+template <class geometry_t>
 auto signed_distance(plane<geometry_t> const& plane, typename geometry_t::pos_t const& point)
 {
     // dot of normal and point plus d
@@ -176,6 +175,31 @@ auto signed_distance(plane<geometry_t> const& plane, typename geometry_t::pos_t 
            plane.d;
 }
 
+template <class geometry_t> // TODO
+std::optional<typename double> intersection_distance(plane<geometry_t> const& plane, typename geometry_t::pos_t const& ray_origin, tg::vec3 const& ray_dir)
+{
+    tg::dvec3 plane_norm = -tg::dvec3(plane.a, plane.b, plane.c);
+    plane_norm = tg::normalize(plane_norm);
+    //std::cout << "i " << -plane.d << std::endl;
+    //std::cout << "d " << plane.to_dplane().dis << std::endl;
+
+
+    //plane.to_dplane().dis
+    double denom = tg::dot(plane_norm, tg::dvec3(ray_dir));
+    if (denom > 0) {
+        //TODO double to scalar_t
+        auto const il = 1. / length(tg::dvec3(plane.a, plane.b, plane.c));
+        auto len = double(plane.d) * il;
+        tg::dvec3 p0l0 = (plane_norm * len) - tg::dvec3(ray_origin);
+        double t = (tg::dot(p0l0, plane_norm) / denom);
+        if (t > 0)
+            return t;
+        else
+            return -1;
+    }
+
+    return std::nullopt;
+}
 
 template <class GeometryT>
 struct subdeterminants

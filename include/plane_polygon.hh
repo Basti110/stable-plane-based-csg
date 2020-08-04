@@ -197,6 +197,29 @@ public:
         return true;
     }
 
+    double rayHitPolygon(pm::face_index face, tg::vec3 rayDir, pos_t rayOrigin) {
+        return rayHitPolygon(face.of(mMesh), rayDir, rayOrigin);
+    }
+
+    double rayHitPolygon(pm::face_handle face, tg::vec3 rayDir, pos_t rayOrigin) {
+        auto disOption = ob::intersection_distance<geometry128>(mFaces[face], rayOrigin, rayDir);
+        if (disOption) {
+            TG_ASSERT(disOption.value() >= -1);
+            for (pm::halfedge_handle& halfedge : face.halfedges()) {
+                //std::cout << (tg::dvec3(rayDir) * disOption.value()).x << ":" << (tg::dvec3(rayDir) * disOption.value()).y << ":" << (tg::dvec3(rayDir) * disOption.value()).z << std::endl;
+                pos_t pos = rayOrigin + vec_t(rayDir * disOption.value());
+                auto signedDistance = ob::signed_distance(mEdges[halfedge.edge()], pos);
+                int8_t sign = signedDistance > 0 ? 1 : -1;
+                TG_ASSERT(mHalfEdges[halfedge] != 0);
+                if (sign * mHalfEdges[halfedge] == 1) {
+                    return -1;
+                }
+            }
+            return disOption.value();
+        }
+        return -1;
+    }
+
     bool allFacesHaveEdges() {
         for (auto f : mMesh.all_faces()) {
             if (f.is_removed())

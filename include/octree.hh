@@ -4,10 +4,14 @@
 #include <memory>
 #include <array>
 #include <unordered_map>
+#include <imgui/imgui.h>
 //#include <set>
 #include "plane_polygon.hh"
 //intersection and cut
 #include <intersection_utils.hh>
+
+#include <glow-extras/viewer/view.hh>
+#include <glow-extras/viewer/experimental.hh>
 
 class OctreeNode;
 class BranchNode;
@@ -26,6 +30,18 @@ struct PolygonIndex
 {
     int mMeshIndex;
     int mPolyIndex;
+};
+
+struct NearestFace
+{
+    int meshID;
+    pm::face_index faceIndex;
+    double distance;
+};
+
+struct BoxAndDistance {
+    AABB box = AABB();
+    scalar_t dinstance = -1;
 };
 
 class OctreeNode {
@@ -47,9 +63,59 @@ public:
     virtual SharedOctreeNode parent() = 0;
     virtual void cutPolygons(IntersectionCut& lookup) {};
     virtual void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {}
+    virtual BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) { return { AABB(), -1 }; }
+    virtual NearestFace getNearestFace(tg::vec3 ray, pos_t origin) { return { -1, pm::face_index(), -1 }; }
+    virtual void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) { }
     bool isInTree();
     bool hasParent();
     bool polygonInAABB(int meshIdx, pm::face_index faceIdx);
+    virtual bool isNotLeafOrContainsData() {
+        return true;
+    }
+
+    bool intersect(tg::vec3 ray, pos_t origin)
+    {
+        double tmin = (mAABB.min.x - origin.x) / ray.x;
+        double tmax = (mAABB.max.x - origin.x) / ray.x;
+
+        if (tmin > tmax) std::swap(tmin, tmax);
+
+        double tymin = (mAABB.min.y - origin.y) / ray.y;
+        double tymax = (mAABB.max.y - origin.y) / ray.y;
+
+        if (tymin > tymax) std::swap(tymin, tymax);
+
+        if ((tmin > tymax) || (tymin > tmax))
+            return false;
+
+        if (tymin > tmin)
+            tmin = tymin;
+
+        if (tymax < tmax)
+            tmax = tymax;
+
+        double tzmin = (mAABB.min.z - origin.z) / ray.z;
+        double tzmax = (mAABB.max.z - origin.z) / ray.z;
+
+        if (tzmin > tzmax) std::swap(tzmin, tzmax);
+
+        if ((tmin > tzmax) || (tzmin > tmax))
+            return false;
+
+        if (tzmin > tmin)
+            tmin = tzmin;
+
+        if (tzmax < tmax)
+            tmax = tzmax;
+
+        return true;
+    }
+
+    scalar_t distance(pos_t point) {
+        pos_t origin = mAABB.min + (mAABB.max - mAABB.min) / 2;
+        vec_t distance = point - origin;
+        return tg::length(distance);
+    }
     
 
     Octree* getOctree();
@@ -79,7 +145,18 @@ public:
     SharedBranchNode split();
     void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override;
     void cutPolygons(IntersectionCut& lookup) override;
+    BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) override {
+        return { mAABB, distance(origin) };
+    }
 
+    bool isNotLeafOrContainsData() override {
+        return (mFacesMeshA.size() > 0 || mFacesMeshB.size() > 0);
+    }
+
+    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) { 
+        if (mFacesMeshA.size() > 0 || mFacesMeshB.size() > 0)
+            boxes.push_back(mAABB);
+    }
     /*void splitAccordingToIntersection() {
         std::vector<pm::face_index> Triangles = mFacesMeshA;
         //std::set<pm::face_index> checkedTriangles;
@@ -94,6 +171,7 @@ public:
         std::tuple<pm::face_index, pm::face_index> split;
         return split;
     }*/
+    NearestFace getNearestFace(tg::vec3 ray, pos_t origin) override;
 
 private: 
     std::vector<uint32_t> mValueIndices;
@@ -126,6 +204,51 @@ public:
     void cutPolygons(IntersectionCut& lookup) override {
         for (auto child : mChildNodes)
             child->cutPolygons(lookup);
+    }
+
+    BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) override {
+        BoxAndDistance currentBox = { AABB(), -1 };
+        //SharedOctreeNode nearestNode = std::dynamic_pointer_cast<OctreeNode>(std::make_shared<EmptyNode>(mOctree));
+        for (auto child : mChildNodes) {
+            if (!child->isNotLeafOrContainsData())
+                continue;
+
+            if (!child->intersect(ray, origin))
+                continue;
+
+            auto distance = child->distance(origin);
+            if (currentBox.dinstance == -1 || distance < currentBox.dinstance) {
+                    auto box = child->getNearestBoundingBox(ray, origin);
+                    if (currentBox.dinstance == -1 || (box.dinstance < currentBox.dinstance && box.dinstance != -1))
+                        currentBox = box;
+            }            
+        }
+        return currentBox;
+    }
+
+    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) {
+        for (auto child : mChildNodes) {
+            if (!child->intersect(ray, origin))
+                continue;
+
+            child->getAllBoundingBoxes(ray, origin, boxes);
+        }
+    }
+
+    NearestFace getNearestFace(tg::vec3 ray, pos_t origin) override {
+        NearestFace currentNearest = { -1, pm::face_index(), -1 };
+        for (auto child : mChildNodes) {
+            if (!child->intersect(ray, origin))
+                continue;
+
+            auto nearestFace = child->getNearestFace(ray, origin);
+            if (nearestFace.distance == -1)
+                continue;
+
+            if (currentNearest.distance == -1 || nearestFace.distance < currentNearest.distance)
+                currentNearest = nearestFace;
+        }
+        return currentNearest;
     }
     
 private: 
@@ -168,6 +291,18 @@ public:
         scalar_t powerLen = getNextPower(len);
         pos_t max = { aabb.min.x + powerLen, aabb.min.y + powerLen , aabb.min.z + powerLen };
         return AABB(aabb.min, max);
+    }
+
+    BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) {
+        return mRoot->getNearestBoundingBox(ray, origin);
+    }
+
+    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) {
+        return mRoot->getAllBoundingBoxes(ray, origin, boxes);
+    }
+
+    NearestFace getNearestFace(tg::vec3 ray, pos_t origin) {
+        return mRoot->getNearestFace(ray, origin);
     }
 
     Octree(PlaneMesh* a, PlaneMesh* b, const AABB& aabb) {
@@ -213,6 +348,87 @@ public:
     }
     //PlaneMesh& meshA() { return mMeshA; }
     //PlaneMesh& meshB() { return mMeshB; }
+    
+    void startDebugView() {
+        gv::SharedCameraController cam = gv::CameraController::create();
+
+        /*std::vector<AABB> boxes1;
+        std::vector<tg::aabb3> boxes2;
+        octree->insertAABB(boxes1);
+
+        for (auto box : boxes1) {
+            boxes2.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+        }*/
+        //auto const boxesRender = gv::make_renderable(gv::lines(boxes2).line_width_world(100000));
+
+        auto const mesh1Render = gv::make_renderable(mMeshA->positions());
+        auto const mesh2Render = gv::make_renderable(mMeshB->positions());
+        
+        NearestFace currentNearestFace;
+        auto faceColors1 = mMeshA->mesh().faces().make_attribute_with_default(tg::color3::white);
+        auto faceColors2 = mMeshB->mesh().faces().make_attribute_with_default(tg::color3::white);
+
+        gv::interactive([&](auto) {
+            auto const mousePos = gv::experimental::interactive_get_mouse_position();
+            auto const windowSize = gv::experimental::interactive_get_window_size();
+
+            tg::mat4 projectionMatrix = cam->computeProjMatrix();
+            tg::mat4 viewMatrix = cam->computeViewMatrix();
+
+            float x = (2.0f * mousePos.x) / windowSize.width - 1.0f;
+            float y = 1.0f - (2.0f * mousePos.y) / windowSize.height;
+            tg::vec4 rayClip = tg::vec4(x, y, -1.0, 1.0);
+            tg::vec4 rayEye = tg::inverse(projectionMatrix) * rayClip;
+            rayEye = tg::vec4(rayEye.x, rayEye.y, -1, 0);
+            tg::vec4 rayWorld4 = tg::inverse(viewMatrix) * rayEye;
+            tg::vec3 rayWorld = tg::vec3(rayWorld4);
+            rayWorld = tg::normalize(rayWorld);
+
+            ImGui::Begin("Move");
+            if (ImGui::Button("make screenshot"))
+                gv::make_screenshot("screenshot.png", 1920, 1080);
+
+            if (ImGui::Button("close viewer"))
+                gv::close_viewer();
+
+
+            ImGui::Text("Mouse Pos: %f:%f:%f", rayWorld.x, rayWorld.y, rayWorld.z);
+            ImGui::End();
+
+            auto camPos = cam->getPosition();
+            std::vector<AABB> intersectionBoxes1;
+            std::vector<tg::aabb3> intersectionBoxes2;
+            getAllBoundingBoxes(rayWorld, pos_t(camPos), intersectionBoxes1);
+            auto nearestFace = getNearestFace(rayWorld, pos_t(camPos));
+
+            for (auto box : intersectionBoxes1) {
+                intersectionBoxes2.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+            }
+            auto face = nearestFace.faceIndex;
+            std::cout << face.value << std::endl;
+
+            if (nearestFace.meshID == mMeshA->id() && face.is_valid())
+                faceColors1[face.of(mMeshA->mesh())] = tg::color3::red;
+            else if (face.is_valid())
+                faceColors2[face.of(mMeshB->mesh())] = tg::color3::red;
+
+            {
+                auto view = gv::view(mMeshA->positions(), cam, faceColors1);
+                gv::view(mMeshB->positions(), cam, faceColors2);
+
+                if (currentNearestFace.faceIndex != nearestFace.faceIndex) {
+                    currentNearestFace = nearestFace;
+                    gv::view_clear_accumulation();
+                }
+
+            }
+
+            if (nearestFace.meshID == mMeshA->id() && face.is_valid())
+                faceColors1[face.of(mMeshA->mesh())] = tg::color3::white;
+            else if (face.is_valid())
+                faceColors2[face.of(mMeshB->mesh())] = tg::color3::white;
+        });
+    }
 
 private: 
     bool mSplitOnlyOneMesh = false;

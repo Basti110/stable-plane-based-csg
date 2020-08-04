@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <glow-extras/viewer/view.hh>
+#include <glow-extras/viewer/experimental.hh>
 //#include <tg/typed-geometry.hh>
 #include <typed-geometry/tg.hh>
 #include <glow-extras/glfw/GlfwContext.hh>
@@ -10,7 +11,7 @@
 #include <aabb.hh>
 #include <nexus/Nexus.hh>
 #include <face_component_finder.hh>
-
+#include <imgui/imgui.h>
 #include <polymesh/algorithms/deduplicate.hh>
 #include <tuple>
 #include <utility>
@@ -529,6 +530,92 @@ void test_picker() {
         octree->insert_polygon(planeMesh2.id(), f);
     }
 
-    auto view = gv::view(planeMesh1.positions());
-    gv::view(planeMesh2.positions());
+    gv::SharedCameraController cam = gv::CameraController::create();
+
+    std::vector<AABB> boxes1;
+    std::vector<tg::aabb3> boxes2;
+    octree->insertAABB(boxes1);
+
+    for (auto box : boxes1) {
+        boxes2.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+    }
+
+    auto const mesh1Render = gv::make_renderable(planeMesh1.positions());
+    auto const mesh2Render = gv::make_renderable(planeMesh2.positions());
+    auto const boxesRender = gv::make_renderable(gv::lines(boxes2).line_width_world(100000));
+    NearestFace currentNearestFace;
+
+    auto faceColors1 = planeMesh1.mesh().faces().make_attribute_with_default(tg::color3::white);
+    auto faceColors2 = planeMesh2.mesh().faces().make_attribute_with_default(tg::color3::white);
+
+    gv::interactive([&](auto) {
+        auto const mousePos = gv::experimental::interactive_get_mouse_position();
+        auto const windowSize = gv::experimental::interactive_get_window_size();
+
+        tg::mat4 projectionMatrix = cam->computeProjMatrix();
+        tg::mat4 viewMatrix = cam->computeViewMatrix();
+
+        float x = (2.0f * mousePos.x) / windowSize.width - 1.0f;
+        float y = 1.0f - (2.0f * mousePos.y) / windowSize.height;
+        tg::vec4 rayClip = tg::vec4(x, y, -1.0, 1.0);
+        tg::vec4 rayEye = tg::inverse(projectionMatrix) * rayClip;
+        rayEye = tg::vec4(rayEye.x, rayEye.y, -1, 0);
+        tg::vec4 rayWorld4 = tg::inverse(viewMatrix) * rayEye;
+        tg::vec3 rayWorld = tg::vec3(rayWorld4);
+        rayWorld = tg::normalize(rayWorld);
+
+        ImGui::Begin("Move");
+        if (ImGui::Button("make screenshot"))
+            gv::make_screenshot("screenshot.png", 1920, 1080);
+
+        if (ImGui::Button("close viewer"))
+            gv::close_viewer();
+
+
+        ImGui::Text("Mouse Pos: %f:%f:%f", rayWorld.x, rayWorld.y, rayWorld.z);
+        ImGui::End();
+        //auto const mouse_pos = gv::experimental::interactive_get_mouse_position();    
+        auto camPos = cam->getPosition();
+        auto ray = tg::segment3(camPos + rayWorld * scale, camPos + (rayWorld * scale * 10));
+        std::vector<AABB> intersectionBoxes1;
+        std::vector<tg::aabb3> intersectionBoxes2;
+        octree->getAllBoundingBoxes(rayWorld, pos_t(camPos), intersectionBoxes1);
+        auto nearestFace = octree->getNearestFace(rayWorld, pos_t(camPos));
+
+        for (auto box : intersectionBoxes1) {
+            intersectionBoxes2.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+        }
+        auto face = nearestFace.faceIndex;
+        std::cout << face.value << std::endl;
+        //std::cout << test.distance << std::endl;
+        //std::cout << test.meshID << std::endl;
+
+        if (nearestFace.meshID == planeMesh1.id() && face.is_valid())
+            faceColors1[face.of(planeMesh1.mesh())] = tg::color3::red;      
+        else if(face.is_valid())
+            faceColors2[face.of(planeMesh2.mesh())] = tg::color3::red;
+        
+        {
+            auto view = gv::view(planeMesh1.positions(), cam, faceColors1);
+            gv::view(planeMesh2.positions(), cam, faceColors2);
+            //gv::view(gv::lines(intersectionBoxes2).line_width_world(1000000), cam);
+            //gv::view(boxesRender, cam);
+            //gv::view(gv::lines(ray).line_width_world(1000000), cam);
+            if (currentNearestFace.faceIndex != nearestFace.faceIndex) {
+                currentNearestFace = nearestFace;
+                gv::view_clear_accumulation();
+            }
+            
+        }
+        /*if (globalBox != aabb) {
+            globalBox = aabb;
+            gv::view_clear_accumulation();
+        }*/
+
+        if (nearestFace.meshID == planeMesh1.id() && face.is_valid())
+            faceColors1[face.of(planeMesh1.mesh())] = tg::color3::white;
+        else if (face.is_valid())
+            faceColors2[face.of(planeMesh2.mesh())] = tg::color3::white;
+    });
+
 }
