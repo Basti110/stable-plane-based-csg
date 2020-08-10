@@ -635,9 +635,10 @@ public:
     std::vector<pm::face_handle> splitAccordingToIntersection(pm::face_handle triangle, std::vector<pm::face_handle>& triangles, PlaneMesh& planeMesh1, PlaneMesh& planeMesh2)
     {
         pm::face_handle t2;
-        //std::vector<pm::face_handle> trianglesTMP = triangles;
-        for (int i = 0; i < triangles.size(); ++i) {
-            pm::face_handle t2 = triangles[i];
+        std::vector<pm::face_handle> trianglesTMP = triangles;
+        int count = 0;
+        while (trianglesTMP.size() > 0) {
+            pm::face_handle t2 = trianglesTMP[0];
 
             //Test
             /*planeMesh1.checkAndComputePositions();
@@ -663,7 +664,8 @@ public:
             this->intersectionTimeCount += seconds;
             if (intersection->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING) {
                 //std::cout << "intersection" << std::endl; //Test
-                triangles.erase(triangles.begin() + i);
+                triangles.erase(triangles.begin() + count);
+                trianglesTMP.erase(trianglesTMP.begin() + 0);
 
                 this->splitCount++;
                 begin = std::chrono::steady_clock::now();
@@ -689,12 +691,7 @@ public:
                     gv::view(gv::lines(planeMesh1.positions()).line_width_world(1000));
                     gv::view(planeMesh2.positions(), gv::masked(faceColors2));
                     gv::view(gv::lines(planeMesh2.positions()).line_width_world(1000));
-                }*/
-                
-                //Todo
-                if (triangle.idx.value == 3108 || t2.idx.value == 3108) {
-                    int k = 10;
-                }
+                }*/              
 
                 if (mLookupFacesA.count(triangle.idx.value) == 0 && splits.facesT1.size() > 1) {
                     mLookupFacesA[triangle.idx.value] = splits.facesT1;
@@ -723,7 +720,7 @@ public:
                 for (auto& tri : splits.facesT1) {
                     if (tri.is_valid()) {
                         //std::cout << "Mesh 1 new with: " << tri.idx.value << std::endl;
-                        splitAccordingToIntersection(tri, triangles, planeMesh1, planeMesh2);
+                        splitAccordingToIntersection(tri, trianglesTMP, planeMesh1, planeMesh2);
                     }                        
                 }
 
@@ -743,10 +740,14 @@ public:
                         triangles.push_back(triangle);
                     }                        
                 }
+                triangles.erase(triangles.begin() + count, triangles.end());
+                triangles.insert(triangles.end(), trianglesTMP.begin(), trianglesTMP.end());
 
                 return splits.facesT1;
             }
             else {
+                count++;
+                trianglesTMP.erase(trianglesTMP.begin() + 0);
                 //std::cout << "non intersection" << std::endl; //Test
             }
         }
