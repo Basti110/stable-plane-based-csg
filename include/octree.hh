@@ -348,6 +348,12 @@ public:
     }
     //PlaneMesh& meshA() { return mMeshA; }
     //PlaneMesh& meshB() { return mMeshB; }
+
+    std::string getBoolString(bool b) {
+        if (b)
+            return "True";
+        return "False";
+    }
     
     void startDebugView() {
         gv::SharedCameraController cam = gv::CameraController::create();
@@ -387,18 +393,37 @@ public:
             auto nearestFace = getNearestFace(rayWorld, pos_t(camPos));
  
             auto face = nearestFace.faceIndex;
+            bool faceHaveValidEdges = false;
+            bool faceVerticesOnPlane = false;
+            bool faceNoDuplicatedVertices = false;
+            double maxVertexDistance = 0;
+
             std::vector<pos_t> vertices;
             marker.colorFace(face, nearestFace.meshID);
             if (face.is_valid()) {
-                if (nearestFace.meshID == mMeshA->id())
+                if (nearestFace.meshID == mMeshA->id()) {
                     vertices = mMeshA->getVerticesOfFace(face);
-                else
+                    //std::cout << "lel 1" << std::endl;
+                    faceNoDuplicatedVertices = !mMeshA->duplicatedVerticesInFace(face);
+                    faceHaveValidEdges = mMeshA->faceHaveValidEdges(face);
+                    faceVerticesOnPlane = mMeshA->allVerticesInFacePlane(face);
+                    maxVertexDistance = mMeshA->getGreatestDistanceToBasePlaneFromVertices(face);
+                }                 
+                else {
                     vertices = mMeshB->getVerticesOfFace(face);
+                    //std::cout << "lel 2" << std::endl;
+                    faceNoDuplicatedVertices = !mMeshB->duplicatedVerticesInFace(face);
+                    faceHaveValidEdges = mMeshB->faceHaveValidEdges(face);
+                    faceVerticesOnPlane = mMeshB->allVerticesInFacePlane(face);
+                    maxVertexDistance = mMeshB->getGreatestDistanceToBasePlaneFromVertices(face);
+                }                   
             }
 
             {
                 auto view = gv::view(mMeshA->positions(), cam, marker.faceColorsA());
                 gv::view(mMeshB->positions(), cam, marker.faceColorsB());
+                if(vertices.size() > 0)
+                    gv::view(gv::points(vertices).point_size_world(30000));
 
                 if (currentNearestFace.faceIndex != nearestFace.faceIndex) {
                     currentNearestFace = nearestFace;
@@ -427,8 +452,13 @@ public:
 
             ImGui::Text("Mouse Pos: %f:%f:%f", rayWorld.x, rayWorld.y, rayWorld.z);
 
+            ImGui::Text("Face have Valid Edges: %s", getBoolString(faceHaveValidEdges));
+            ImGui::Text("All Vertices on Plane: %s", getBoolString(faceVerticesOnPlane));
+            ImGui::Text("No Duplicated Vertices: %s", getBoolString(faceNoDuplicatedVertices));
+            ImGui::Text("Max vertex distance: %f", maxVertexDistance);
+
             for (int i = 0; i < vertices.size(); ++i) {
-                ImGui::Text("Pos %i: %ld:%ld:%ld", i, double(vertices[i].x), double(vertices[i].y), double(vertices[i].z));
+                ImGui::Text("Pos %i: %f:%f:%f", i, double(vertices[i].x), double(vertices[i].y), double(vertices[i].z));
             }
 
             ImGui::End();

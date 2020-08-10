@@ -118,7 +118,8 @@ namespace ob {
 
         // get adjusted tri base plane
         auto plane = polygon.facePlanes[polygon.face];
-        TG_ASSERT(signed_distance(plane, pos[h.vertex_from()]) == 0 && "invalid plane?");
+        auto dis = double(signed_distance(plane, pos[h.vertex_from()]));
+        TG_ASSERT(dis == 0 && "invalid plane?");
 
         plane.d = -(ob::mul<geometry_t::bits_plane_d>(plane.a, p0.x) + //
             ob::mul<geometry_t::bits_plane_d>(plane.b, p0.y) + //

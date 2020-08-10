@@ -16,6 +16,7 @@
 #include <tuple>
 #include <utility>
 
+void test_cut_testAB_meshes();
 void test_picker();
 void testIntersectionTriangleNormal(); 
 void testIntersectionTrianglePlanar();
@@ -38,7 +39,7 @@ int main() {
     }
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
-    tests.run();
+    //tests.run();
     pm::vertex_attribute<tg::pos3> test3;
 
     std::vector<tg::ipos3> positions;
@@ -48,9 +49,14 @@ int main() {
     positions.push_back({ 0, 0, 0 });
     positions.push_back({ 1, 0, -2 });
     
-    //mark_component_test();
+    mark_component_test();
     //test_color_in_mesh();
-    test_picker();
+    /*while (true) {
+        test_picker();
+        test_cut_testAB_meshes();
+    }*/
+
+    //
     //test_cut_mesh();
     //test_color_lines();
     //test_trianle_classification();
@@ -330,15 +336,34 @@ void test_cut_mesh() {
     auto test1 = planeMesh1.noDuplicatedVerticesInFaces(faceMask1);
     auto test2 = planeMesh2.noDuplicatedVerticesInFaces(faceMask2);
 
+    
+
     //int test = pm::deduplicate(planeMesh1.mesh(), planeMesh1.positions());
     //auto view = gv::view(planeMesh1.positions(), gv::masked(faceMask1));
     //auto view = gv::view(planeMesh2.positions(), tg::color3::color(0.5));
     //gv::view(gv::lines(planeMesh2.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
     //gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::color(0.0));
-    auto view = gv::view(planeMesh1.positions());
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::red);
+    {
+        auto view = gv::view(planeMesh1.positions());
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::color(0.0));
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+        gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::red);
+    }
+
+    SharedOctree newOctree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
+
+    for (auto f : planeMesh1.mesh().faces()) {
+        bool test1 = f.is_removed();
+        pos_t pos = planeMesh1.posInt(f.any_halfedge().vertex_from());
+        int count = f.vertices().count();
+        //std::cout << "count: " << count << std::endl;
+        newOctree->insert_polygon(planeMesh1.id(), f);
+    }
+
+    for (auto f : planeMesh2.mesh().faces()) {
+        newOctree->insert_polygon(planeMesh2.id(), f);
+    }
+    newOctree->startDebugView();
 }
 
 void test_octree_two_meshes() {
@@ -383,13 +408,15 @@ void test_octree_two_meshes() {
     for (auto box : boxes1) {
         boxes2.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
     }
+
+    octree->startDebugView();
     //auto g = gv::grid();
-    auto view = gv::view(meshA.positions());
+    /*auto view = gv::view(meshA.positions());
     gv::view(gv::lines(meshA.positions()).line_width_world(10000), "gv::lines(pos)");
     gv::view(meshB.positions());
     gv::view(gv::lines(meshB.positions()).line_width_world(10000), "gv::lines(pos)");
     //auto view = gv::view(ipos);
-    gv::view(gv::lines(boxes2).line_width_world(50000), tg::color3::blue, "gv::lines(pos)");
+    gv::view(gv::lines(boxes2).line_width_world(50000), tg::color3::blue, "gv::lines(pos)");*/
 
 }
 
@@ -488,12 +515,12 @@ void mark_component_test() {
 
     //int test = pm::deduplicate(planeMesh1.mesh(), planeMesh1.positions());
     //auto view = gv::view(planeMesh1.positions(), gv::masked(faceMask1));
-    //auto view = gv::view(planeMesh2.positions(), components2.getColorAssignment());
-    //gv::view(gv::lines(planeMesh2.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
-    //gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::color(0.0));
-    auto view = gv::view(planeMesh1.positions(), components1.getColorAssignment());
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+    auto view = gv::view(planeMesh2.positions(), components2.getColorAssignment());
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::color(0.0));
+    //auto view = gv::view(planeMesh1.positions(), components1.getColorAssignment());
+    //gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::color(0.0));
+    //gv::view(gv::lines(planeMesh1.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
     
 }
 
@@ -532,4 +559,72 @@ void test_picker() {
 
     octree->startDebugView();
 
+}
+
+void test_cut_testAB_meshes() {
+    pm::Mesh mesh1;
+    pm::vertex_attribute<tg::pos3> pos1(mesh1);
+    pm::load("../data/mesh/meshA.obj", mesh1, pos1);
+    mesh1.compactify();
+    pm::deduplicate(mesh1, pos1);
+
+    pm::Mesh mesh2;
+    pm::vertex_attribute<tg::pos3> pos2(mesh2);
+    pm::load("../data/mesh/meshB.obj", mesh2, pos2);
+    mesh2.compactify();
+    pm::deduplicate(mesh2, pos2);
+
+    scalar_t scale = 1e6;
+    PlaneMesh planeMesh1(mesh1, pos1, 1);
+    PlaneMesh planeMesh2(mesh2, pos2, 1);
+
+    AABB box({ -60 * scale, -60 * scale, -40 * scale }, { 60 * scale, 60 * scale, 80 * scale });
+    SharedOctree octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
+
+    for (auto f : planeMesh1.allFaces()) {
+        octree->insert_polygon(planeMesh1.id(), f);
+    }
+
+    for (auto f : planeMesh2.allFaces()) {
+        octree->insert_polygon(planeMesh2.id(), f);
+    }
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    auto iCut = octree->cutPolygons();
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    auto seconds = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
+
+    std::cout << "Cut in " << seconds << "ms" << std::endl;
+    if (planeMesh1.allFacesHaveEdges())
+        return;
+
+    if (planeMesh2.allFacesHaveEdges())
+        return;
+
+    planeMesh1.checkAndComputePositions();
+    planeMesh2.checkAndComputePositions();
+
+    planeMesh1.mesh().compactify();
+
+    {
+        auto view = gv::view(planeMesh1.positions());
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::color(0.0));
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+        gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::red);
+    }
+
+    SharedOctree newOctree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
+
+    for (auto f : planeMesh1.mesh().faces()) {
+        bool test1 = f.is_removed();
+        pos_t pos = planeMesh1.posInt(f.any_halfedge().vertex_from());
+        int count = f.vertices().count();
+        //std::cout << "count: " << count << std::endl;
+        newOctree->insert_polygon(planeMesh1.id(), f);
+    }
+
+    for (auto f : planeMesh2.mesh().faces()) {
+        newOctree->insert_polygon(planeMesh2.id(), f);
+    }
+    newOctree->startDebugView();
 }

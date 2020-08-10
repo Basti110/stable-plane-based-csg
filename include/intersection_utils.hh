@@ -528,11 +528,13 @@ NewFaces split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, 
         }
         else if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_1_ON_2) {
             Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
+            splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
             splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
         }
         else if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_2_ON_1) {
             Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
             splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);
+            splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
         }
     }
     else if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
@@ -637,14 +639,30 @@ public:
         for (int i = 0; i < triangles.size(); ++i) {
             pm::face_handle t2 = triangles[i];
 
+            //Test
+            /*planeMesh1.checkAndComputePositions();
+            planeMesh2.checkAndComputePositions();
+            {
+                std::cout << "Test Mesh 1: " << triangle.idx.value << std::endl;
+                std::cout << "Test Mesh 2: " << t2.idx.value << std::endl;
+                auto faceColors1 = planeMesh1.mesh().faces().make_attribute_with_default(tg::color3::white);
+                faceColors1[triangle] = tg::color3::red;
+                auto faceColors2 = planeMesh2.mesh().faces().make_attribute_with_default(tg::color3::white);
+                faceColors2[t2] = tg::color3::blue;
+                auto view = gv::view(planeMesh1.positions(), faceColors1);
+                gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000));
+                gv::view(planeMesh2.positions(), faceColors2);
+                gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000));
+            }*/
+
             this->intersectionCount++;
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             auto intersection = ob::intersect<geometry128>(planeMesh1, triangle, planeMesh2, t2);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             auto seconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
             this->intersectionTimeCount += seconds;
-
             if (intersection->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING) {
+                //std::cout << "intersection" << std::endl; //Test
                 triangles.erase(triangles.begin() + i);
 
                 this->splitCount++;
@@ -678,20 +696,20 @@ public:
                     int k = 10;
                 }
 
-                if (mLookupFacesA.count(triangle.idx.value) == 0) {
+                if (mLookupFacesA.count(triangle.idx.value) == 0 && splits.facesT1.size() > 1) {
                     mLookupFacesA[triangle.idx.value] = splits.facesT1;
                     TG_ASSERT(mLookupFacesA.count(triangle.idx.value) == 1);
                 }
                 else {
-                    TG_ASSERT(mLookupFacesA.count(triangle.idx.value) == 1);
+                    //TG_ASSERT(mLookupFacesA.count(triangle.idx.value) == 1);
                 }
 
-                if (mLookupFacesB.count(t2.idx.value) == 0) {
+                if (mLookupFacesB.count(t2.idx.value) == 0 && splits.facesT2.size() > 1) {
                     mLookupFacesB[t2.idx.value] = splits.facesT2;
                     TG_ASSERT(mLookupFacesB.count(t2.idx.value) == 1);
                 }
                 else {
-                    TG_ASSERT(mLookupFacesB.count(t2.idx.value) == 1);
+                    //TG_ASSERT(mLookupFacesB.count(t2.idx.value) == 1);
                 }
                 //planeMesh1.mesh().compactify();
 
@@ -701,8 +719,12 @@ public:
                     gv::view(planeMesh2.positions());
                     gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1));
                 }*/
+                
                 for (auto& tri : splits.facesT1) {
-                    splitAccordingToIntersection(tri, triangles, planeMesh1, planeMesh2);
+                    if (tri.is_valid()) {
+                        //std::cout << "Mesh 1 new with: " << tri.idx.value << std::endl;
+                        splitAccordingToIntersection(tri, triangles, planeMesh1, planeMesh2);
+                    }                        
                 }
 
                 /*for (auto& triangle : splits.facesT2) {
@@ -716,12 +738,19 @@ public:
 
                               
                 for (auto& triangle : splits.facesT2) {
-                    triangles.push_back(triangle);
+                    if (triangle.is_valid()) {
+                        //std::cout << "Mesh 2 Add: " << triangle.idx.value << std::endl;
+                        triangles.push_back(triangle);
+                    }                        
                 }
 
                 return splits.facesT1;
             }
+            else {
+                //std::cout << "non intersection" << std::endl; //Test
+            }
         }
+        //std::cout << "return" << std::endl;
         return std::vector<pm::face_handle>{triangle};
     }
 

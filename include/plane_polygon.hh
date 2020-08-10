@@ -124,7 +124,7 @@ public:
             if (mEdges[edgeHandle] == mEdges.get_default_value()) {
                 mEdges[edgeHandle] = Plane::from_points(from, to, anotherPos);
                 //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], posInFace) < 0); //TODO 
-                TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0); //TODO: Remove
+                //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0); //TODO: Remove
                 //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]) == -1);
                 //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), edge(edgeHandle)) < 0);
                 mHalfEdges[it.handle] = 1;
@@ -145,6 +145,10 @@ public:
         }
     }
 
+    //#############################################################################
+    //#                          Validation on Mesh                               #
+    //#############################################################################
+
     bool allHalfEdgesAreValid() {
         for (auto h : mMesh.all_halfedges()) {
             if (h.is_invalid())
@@ -158,25 +162,18 @@ public:
             if (f.is_removed())
                 continue;
 
-            for (auto h : f.halfedges()) {
-                if (h.is_invalid())
-                    return false;
-            }
-        }
+            if (!faceHaveValidEdges(f))
+                return false;
+        }      
         return true;
     }
 
     bool noDuplicatedVerticesInFaces(pm::face_attribute<bool>& mask) {  
         bool noDuplicates = true;
-        for (auto f : mMesh.faces()) {
-            auto vertices = f.vertices().to_vector([](pm::vertex_handle i) { return i; }); 
-            for (auto i = 0; i < vertices.size(); ++i) {
-                for (auto j = i + 1; j < vertices.size(); ++j) {
-                    if (mPositions[vertices[i]] == mPositions[vertices[j]]) {
-                        noDuplicates = false;
-                        mask[f] = true;
-                    }                       
-                }                  
+        for (pm::face_handle& f : mMesh.faces()) {
+            if (duplicatedVerticesInFace(f)) {
+                noDuplicates = false;
+                mask[f] = true;
             }
         }
         return noDuplicates;
@@ -184,40 +181,10 @@ public:
 
     bool noDuplicatedVerticesInFaces() {
         for (auto f : mMesh.faces()) {
-            auto vertices = f.vertices().to_vector([](pm::vertex_handle i) { return i; });
-            for (auto i = 0; i < vertices.size(); ++i) {
-                for (auto j = i + 1; j < vertices.size(); ++j) {
-                    if (mPositions[vertices[i]] == mPositions[vertices[j]]) {
-                        pos_t postest = mPositions[vertices[i]];
-                        return false;
-                    }
-                }
-            }
+            if (duplicatedVerticesInFace(f))
+                return false;         
         }
         return true;
-    }
-
-    double rayHitPolygon(pm::face_index face, tg::vec3 rayDir, pos_t rayOrigin) {
-        return rayHitPolygon(face.of(mMesh), rayDir, rayOrigin);
-    }
-
-    double rayHitPolygon(pm::face_handle face, tg::vec3 rayDir, pos_t rayOrigin) {
-        auto disOption = ob::intersection_distance<geometry128>(mFaces[face], rayOrigin, rayDir);
-        if (disOption) {
-            TG_ASSERT(disOption.value() >= -1);
-            for (pm::halfedge_handle& halfedge : face.halfedges()) {
-                //std::cout << (tg::dvec3(rayDir) * disOption.value()).x << ":" << (tg::dvec3(rayDir) * disOption.value()).y << ":" << (tg::dvec3(rayDir) * disOption.value()).z << std::endl;
-                pos_t pos = rayOrigin + vec_t(rayDir * disOption.value());
-                auto signedDistance = ob::signed_distance(mEdges[halfedge.edge()], pos);
-                int8_t sign = signedDistance > 0 ? 1 : -1;
-                TG_ASSERT(mHalfEdges[halfedge] != 0);
-                if (sign * mHalfEdges[halfedge] == 1) {
-                    return -1;
-                }
-            }
-            return disOption.value();
-        }
-        return -1;
     }
 
     bool allFacesHaveEdges() {
@@ -244,6 +211,103 @@ public:
                 return false;
         }
         return true;
+    }
+
+    bool existsEdgesWithoutFace() {
+        for (auto edge : mMesh.edges()) {
+            if (!edge.faceA().is_valid() && !edge.faceB().is_valid())
+                return true;
+        }
+        return false;
+    }
+
+    //#############################################################################
+    //#                          Validation on Face                               #
+    //#############################################################################
+    bool duplicatedVerticesInFace(pm::face_index f) {
+        return duplicatedVerticesInFace(f.of(mMesh));
+    }
+
+    bool duplicatedVerticesInFace(pm::face_handle f) {
+        auto vertices = f.vertices().to_vector([](pm::vertex_handle i) { return i; });
+        for (auto i = 0; i < vertices.size(); ++i) {
+            for (auto j = i + 1; j < vertices.size(); ++j) {
+                if (i == j)
+                    continue;
+
+                if (mPositions[vertices[i]] == mPositions[vertices[j]]) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool faceHaveValidEdges(pm::face_index f) {
+        return faceHaveValidEdges(f.of(mMesh));
+    }
+
+    bool faceHaveValidEdges(pm::face_handle f) {
+        for (auto h : f.halfedges()) {
+            if (h.is_invalid())
+                return false;
+        }
+        return true;
+    }
+
+    bool allVerticesInFacePlane(pm::face_index f) {
+        return allVerticesInFacePlane(f.of(mMesh));
+    }
+
+    bool allVerticesInFacePlane(pm::face_handle f) {
+        for (auto v : f.vertices()) {
+            auto dis = signDistanceToBasePlane(f, v);
+            if (dis != 0)
+                return false;
+        }
+        return true;
+    }
+
+    double getGreatestDistanceToBasePlaneFromVertices(pm::face_index f) {
+        return getGreatestDistanceToBasePlaneFromVertices(f.of(mMesh));
+    }
+
+    double getGreatestDistanceToBasePlaneFromVertices(pm::face_handle f) {
+        double dis = 0;
+        for (auto v : f.vertices()) {
+            double disTmp = double(ob::signed_distance(mFaces[f], mPositions[v]));
+            if (disTmp > dis)
+                dis = disTmp;
+        }
+        return dis;
+    }
+
+    //#############################################################################
+
+    double rayHitPolygon(pm::face_index face, tg::vec3 rayDir, pos_t rayOrigin) {
+        return rayHitPolygon(face.of(mMesh), rayDir, rayOrigin);
+    }
+
+    double rayHitPolygon(pm::face_handle face, tg::vec3 rayDir, pos_t rayOrigin) {
+        if (face.is_invalid() || face.is_removed())
+            return -1;
+
+        auto disOption = ob::intersection_distance<geometry128>(mFaces[face], rayOrigin, rayDir);
+        if (disOption) {
+            TG_ASSERT(disOption.value() >= -1);
+            for (pm::halfedge_handle& halfedge : face.halfedges()) {
+                //std::cout << (tg::dvec3(rayDir) * disOption.value()).x << ":" << (tg::dvec3(rayDir) * disOption.value()).y << ":" << (tg::dvec3(rayDir) * disOption.value()).z << std::endl;
+                pos_t pos = rayOrigin + vec_t(rayDir * disOption.value());
+                auto signedDistance = ob::signed_distance(mEdges[halfedge.edge()], pos);
+                int8_t sign = signedDistance > 0 ? 1 : -1;
+                TG_ASSERT(mHalfEdges[halfedge] != 0);
+                if (sign * mHalfEdges[halfedge] == 1) {
+                    return -1;
+                }
+            }
+            return disOption.value();
+        }
+        return -1;
     }
 
     void planesTriangles(int sideLen, std::vector<tg::triangle3>& insertVec) {
@@ -306,14 +370,6 @@ public:
                 mPositions[vertex] = pos;
             }
         }
-    }
-
-    bool existsEdgesWithoutFace() {
-        for (auto edge : mMesh.edges()){
-            if (!edge.faceA().is_valid() && !edge.faceB().is_valid())
-                return true;
-        }
-        return false;
     }
 
     std::vector<pos_t> getVerticesOfFace(const pm::face_index& face) {
