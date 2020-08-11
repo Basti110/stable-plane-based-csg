@@ -732,7 +732,8 @@ public:
                     triangles.push_back(triangle);
                 }*/
 
-
+                triangles.erase(triangles.begin() + count, triangles.end());
+                triangles.insert(triangles.end(), trianglesTMP.begin(), trianglesTMP.end());
                               
                 for (auto& triangle : splits.facesT2) {
                     if (triangle.is_valid()) {
@@ -740,8 +741,7 @@ public:
                         triangles.push_back(triangle);
                     }                        
                 }
-                triangles.erase(triangles.begin() + count, triangles.end());
-                triangles.insert(triangles.end(), trianglesTMP.begin(), trianglesTMP.end());
+
 
                 return splits.facesT1;
             }
