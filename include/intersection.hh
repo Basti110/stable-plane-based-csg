@@ -407,9 +407,8 @@ public:
         classifyIntersectionEdges(mesh1, intersectionPlanar.getEdgeDataT1(), mesh2, intersectionPlanar.getEdgeDataT2());
         classifyIntersectionEdges(mesh2, intersectionPlanar.getEdgeDataT2(), mesh1, intersectionPlanar.getEdgeDataT1());
     }
-
-    static SharedTriIntersect handleCoplanar_FirstPointNotOnEdge(const PlaneMesh& mesh1,
-        const PlaneMesh& mesh2,
+   
+    SharedTriIntersect handleCoplanar_FirstPointNotOnEdge(
         std::vector<int8_t>& signsFirstPoint,
         const std::vector<pm::halfedge_handle>& edges1,
         const std::vector<pm::halfedge_handle>& edges2)
@@ -423,22 +422,22 @@ public:
             TrianlgeIntersectionPlanar::EdgeData& edge1Data = intersectionPlanar->getEdgeDataT1(i);
 
             for (int j = 0; j < edges2.size(); ++j) {
-                int8_t signStorageTmp = ob::classify_vertex(mesh1.pos(q), mesh2.edge(edges2[j].edge())) * mesh2.halfedge(edges2[j]);
+                int8_t signStorageTmp = ob::classify_vertex(mPlaneMeshA.pos(q), mPlaneMeshB.edge(edges2[j].edge())) * mPlaneMeshB.halfedge(edges2[j]);
                 int8_t signBefore = signsFirstPoint[j];
                 if (signStorageTmp != signBefore && (signStorageTmp != 0 || signBefore == -1) && (signBefore != 0 || signStorageTmp == -1)) {
                     auto pos1 = edges2[j].vertex_from();
                     auto pos2 = edges2[j].vertex_to();
-                    auto edge = mesh1.findEdge(qOld, q);
-                    int8_t t1 = mesh1.halfedge(edge);
+                    auto edge = mPlaneMeshA.findEdge(qOld, q);
+                    int8_t t1 = mPlaneMeshA.halfedge(edge);
                     TG_ASSERT(t1 != 0);
-                    int8_t sign = ob::classify_vertex(mesh2.pos(pos1), mesh1.edge(edge)) * mesh1.halfedge(edge);
-                    int8_t sign2 = ob::classify_vertex(mesh2.pos(pos2), mesh1.edge(edge)) * mesh1.halfedge(edge);
+                    int8_t sign = ob::classify_vertex(mPlaneMeshB.pos(pos1), mPlaneMeshA.edge(edge)) * mPlaneMeshA.halfedge(edge);
+                    int8_t sign2 = ob::classify_vertex(mPlaneMeshB.pos(pos2), mPlaneMeshA.edge(edge)) * mPlaneMeshA.halfedge(edge);
                     if ((sign != sign2) && (sign2 != 0 || sign == -1) && (sign != 0 || sign2 == -1)) {
                         TrianlgeIntersectionPlanar::EdgeData& edge2Data = intersectionPlanar->getEdgeDataT2(j);;
                         //One_Edge_in over vertex 
                         if (sign == 0) {
                             //auto posNext = edges1[(i + 2) % edges1.size()].vertex_from();
-                            int8_t innerPoint = isInnerPoint(mesh2.pos(pos2), intersectionPlanar->getEdgeDataT1(), mesh1);
+                            int8_t innerPoint = isInnerPoint(mPlaneMeshB.pos(pos2), intersectionPlanar->getEdgeDataT1(), mPlaneMeshA);
                             if (innerPoint != -1) {
                                 signsFirstPoint[j] = signStorageTmp;
                                 if (edge2Data.state == TrianlgeIntersectionPlanar::PlanarState::ONE_EDGE)
@@ -454,7 +453,7 @@ public:
                         //One_Edge_Out over vertex 
                         if (sign2 == 0) {
                             //auto posNext = edges1[(i + 2) % edges1.size()].vertex_from();
-                            int8_t innerPoint = isInnerPoint(mesh2.pos(pos1), intersectionPlanar->getEdgeDataT1(), mesh1);
+                            int8_t innerPoint = isInnerPoint(mPlaneMeshB.pos(pos1), intersectionPlanar->getEdgeDataT1(), mPlaneMeshA);
                             if (innerPoint != -1) {
                                 signsFirstPoint[j] = signStorageTmp;
                                 if (edge2Data.state == TrianlgeIntersectionPlanar::PlanarState::ONE_EDGE)
@@ -468,7 +467,7 @@ public:
 
                         if (signBefore == 0) {
                             //auto posNext = edges1[(i + 2) % edges1.size()].vertex_from();
-                            int8_t innerPoint = isInnerPoint(mesh1.pos(q), intersectionPlanar->getEdgeDataT2(), mesh2);
+                            int8_t innerPoint = isInnerPoint(mPlaneMeshA.pos(q), intersectionPlanar->getEdgeDataT2(), mPlaneMeshB);
                             if (innerPoint != -1) {
                                 signsFirstPoint[j] = signStorageTmp;
                                 if (edge1Data.state == TrianlgeIntersectionPlanar::PlanarState::ONE_EDGE)
@@ -484,7 +483,7 @@ public:
                         //One_Edge_Out over vertex 
                         if (signStorageTmp == 0) {
                             //auto posNext = edges1[(i + 2) % edges1.size()].vertex_from();
-                            int8_t innerPoint = isInnerPoint(mesh1.pos(qOld), intersectionPlanar->getEdgeDataT2(), mesh2);
+                            int8_t innerPoint = isInnerPoint(mPlaneMeshA.pos(qOld), intersectionPlanar->getEdgeDataT2(), mPlaneMeshB);
                             if (innerPoint != -1) {
                                 signsFirstPoint[j] = signStorageTmp;
                                 if (edge1Data.state == TrianlgeIntersectionPlanar::PlanarState::ONE_EDGE)
@@ -538,7 +537,7 @@ public:
             }
         }
 
-        classifyNotIntersectionEdges(mesh1, mesh2, *intersectionPlanar);
+        classifyNotIntersectionEdges(mPlaneMeshA, mPlaneMeshB, *intersectionPlanar);
         if (isIntersecting)
             return std::dynamic_pointer_cast<TrianlgeIntersection>(intersectionPlanar);
 
@@ -583,7 +582,7 @@ public:
         bool isInnerPoint = std::get<0>(pointCase);
         bool isEdgePoint = std::get<1>(pointCase);
 
-        auto result = handleCoplanar_FirstPointNotOnEdge(mPlaneMeshA, mPlaneMeshB, signStorage, edges1, edges2);
+        auto result = handleCoplanar_FirstPointNotOnEdge(signStorage, edges1, edges2);
 
         //TG_ASSERT(!isEdgePoint);
         //if (isInnerPoint)
