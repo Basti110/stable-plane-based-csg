@@ -137,7 +137,7 @@ void LeafNode::markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm:
         for (pm::face_index face2Index : mFacesMeshB) {
             auto face2 = face2Index.of(mOctree->mMeshB->mesh());
             mOctree->intersectionCounterTMP++;
-            if (ob::intersect<geometry128>(*(mOctree->mMeshA), face1, *(mOctree->mMeshB), face2)->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING) {
+            if (::intersect<geometry128>(*(mOctree->mMeshA), face1, *(mOctree->mMeshB), face2)->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING) {
                 faceColor1[face1] = tg::color3::green;
                 faceColor2[face2] = tg::color3::red;             
             }

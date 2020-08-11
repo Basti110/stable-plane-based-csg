@@ -658,7 +658,7 @@ public:
 
             this->intersectionCount++;
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            auto intersection = ob::intersect<geometry128>(planeMesh1, triangle, planeMesh2, t2);
+            auto intersection = intersect<geometry128>(planeMesh1, triangle, planeMesh2, t2);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             auto seconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
             this->intersectionTimeCount += seconds;

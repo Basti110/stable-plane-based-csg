@@ -39,7 +39,7 @@ int main() {
     }
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
-    //tests.run();
+    tests.run();
     pm::vertex_attribute<tg::pos3> test3;
 
     std::vector<tg::ipos3> positions;
