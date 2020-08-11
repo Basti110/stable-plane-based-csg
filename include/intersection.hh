@@ -565,7 +565,7 @@ public:
         return true;
     }
 
-    static SharedTriIntersect handleCoplanar(const PlaneMesh& mesh1, const pm::face_handle& polygon1, const PlaneMesh& mesh2, const pm::face_handle& polygon2) {
+    SharedTriIntersect handleCoplanar(const pm::face_handle& polygon1, const pm::face_handle& polygon2) {
         std::vector<pm::halfedge_handle> edges1 = polygon1.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
         std::vector<pm::halfedge_handle> edges2 = polygon2.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
 
@@ -573,7 +573,7 @@ public:
         auto p1 = e1.vertex_from();
         std::vector<int8_t> signStorage(edges2.size());
         for (int i = 0; i < edges2.size(); ++i) {
-            signStorage[i] = ob::classify_vertex(mesh1.pos(p1), mesh2.edge(edges2[i].edge())) * mesh2.halfedge(edges2[i]);
+            signStorage[i] = ob::classify_vertex(mPlaneMeshA.pos(p1), mPlaneMeshB.edge(edges2[i].edge())) * mPlaneMeshB.halfedge(edges2[i]);
             /*if (signStorage[i] == 0) {
                 signStorage[i] = 1;
             }*/
@@ -583,7 +583,7 @@ public:
         bool isInnerPoint = std::get<0>(pointCase);
         bool isEdgePoint = std::get<1>(pointCase);
 
-        auto result = handleCoplanar_FirstPointNotOnEdge(mesh1, mesh2, signStorage, edges1, edges2);
+        auto result = handleCoplanar_FirstPointNotOnEdge(mPlaneMeshA, mPlaneMeshB, signStorage, edges1, edges2);
 
         //TG_ASSERT(!isEdgePoint);
         //if (isInnerPoint)
@@ -659,7 +659,7 @@ public:
             return std::make_shared<TrianlgeIntersection>();
 
         if (intersection1.intersection == intersection_result::co_planar) {
-            auto testCoplanar = handleCoplanar(mPlaneMeshA, polygon1, mPlaneMeshB, polygon2);
+            SharedTriIntersect testCoplanar = handleCoplanar(polygon1, polygon2);
             return testCoplanar;
         }
 
