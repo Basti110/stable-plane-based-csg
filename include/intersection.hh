@@ -429,10 +429,6 @@ public:
         return std::make_shared<TrianlgeIntersection>();
     }
 
-    static bool handleCoplanar_FirstPointIsEdgePoint() {
-        return true;
-    }
-
     SharedTriIntersect handleCoplanar(const pm::face_handle& polygon1, const pm::face_handle& polygon2) {
         std::vector<pm::halfedge_handle> edges1 = polygon1.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
         std::vector<pm::halfedge_handle> edges2 = polygon2.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
