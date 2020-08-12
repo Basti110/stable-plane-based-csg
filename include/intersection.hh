@@ -189,15 +189,6 @@ public:
             if (signTmp == sign)
                 continue;
 
-            /*if (signTmp == 0) {
-                if ((index == 0 || !startWithSign0))
-                    continue;
-
-                index++;
-                vertexOnEdge[1] = true;
-                halfedgeHandles[1] = halfedges[i].next();
-                break;
-            }*/
 
             if (signTmp == 0 && wasZeroBefore) {
                 continue;
@@ -206,12 +197,6 @@ public:
             if (signTmp == 0 && index == 2) {
                 continue;
             }
-
-            //Only happens if start with 0
-            /*if (sign == 0) {
-                sign = signTmp;
-                continue;
-            }*/
 
             if (wasZeroBefore && signPosAcc != 0 && signNegAcc != 0) {
                 sign = signTmp;
@@ -291,11 +276,8 @@ public:
             EdgeData& edgeData = edgesData[i];
             EdgeData& edgeDataNext = edgesData[(i + 1) % edgesSize];
             if (edgeData.state == PlanarState::UNKNOWN) {
-                if (innerPoint == -1) {
-                    //bool newIntersectionEdge = computeIntersectionEdgeHelper1(edgeMesh, edgeData, intersectionMesh, intersectionData[0]);                  
+                if (innerPoint == -1) {                
                     edgeData.state = PlanarState::NON_INTERSECTING_IN;
-                    //fillNextIntersectionEdges(edgeData, edgeDataNext);
-                    //edgeData.intersectionEdges.intersectionEdge1 = newIntersectionEdge;
                 }
                 else {
                     edgeData.state = PlanarState::NON_INTERSECTING_OUT;
@@ -304,16 +286,12 @@ public:
             else if (edgeData.state == PlanarState::ONE_EDGE) {
                 if (innerPoint >= 0) {
                     edgeData.state = PlanarState::ONE_EDGE_TO_IN;
-                    //bool newIntersectionEdge = computeIntersectionEdgeHelper2(edgeMesh, edgeData, intersectionMesh);
-                    //fillNextIntersectionEdges(edgeData, edgeDataNext);
-                    //edgeData.intersectionEdges.intersectionEdge2 = newIntersectionEdge;
                     innerPoint = -1;
                 }
                 else {
                     edgeData.state = PlanarState::ONE_EDGE_TO_OUT;
                     innerPoint = 1;
                 }
-
             }
         }
     }
@@ -337,7 +315,9 @@ public:
             TG_ASSERT(false && "A line can not intersect more than 2 edges in a convex polygon");
     }
    
-    SharedTriIntersect handleCoplanar_FirstPointNotOnEdge(std::vector<int8_t>& signsFirstPoint, const std::vector<pm::halfedge_handle>& edges1, const std::vector<pm::halfedge_handle>& edges2)
+    SharedTriIntersect handleCoplanar_FirstPointNotOnEdge(std::vector<int8_t>& signsFirstPoint, 
+        const std::vector<pm::halfedge_handle>& edges1, 
+        const std::vector<pm::halfedge_handle>& edges2)
     {
         bool isIntersecting = false;
         auto intersectionPlanar = std::make_shared<TrianlgeIntersectionPlanar>(edges1, edges2);

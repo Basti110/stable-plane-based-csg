@@ -46,147 +46,6 @@ static pm::face_handle addHalfFaceDependOnSplitEdges(pm::Mesh& mesh, pm::halfedg
     return mesh.faces().add(hEdges);
 }
 
-
-
-/*static std::vector<pm::face_handle> splitPlanar(PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2, std::vector<EdgeData> iSectData) {
-    PlaneMesh& planeMesh1 = planeMeshInfo1.planeMesh;
-    PlaneMesh& planeMesh2 = planeMeshInfo2.planeMesh;
-    std::vector<pm::face_handle> faces;
-    std::vector<pm::halfedge_handle> halfEdgesToDelete;
-    bool deleteFace = false;
-
-    Plane plane = planeMesh1.face(planeMeshInfo1.face);
-    planeMesh1.mesh().faces().remove(planeMeshInfo1.face);
-
-    for (int i = 0; i < iSectData.size(); ++i) {
-        TG_ASSERT(iSectData[i].state != PlanarState::ONE_EDGE && iSectData[i].state != PlanarState::UNKNOWN);
-        if (iSectData[i].state == PlanarState::NON_INTERSECTING_OUT)
-            continue;
-
-        auto iSectEdge1 = iSectData[i].intersectionEdges.intersectionEdge1;
-        auto iSectEdge2 = iSectData[i].intersectionEdges.intersectionEdge2;
-        pm::halfedge_handle prevNewEdge;
-        pm::halfedge_handle startEdgeNext;
-        std::vector<pm::halfedge_handle> halfEdges = {};
-
-        if (iSectData[i].state == PlanarState::NON_INTERSECTING_IN) {
-            pm::vertex_handle start;
-            pm::halfedge_handle hTmp;
-            if (iSectData[i].intersectionEdges.intersectVertex1) {
-                start = iSectEdge1.vertex_from();
-                hTmp = iSectEdge1;
-            }
-            else {
-                start = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge1);
-                hTmp = iSectEdge1.next();
-                TG_ASSERT(hTmp.vertex_from() == start); //Only Test
-            }
-
-            pm::vertex_handle end;
-            while (true) {
-                halfEdges.push_back(hTmp);
-                if (hTmp == iSectEdge2) {
-                    if (iSectData[i].intersectionEdges.intersectVertex2) {
-                        end = iSectEdge2.vertex_to();
-                        startEdgeNext = iSectEdge2.next();
-                    }
-                    else {
-                        end = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge2);
-                        startEdgeNext = iSectEdge2.next();
-                        TG_ASSERT(startEdgeNext.vertex_from() == end);
-                    }
-                    prevNewEdge = planeMesh2.mesh().halfedges().add_or_get(end, start);
-                    // Add Data
-                    halfEdges.push_back(prevNewEdge);
-                    break;
-                }
-                hTmp = hTmp.next();
-            }
-            faces.push_back(planeMesh1.mesh().faces().add(halfEdges));
-        }
-
-        if (iSectData[i].state == PlanarState::NON_INTERSECTING_IN) {
-            pm::vertex_handle start = startEdgeNext.vertex_from();
-            pm::vertex_handle end = startEdgeNext.vertex_from();
-            auto hTmp = startEdgeNext;
-            while (true) {
-                halfEdges.push_back(hTmp);
-                if (hTmp == iSectEdge2) {
-                    if (iSectData[i].intersectionEdges.intersectVertex2) {
-                        end = iSectEdge2.vertex_to();
-                        startEdgeNext = iSectEdge2.next();
-                    }
-                    else {
-                        end = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge2);
-                        startEdgeNext = iSectEdge2.next();
-                        TG_ASSERT(startEdgeNext.vertex_from() == end); // Test
-                    }
-                    auto newVertex = splitHalfEdgeLowAPI(planeMesh1.mesh(), prevNewEdge);
-                    prevNewEdge = planeMesh2.mesh().halfedges().add_or_get(end, newVertex);
-                    // Add Data
-                    halfEdges.push_back(prevNewEdge);
-                    halfEdges.push_back(prevNewEdge.next());
-                    TG_ASSERT(prevNewEdge.next().vertex_from() == newVertex); // Test
-                    break;
-                }
-                hTmp = hTmp.next();
-            }
-            faces.push_back(planeMesh1.mesh().faces().add(halfEdges));
-        }
-
-        if (iSectData[i].state == PlanarState::TWO_EDGES) {
-            pm::vertex_handle start;
-            pm::vertex_handle end;
-            pm::halfedge_handle hTmp;
-
-            if (iSectData[i].intersectionEdges.intersectVertex1) {
-                start = iSectEdge1.vertex_from();
-                hTmp = iSectEdge1;
-            }
-            else {
-                start = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge1);
-                hTmp = iSectEdge1.next();
-                TG_ASSERT(hTmp.vertex_from() == start); //Only Test
-            }
-
-            while (true) {
-                halfEdges.push_back(hTmp);
-                if (hTmp == iSectEdge2) {
-                    if (iSectData[i].intersectionEdges.intersectVertex2) {
-                        end = iSectEdge2.vertex_to();
-                        startEdgeNext = iSectEdge2.next();
-                    }
-                    else {
-                        end = splitHalfEdgeLowAPI(planeMesh1.mesh(), iSectEdge2);
-                        startEdgeNext = iSectEdge2.next();
-                        TG_ASSERT(startEdgeNext.vertex_from() == end); // Test
-                    }
-                    prevNewEdge = planeMesh1.mesh().halfedges().add_or_get(end, start);
-                    // Add Data
-                    //planeMesh1.setEdge(prevNewEdge.)
-                    halfEdges.push_back(prevNewEdge);
-                    break;
-                }
-                hTmp = hTmp.next();
-            }
-            faces.push_back(planeMesh1.mesh().faces().add(halfEdges));
-        }
-    }
-    return std::vector<pm::face_handle>();
-    //TODO: delete Face
-}*/
-
-/*static void assignEdgeHelper1(bool isVertex, IntersectionEdges& iSectEdges, pm::halfedge_handle& edge) {
-    if (!foundFirst) {
-        iSectEdges.intersectionEdge1 = edge;
-        iSectEdges.intersectVertex1 = true;
-    }
-    else {
-        iSectEdges.intersectionEdge2 = edge;
-        iSectEdges.intersectVertex2 = true;
-    }
-}*/
-
 static void planeTriangle(Plane& plane, int sideLen, std::vector<tg::triangle3>& insertVec) {
     tg::vec3 upNormal = tg::normalize(tg::vec3(plane.to_dplane().normal));
     tg::vec3 upNormalFace = upNormal != tg::vec3(0, 0, -1) && upNormal != tg::vec3(0, 0, 1) ? tg::vec3(0, 0, -1) : tg::vec3(0, 1, 0);
@@ -267,7 +126,7 @@ static std::tuple<pm::face_handle, pm::face_handle> splitFace(PlaneMeshInfo& fac
     pm::vertex_handle start;
     pm::vertex_handle end;
     pm::Mesh& mesh = faceInfo.planeMesh.mesh();
-
+    //Todo sign
     IntersectionEdges iSectEdges = getIntersectionEdges(faceInfo, plane, 1);
     auto iSectEdge1 = iSectEdges.intersectionEdge1;
     auto iSectEdge2 = iSectEdges.intersectionEdge2;
@@ -632,6 +491,26 @@ public:
 
     }
 
+    SharedTriIntersect intersectionWithTimer(pm::face_handle& t1, pm::face_handle& t2) {
+        this->intersectionCount++;
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        auto intersection = IsectOb(*mMeshA, *mMeshB).intersect<geometry128>(t1, t2);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+        this->intersectionTimeCount += nSeconds;
+        return intersection;
+    }
+
+    NewFaces splitnWithTimer(pm::face_handle& t1, pm::face_handle& t2, SharedTriIntersect i) {
+        this->splitCount++;
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        auto splits = split(i, PlaneMeshInfo{ *mMeshA, t1 }, PlaneMeshInfo{ *mMeshB, t2 });
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+        this->splitTimeCount += nSeconds;
+        return splits;
+    }
+
     std::vector<pm::face_handle> splitAccordingToIntersection(pm::face_handle triangle, std::vector<pm::face_handle>& triangles, PlaneMesh& planeMesh1, PlaneMesh& planeMesh2)
     {
         pm::face_handle t2;
@@ -639,149 +518,86 @@ public:
         int count = 0;
         while (trianglesTMP.size() > 0) {
             pm::face_handle t2 = trianglesTMP[0];
+            auto intersection = intersectionWithTimer(triangle, t2);
+            trianglesTMP.erase(trianglesTMP.begin() + 0);
 
-            //Test
-            /*planeMesh1.checkAndComputePositions();
-            planeMesh2.checkAndComputePositions();
-            {
-                std::cout << "Test Mesh 1: " << triangle.idx.value << std::endl;
-                std::cout << "Test Mesh 2: " << t2.idx.value << std::endl;
-                auto faceColors1 = planeMesh1.mesh().faces().make_attribute_with_default(tg::color3::white);
-                faceColors1[triangle] = tg::color3::red;
-                auto faceColors2 = planeMesh2.mesh().faces().make_attribute_with_default(tg::color3::white);
-                faceColors2[t2] = tg::color3::blue;
-                auto view = gv::view(planeMesh1.positions(), faceColors1);
-                gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000));
-                gv::view(planeMesh2.positions(), faceColors2);
-                gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000));
-            }*/
-
-            this->intersectionCount++;
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            auto intersection = IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(triangle, t2);
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            auto seconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-            this->intersectionTimeCount += seconds;
             if (intersection->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING) {
-                //std::cout << "intersection" << std::endl; //Test
                 triangles.erase(triangles.begin() + count);
-                trianglesTMP.erase(trianglesTMP.begin() + 0);
-
-                this->splitCount++;
-                begin = std::chrono::steady_clock::now();
-                auto splits = split(intersection, PlaneMeshInfo{ planeMesh1, triangle }, PlaneMeshInfo{ planeMesh2, t2 });
-                end = std::chrono::steady_clock::now();
-                seconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-                this->splitTimeCount += seconds;
-                
-                //planeMesh1.checkAndComputePositions();
-                //planeMesh2.checkAndComputePositions();
-                //auto testDunpli1 = planeMesh1.noDuplicatedVerticesInFaces();
-                //auto testDunpli2 = planeMesh2.noDuplicatedVerticesInFaces();
-
-                /*if(!testDunpli1 || !testDunpli2)
-                {
-                    auto faceColors1 = planeMesh1.mesh().faces().make_attribute_with_default(false);
-                    faceColors1[splits.facesT1[0]] = true;
-                    faceColors1[splits.facesT1[1]] = true;
-                    auto faceColors2 = planeMesh2.mesh().faces().make_attribute_with_default(false);
-                    faceColors2[splits.facesT2[0]] = true;
-                    faceColors2[splits.facesT2[1]] = true;
-                    auto view = gv::view(planeMesh1.positions(), gv::masked(faceColors1));
-                    gv::view(gv::lines(planeMesh1.positions()).line_width_world(1000));
-                    gv::view(planeMesh2.positions(), gv::masked(faceColors2));
-                    gv::view(gv::lines(planeMesh2.positions()).line_width_world(1000));
-                }*/              
-
+                auto splits = splitnWithTimer(triangle, t2, intersection);
+              
                 if (mLookupFacesA.count(triangle.idx.value) == 0 && splits.facesT1.size() > 1) {
                     mLookupFacesA[triangle.idx.value] = splits.facesT1;
                     TG_ASSERT(mLookupFacesA.count(triangle.idx.value) == 1);
-                }
-                else {
-                    //TG_ASSERT(mLookupFacesA.count(triangle.idx.value) == 1);
                 }
 
                 if (mLookupFacesB.count(t2.idx.value) == 0 && splits.facesT2.size() > 1) {
                     mLookupFacesB[t2.idx.value] = splits.facesT2;
                     TG_ASSERT(mLookupFacesB.count(t2.idx.value) == 1);
                 }
-                else {
-                    //TG_ASSERT(mLookupFacesB.count(t2.idx.value) == 1);
-                }
-                //planeMesh1.mesh().compactify();
-
-                /*{
-                    auto view = gv::view(planeMesh1.positions());
-                    gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1));
-                    gv::view(planeMesh2.positions());
-                    gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1));
-                }*/
-                
+               
                 for (auto& tri : splits.facesT1) {
                     if (tri.is_valid()) {
-                        //std::cout << "Mesh 1 new with: " << tri.idx.value << std::endl;
                         splitAccordingToIntersection(tri, trianglesTMP, planeMesh1, planeMesh2);
                     }                        
                 }
-
-                /*for (auto& triangle : splits.facesT2) {
-                    splitAccordingToIntersection(triangle, triangles, planeMesh1, planeMesh2);
-                }*/
-
-                /*for (auto& triangle : splits.facesT1) {
-                    triangles.push_back(triangle);
-                }*/
 
                 triangles.erase(triangles.begin() + count, triangles.end());
                 triangles.insert(triangles.end(), trianglesTMP.begin(), trianglesTMP.end());
                               
                 for (auto& triangle : splits.facesT2) {
                     if (triangle.is_valid()) {
-                        //std::cout << "Mesh 2 Add: " << triangle.idx.value << std::endl;
                         triangles.push_back(triangle);
                     }                        
                 }
 
-
                 return splits.facesT1;
             }
-            else {
-                count++;
-                trianglesTMP.erase(trianglesTMP.begin() + 0);
-                //std::cout << "non intersection" << std::endl; //Test
-            }
+            count++;               
         }
-        //std::cout << "return" << std::endl;
         return std::vector<pm::face_handle>{triangle};
     }
 
-    void fillFacesWithLookupRecursiveA(std::vector<pm::face_handle>& faces1, std::vector<pm::face_handle>& faces2, pm::face_handle& index) {
+    void showFaces() {
+        /*planeMesh1.checkAndComputePositions();
+        //planeMesh2.checkAndComputePositions();
+
+        auto faceColors1 = planeMesh1.mesh().faces().make_attribute_with_default(tg::color3::white);
+        faceColors1[triangle] = tg::color3::red;
+        auto faceColors2 = planeMesh2.mesh().faces().make_attribute_with_default(tg::color3::white);
+        faceColors2[t2] = tg::color3::blue;
+        auto view = gv::view(planeMesh1.positions(), faceColors1);
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000));
+        gv::view(planeMesh2.positions(), faceColors2);
+        gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000));*/
+        return;
+    }
+
+    void checkLookupAndSplit(std::vector<pm::face_handle>& faces1, std::vector<pm::face_handle>& faces2, pm::face_handle& index) {
         if (mLookupFacesA.count(index.idx.value) == 0) {
             TG_ASSERT(index.is_valid());
             TG_ASSERT(!index.is_removed());         
             auto newFaces = splitAccordingToIntersection(index, faces2, *mMeshA, *mMeshB);
             faces1.insert(faces1.end(), newFaces.begin(), newFaces.end());
-            //faces1.push_back(index);
             return;
         }
 
         std::vector<pm::face_handle>& faceVec = mLookupFacesA[index.idx.value];
         for (pm::face_handle& face : faceVec) {
-            fillFacesWithLookupRecursiveA(faces1, faces2, face);
+            checkLookupAndSplit(faces1, faces2, face);
         }
     }
 
-    void fillFacesWithLookupRecursiveB(std::vector<pm::face_handle>& faces, pm::face_handle& index) {
+    void fillFacesFromLookupBInVec(std::vector<pm::face_handle>& vec, pm::face_handle& index) {
         if (mLookupFacesB.count(index.idx.value) == 0) {
             TG_ASSERT(index.is_valid());
             TG_ASSERT(!index.is_removed());            
-            faces.push_back(index);
+            vec.push_back(index);
             return;
         }
 
         std::vector<pm::face_handle>& faceVec = mLookupFacesB[index.idx.value];
         for (pm::face_handle& face : faceVec) {
-            fillFacesWithLookupRecursiveB(faces, face);
+            fillFacesFromLookupBInVec(vec, face);
         }
     }
 
@@ -793,16 +609,13 @@ public:
 
         //TODO: Cann remove first IF
         for (pm::face_index& face2Index : facesMeshB) {
-            fillFacesWithLookupRecursiveB(faces2, face2Index.of(mMeshB->mesh()));
+            fillFacesFromLookupBInVec(faces2, face2Index.of(mMeshB->mesh()));
         }
             
         //Todo: the same as above
         for (pm::face_index& face1Index : facesMeshA) {           
-            fillFacesWithLookupRecursiveA(faces1, faces2, face1Index.of(mMeshA->mesh()));
+            checkLookupAndSplit(faces1, faces2, face1Index.of(mMeshA->mesh()));
         }
-
-        //std::vector<pm::face_index> facesMeshA(faces1.size());
-        //std::vector<pm::face_index> facesMeshB(faces2.size());
 
         facesMeshA.clear();
         facesMeshB.clear();
@@ -815,9 +628,6 @@ public:
 
         for (int i = 0; i < faces2.size(); ++i)
             facesMeshB.push_back(faces2[i].idx);
-
-        //mFacesMeshA = facesMeshA;
-        //mFacesMeshB = facesMeshB;
     }
 
     static void printTimes() {

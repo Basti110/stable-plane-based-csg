@@ -88,7 +88,7 @@ TEST("Test::Cut_Triangle_Planar_2") {
     faces.push_back(planeMesh2.insertTriangle(triangle7 * scale));
     faces.push_back(planeMesh2.insertTriangle(triangle8 * scale));
 
-    IntersectionCut intersectionCut;
+    IntersectionCut intersectionCut(&planeMesh1, &planeMesh2);
     intersectionCut.splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
 
     planeMesh1.checkAndComputePositions();
