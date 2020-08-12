@@ -94,14 +94,14 @@ TEST("Test::Cut_Triangle_Planar_2") {
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
 
-    /*{
+    {
         auto view = gv::view(planeMesh1.positions());
         gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
     }
     {
         auto view = gv::view(planeMesh2.positions());
         gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
-    }*/
+    }
 
 }
 
