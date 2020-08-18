@@ -396,6 +396,7 @@ public:
             bool faceHaveValidEdges = false;
             bool faceVerticesOnPlane = false;
             bool faceNoDuplicatedVertices = false;
+            bool faceHalfEdgesAreValid = false;
             double maxVertexDistance = 0;
 
             std::vector<pos_t> vertices;
@@ -408,6 +409,7 @@ public:
                     faceHaveValidEdges = mMeshA->faceHaveValidEdges(face);
                     faceVerticesOnPlane = mMeshA->allVerticesInFacePlane(face);
                     maxVertexDistance = mMeshA->getGreatestDistanceToBasePlaneFromVertices(face);
+                    faceHalfEdgesAreValid = mMeshA->faceHasValidHalfEdges(face);
                 }                 
                 else {
                     vertices = mMeshB->getVerticesOfFace(face);
@@ -416,6 +418,7 @@ public:
                     faceHaveValidEdges = mMeshB->faceHaveValidEdges(face);
                     faceVerticesOnPlane = mMeshB->allVerticesInFacePlane(face);
                     maxVertexDistance = mMeshB->getGreatestDistanceToBasePlaneFromVertices(face);
+                    faceHalfEdgesAreValid = mMeshB->faceHasValidHalfEdges(face);
                 }                   
             }
 
@@ -452,9 +455,10 @@ public:
 
             ImGui::Text("Mouse Pos: %f:%f:%f", rayWorld.x, rayWorld.y, rayWorld.z);
 
-            ImGui::Text("Face have Valid Edges: %s", getBoolString(faceHaveValidEdges));
-            ImGui::Text("All Vertices on Plane: %s", getBoolString(faceVerticesOnPlane));
-            ImGui::Text("No Duplicated Vertices: %s", getBoolString(faceNoDuplicatedVertices));
+            ImGui::Text("Face have valid edges: %s", getBoolString(faceHaveValidEdges));
+            ImGui::Text("All vertices on plane: %s", getBoolString(faceVerticesOnPlane));
+            ImGui::Text("No duplicated vertices: %s", getBoolString(faceNoDuplicatedVertices));
+            ImGui::Text("Halfedges are valid: %s", getBoolString(faceHalfEdgesAreValid));
             ImGui::Text("Max vertex distance: %f", maxVertexDistance);
 
             for (int i = 0; i < vertices.size(); ++i) {

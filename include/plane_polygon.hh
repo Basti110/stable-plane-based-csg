@@ -224,6 +224,32 @@ public:
     //#############################################################################
     //#                          Validation on Face                               #
     //#############################################################################
+    bool allFacesHaveValidHalfEdges() {
+        for (pm::face_handle& f : mMesh.faces()) {
+            if (!faceHasValidHalfEdges(f))
+                return false;
+        }
+        return true;
+    }
+
+    bool faceHasValidHalfEdges(pm::face_index f) {
+        return faceHasValidHalfEdges(f.of(mMesh));
+    }
+
+    bool faceHasValidHalfEdges(pm::face_handle face) {
+        for (pm::vertex_handle v : face.vertices()) {
+            auto sub = pos(v);
+            for (pm::halfedge_handle he : face.halfedges()) {
+                auto plane = mEdges[he.edge()];
+                int8_t sign = ob::classify_vertex(sub, plane);
+                sign *= mHalfEdges[he];
+                if (sign > 0)
+                    return false;
+            }
+        }
+        return true;
+    }
+
     bool duplicatedVerticesInFace(pm::face_index f) {
         return duplicatedVerticesInFace(f.of(mMesh));
     }
