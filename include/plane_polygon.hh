@@ -16,7 +16,7 @@ using vec_t = tg::vec<3, scalar_t>;
 using dir_t = tg::dir<3, scalar_t>;
 using SubDet = ob::subdeterminants<geometry128>;
 using VertexAttribute = pm::vertex_attribute<geometry128::pos_t>;
-//using SharedPlanePolygon = std::shared_ptr<PlanePolygon>;
+
 
 struct PlanePolygon {
     pm::face_handle face;
@@ -595,3 +595,5 @@ private:
     int mID;
     static int instances;
 };
+
+using SharedPlaneMesh = std::shared_ptr<PlaneMesh>;
