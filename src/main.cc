@@ -56,9 +56,10 @@ int main() {
     positions.push_back({ 0, 0, 0 });
     positions.push_back({ 1, 0, -2 });
     
+    test_picker();
     //test_color_in_mesh();
     //test_octree();
-    test_cut_mesh();
+    //test_cut_mesh();
     //test_octree_two_meshes();
     //mark_component_test();
     //test_color_in_mesh();
@@ -301,109 +302,47 @@ void test_trianle_classification() {
 }
 
 void mark_component_test() {
-    pm::Mesh mesh1;
-    pm::vertex_attribute<tg::pos3> pos1(mesh1);
-    pm::load("../data/mesh/fox.obj", mesh1, pos1);
-    mesh1.compactify();
-    pm::deduplicate(mesh1, pos1);
-
-    pm::Mesh mesh2;
-    pm::vertex_attribute<tg::pos3> pos2(mesh2);
-    pm::load("../data/mesh/fox.obj", mesh2, pos2);
-    mesh2.compactify();
-    pm::deduplicate(mesh2, pos2);
-
-    auto translation1 = tg::translation(tg::vec{ 0.f, -50.f, 15.f });
-    auto rotatation1 = tg::rotation_x(tg::angle::from_degree(-90));
-    auto trans1 = translation1 * rotatation1;
-    transformation(pos1, trans1);
-
-    scalar_t scale = 1e6;
-    PlaneMesh planeMesh1(mesh1, pos1, scale);
-    PlaneMesh planeMesh2(mesh2, pos2, scale);
-
-    AABB box({ -60 * scale, -60 * scale, -40 * scale }, { 60 * scale, 60 * scale, 80 * scale });
-    SharedOctree octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
-
-    for (auto f : planeMesh1.allFaces()) {
-        octree->insert_polygon(planeMesh1.id(), f);
-    }
-
-    for (auto f : planeMesh2.allFaces()) {
-        octree->insert_polygon(planeMesh2.id(), f);
-    }
+    ObjConfig conf = ObjCollection::map.at("bunny_mesh_2");
+    auto planeMesh1 = conf.getMeshA();
+    auto planeMesh2 = conf.getMeshB();
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    auto iCut = octree->cutPolygons();
+    auto iCut = conf.getOctree()->cutPolygons();
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     auto seconds = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
 
-    FaceComponentFinder components1(planeMesh1, iCut.getIntersectionEdgesMarkerA());
-    FaceComponentFinder components2(planeMesh2, iCut.getIntersectionEdgesMarkerB());
+    FaceComponentFinder components1(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
+    FaceComponentFinder components2(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
     std::cout << "Found " << components1.countComponents() << " components" << std::endl;
 
     std::cout << "Cut in " << seconds << "ms" << std::endl;
-    if (planeMesh1.allFacesHaveEdges())
+    if (planeMesh1->allFacesHaveEdges())
         return;
 
-    if (planeMesh2.allFacesHaveEdges())
+    if (planeMesh2->allFacesHaveEdges())
         return;
 
-    planeMesh1.checkAndComputePositions();
-    planeMesh2.checkAndComputePositions();
+    planeMesh1->checkAndComputePositions();
+    planeMesh2->checkAndComputePositions();
 
-    planeMesh1.mesh().compactify();
-    auto faceMask1 = planeMesh1.mesh().faces().make_attribute_with_default(false);
-    auto faceMask2 = planeMesh2.mesh().faces().make_attribute_with_default(false);
+    planeMesh1->mesh().compactify();
+    auto faceMask1 = planeMesh1->mesh().faces().make_attribute_with_default(false);
+    auto faceMask2 = planeMesh2->mesh().faces().make_attribute_with_default(false);
 
-    auto test1 = planeMesh1.noDuplicatedVerticesInFaces(faceMask1);
-    auto test2 = planeMesh2.noDuplicatedVerticesInFaces(faceMask2);
+    auto test1 = planeMesh1->noDuplicatedVerticesInFaces(faceMask1);
+    auto test2 = planeMesh2->noDuplicatedVerticesInFaces(faceMask2);
 
-    //int test = pm::deduplicate(planeMesh1.mesh(), planeMesh1.positions());
-    //auto view = gv::view(planeMesh1.positions(), gv::masked(faceMask1));
-    /*auto view = gv::view(planeMesh2.positions(), components2.getColorAssignment());
-    gv::view(gv::lines(planeMesh2.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::color(0.0));*/
-    auto view = gv::view(planeMesh1.positions(), components1.getColorAssignment());
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+    /*auto view = gv::view(planeMesh2->positions(), components2.getColorAssignment());
+    gv::view(gv::lines(planeMesh2->positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));*/
+    auto view = gv::view(planeMesh1->positions(), components1.getColorAssignment());
+    gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh1->positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
 }
 
 void test_picker() {
-    pm::Mesh mesh1;
-    pm::vertex_attribute<tg::pos3> pos1(mesh1);
-    pm::load("../data/mesh/fox.obj", mesh1, pos1);
-    mesh1.compactify();
-    pm::deduplicate(mesh1, pos1);
-
-    pm::Mesh mesh2;
-    pm::vertex_attribute<tg::pos3> pos2(mesh2);
-    pm::load("../data/mesh/fox.obj", mesh2, pos2);
-    mesh2.compactify();
-    pm::deduplicate(mesh2, pos2);
-
-    auto translation1 = tg::translation(tg::vec{ 0.f, -50.f, 15.f });
-    auto rotatation1 = tg::rotation_x(tg::angle::from_degree(-90));
-    auto trans1 = translation1 * rotatation1;
-    transformation(pos1, trans1);
-
-    scalar_t scale = 1e6;
-    PlaneMesh planeMesh1(mesh1, pos1, scale);
-    PlaneMesh planeMesh2(mesh2, pos2, scale);
-
-    AABB box({ -60 * scale, -60 * scale, -40 * scale }, { 60 * scale, 60 * scale, 80 * scale });
-    SharedOctree octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
-
-    for (auto f : planeMesh1.allFaces()) {
-        octree->insert_polygon(planeMesh1.id(), f);
-    }
-
-    for (auto f : planeMesh2.allFaces()) {
-        octree->insert_polygon(planeMesh2.id(), f);
-    }
-
-    octree->startDebugView();
-
+    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
+    conf.getOctree()->startDebugView();
 }
 
 void test_cut_testAB_meshes() {
