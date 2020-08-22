@@ -56,10 +56,10 @@ int main() {
     positions.push_back({ 0, 0, 0 });
     positions.push_back({ 1, 0, -2 });
     
-    test_picker();
+    //test_picker();
     //test_color_in_mesh();
     //test_octree();
-    //test_cut_mesh();
+    test_cut_mesh();
     //test_octree_two_meshes();
     //mark_component_test();
     //test_color_in_mesh();
