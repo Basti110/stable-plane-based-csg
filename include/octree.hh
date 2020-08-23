@@ -8,7 +8,7 @@
 //#include <set>
 #include "plane_polygon.hh"
 //intersection and cut
-#include <intersection_utils.hh>
+#include <intersection_cut.hh>
 #include <face_marker.hh>
 #include <glow-extras/viewer/view.hh>
 #include <glow-extras/viewer/experimental.hh>
@@ -343,7 +343,7 @@ public:
         bool test1 = mMeshA->allFacesAreValidAndNotRemoved();
         bool test2 = mMeshB->allFacesAreValidAndNotRemoved();
         mRoot->cutPolygons(faceLookUp);
-        IntersectionCut::printTimes();
+        faceLookUp.printTimes();
         return faceLookUp;
     }
     //PlaneMesh& meshA() { return mMeshA; }

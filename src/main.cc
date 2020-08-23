@@ -45,7 +45,7 @@ int main() {
     }
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
-    //tests.run();
+    tests.run();
 
     pm::vertex_attribute<tg::pos3> test3;
 

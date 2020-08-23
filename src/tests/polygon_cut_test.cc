@@ -1,4 +1,4 @@
-#include <intersection_utils.hh>
+#include <intersection_cut.hh>
 
 TEST("Test::Cut_Triangle_Normal") {
     tg::triangle<3, scalar_t> triangle1({ { 0, 0, -20 }, { 10, 0, 0 }, { -10, 0, 0 } });
@@ -20,7 +20,7 @@ TEST("Test::Cut_Triangle_Normal") {
     faces.push_back(planeMesh2.insertTriangle(triangle5 * scale));
 
     IntersectionCut intersectionCut(&planeMesh1, &planeMesh2);
-    intersectionCut.splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
+    intersectionCut.splitAccordingToIntersection(face1, faces);
     
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
@@ -45,18 +45,18 @@ TEST("Test::Cut_Triangle_Normal") {
 TEST("Test::Cut_Triangle_Planar_1") {
     PlaneMesh planeMesh1;
     PlaneMesh planeMesh2;
-    auto face1 = planeMesh1.insertPolygon({ 0, 0, -20 }, { 10, 0, 0 }, { -10, 0, 0 });
-    auto face2 = planeMesh2.insertPolygon({ 0, 2, -7 }, { 0, -2, -9 }, { 0, -2, -5 });
-    auto face3 = planeMesh2.insertPolygon({ -3, 2, -7 }, { -3, -2, -9 }, { -3, -2, -5 });
-    auto face4 = planeMesh2.insertPolygon({ -5, 0, -15 }, { -10, 0, 10 }, { 0, 0, 10 });
-    auto face5 = planeMesh2.insertPolygon({ 10, 0, -5 }, { 5, 0, 5 }, { 15, 0, 5 });
-    auto face6 = planeMesh2.insertPolygon({ 0, 0, -20 }, { -20, 0, -20 }, { -10, 0, 0 });
-    auto face7 = planeMesh2.insertPolygon({ -13, 0, -5 }, { -8, 0, 5 }, { -18, 0, 5 });
-    auto face8 = planeMesh2.insertPolygon({ 0, 0, -30 }, { 5, 0, -20 }, { -5, 0, -20 });
-    PlaneMeshInfo info = { planeMesh1, face1 };
-    splitFace(info, planeMesh2.face(face2), 1);
-    planeMesh1.checkAndComputePositions();
+    std::vector<pm::face_handle> faces;
+    auto face1 = (planeMesh1.insertPolygon({ 0, 0, -20 }, { 10, 0, 0 }, { -10, 0, 0 }));
+    faces.push_back(planeMesh2.insertPolygon({ 0, 2, -7 }, { 0, -2, -9 }, { 0, -2, -5 }));
+    faces.push_back(planeMesh2.insertPolygon({ -3, 2, -7 }, { -3, -2, -9 }, { -3, -2, -5 }));
+    faces.push_back(planeMesh2.insertPolygon({ -5, 0, -15 }, { -10, 0, 10 }, { 0, 0, 10 }));
+    faces.push_back(planeMesh2.insertPolygon({ 10, 0, -5 }, { 5, 0, 5 }, { 15, 0, 5 }));
+    faces.push_back(planeMesh2.insertPolygon({ 0, 0, -20 }, { -20, 0, -20 }, { -10, 0, 0 }));
+    faces.push_back(planeMesh2.insertPolygon({ -13, 0, -5 }, { -8, 0, 5 }, { -18, 0, 5 }));
+    faces.push_back(planeMesh2.insertPolygon({ 0, 0, -30 }, { 5, 0, -20 }, { -5, 0, -20 }));
 
+    IntersectionCut intersectionCut(&planeMesh1, &planeMesh2);
+    intersectionCut.splitAccordingToIntersection(face1, faces);
     /*auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1));
     gv::view(planeMesh2.positions());
@@ -89,7 +89,7 @@ TEST("Test::Cut_Triangle_Planar_2") {
     faces.push_back(planeMesh2.insertTriangle(triangle8 * scale));
 
     IntersectionCut intersectionCut(&planeMesh1, &planeMesh2);
-    intersectionCut.splitAccordingToIntersection(face1, faces, planeMesh1, planeMesh2);
+    intersectionCut.splitAccordingToIntersection(face1, faces);
 
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
