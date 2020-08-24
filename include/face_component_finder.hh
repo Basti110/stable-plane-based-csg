@@ -7,7 +7,7 @@ class FaceComponentFinder {
    
 public:
     FaceComponentFinder() = delete;
-    FaceComponentFinder(PlaneMesh& planeMesh, pm::edge_attribute<bool>& intersectionMark) : mPlaneMesh(planeMesh) {
+    FaceComponentFinder(PlaneMesh& planeMesh, const pm::edge_attribute<bool>& intersectionMark) : mPlaneMesh(planeMesh) {
         pm::Mesh& mesh = planeMesh.mesh();
         mfaceToComponent = mesh.faces().make_attribute_with_default(-1);
 
@@ -16,12 +16,13 @@ public:
                 continue;
 
             mfaceToComponent[face] = mCountComponents;
+            mComponentToFace[mCountComponents].push_back(face.idx);
             mCountComponents++;
             assignComponent(face, intersectionMark);
         }
     } 
 
-    void assignComponent(pm::face_handle& face, pm::edge_attribute<bool>& intersectionMark) {
+    void assignComponent(const pm::face_handle& face, const pm::edge_attribute<bool>& intersectionMark) {
         TG_ASSERT(mfaceToComponent[face] != -1);
         std::vector<pm::face_handle> facesToMark;
 
@@ -38,6 +39,7 @@ public:
 
             facesToMark.push_back(neighborFace);
             mfaceToComponent[neighborFace] = mfaceToComponent[face];
+            mComponentToFace[mfaceToComponent[face]].push_back(neighborFace.idx);
         }
 
         for (pm::face_handle& neighborFace : facesToMark) {
@@ -60,6 +62,26 @@ public:
             return tg::color3::color(r / 255.0, g / 255.0, b / 255.0);
         });
         return colors;
+    }
+
+    std::optional<pm::vertex_handle> getVertexNotOnIntersectionLine(size_t component, const pm::edge_attribute<bool>& intersectionMark) {
+        if(component > mCountComponents)
+            return std::nullopt;
+
+        for (auto faceIdx : mComponentToFace[component]) {
+            auto faceHandle = faceIdx.of(mPlaneMesh.mesh());
+            for (pm::halfedge_handle& halfedge : faceHandle.halfedges()) {
+                if (intersectionMark[halfedge.edge()])
+                    continue;
+
+                if (intersectionMark[halfedge.next().edge()])
+                    continue;
+
+                return halfedge.vertex_to();
+            }
+        }
+
+        return std::nullopt;
     }
 
 private: 

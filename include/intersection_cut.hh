@@ -36,11 +36,11 @@ public:
         std::cout << "total time split: " << splitCount << std::endl;
     }
 
-    pm::edge_attribute<bool>& getIntersectionEdgesMarkerA() {
+    const pm::edge_attribute<bool>& getIntersectionEdgesMarkerA() const {
         return mIntersectionEdgesMarkerA;
     }
 
-    pm::edge_attribute<bool>& getIntersectionEdgesMarkerB() {
+    const pm::edge_attribute<bool>& getIntersectionEdgesMarkerB() const {
         return mIntersectionEdgesMarkerB;
     }
 
