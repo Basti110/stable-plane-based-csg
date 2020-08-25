@@ -18,11 +18,16 @@ using SubDet = ob::subdeterminants<geometry128>;
 using VertexAttribute = pm::vertex_attribute<geometry128::pos_t>;
 
 
-struct PlanePolygon {
+/*struct PlanePolygon {
     pm::face_handle face;
     VertexAttribute& positions;
     pm::face_attribute<Plane>& facePlanes;
     pm::edge_attribute<Plane>& edgePlanes;
+};*/
+
+struct PlaneRay {
+    Plane& plane1;
+    Plane& plane2;
 };
 
 class PlaneMesh {
@@ -408,14 +413,6 @@ public:
         for (auto vertex : face.vertices())
             vertices.push_back(mPositions[vertex]);
         return vertices;
-    }
-
-    PlanePolygon planePolygon(const pm::face_index& face) {
-        return {face.of(mMesh), mPositions, mFaces, mEdges };
-    }
-
-    PlanePolygon planePolygon(const pm::face_handle& face) {
-        return { face, mPositions, mFaces, mEdges };
     }
 
     int8_t signDistanceToBasePlane(const pm::face_handle& polygon, const pm::vertex_handle& point) const {

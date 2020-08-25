@@ -38,7 +38,7 @@ namespace ob {
     // returns an enum describing how the triangle and the aabb intersect
     // see https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/tribox.pdf
     template <class geometry_t>
-    intersection_result intersection_type(PlanePolygon const& polygon, typename geometry_t::aabb_t const& aabb_in)
+    intersection_result intersection_type(PlaneMesh const& planeMesh, pm::face_handle face, typename geometry_t::aabb_t const& aabb_in)
     {
         // NOTE: all coordinates are multiplied by 2 so we can center properly
         static constexpr int bits_pos = 1 + geometry_t::bits_position;
@@ -69,25 +69,24 @@ namespace ob {
 
 
         //auto const& t = tris.triangles[tri_idx];
-        auto h = polygon.face.any_halfedge();
-        VertexAttribute& pos = polygon.positions;
+        auto h = face.any_halfedge();
         /*auto p0 = pos[h.vertex_from()];
         auto p1 = pos[h.vertex_to()];
         auto p2 = pos[h.next().vertex_to()];*/
 
-        auto const p0 = pos_t(pos_scalar_t(pos[h.vertex_from()].x) << 1, //
-            pos_scalar_t(pos[h.vertex_from()].y) << 1, //
-            pos_scalar_t(pos[h.vertex_from()].z) << 1)
+        auto const p0 = pos_t(pos_scalar_t(planeMesh.posInt(h.vertex_from()).x) << 1, //
+            pos_scalar_t(planeMesh.posInt(h.vertex_from()).y) << 1, //
+            pos_scalar_t(planeMesh.posInt(h.vertex_from()).z) << 1)
             - center;
 
-        auto const p1 = pos_t(pos_scalar_t(pos[h.vertex_to()].x) << 1, //
-            pos_scalar_t(pos[h.vertex_to()].y) << 1, //
-            pos_scalar_t(pos[h.vertex_to()].z) << 1)
+        auto const p1 = pos_t(pos_scalar_t(planeMesh.posInt(h.vertex_to()).x) << 1, //
+            pos_scalar_t(planeMesh.posInt(h.vertex_to()).y) << 1, //
+            pos_scalar_t(planeMesh.posInt(h.vertex_to()).z) << 1)
             - center;
 
-        auto const p2 = pos_t(pos_scalar_t(pos[h.next().vertex_to()].x) << 1, //
-            pos_scalar_t(pos[h.next().vertex_to()].y) << 1, //
-            pos_scalar_t(pos[h.next().vertex_to()].z) << 1)
+        auto const p2 = pos_t(pos_scalar_t(planeMesh.posInt(h.next().vertex_to()).x) << 1, //
+            pos_scalar_t(planeMesh.posInt(h.next().vertex_to()).y) << 1, //
+            pos_scalar_t(planeMesh.posInt(h.next().vertex_to()).z) << 1)
             - center;
 
         //    TG_ASSERT(!is_zero_vector(cross(p1 - p0, p2 - p0)) && "degenerate triangles not supported");
@@ -117,8 +116,8 @@ namespace ob {
             return intersection_result::proper_intersection;
 
         // get adjusted tri base plane
-        auto plane = polygon.facePlanes[polygon.face];
-        auto dis = double(signed_distance(plane, pos[h.vertex_from()]));
+        auto plane = planeMesh.face(face);
+        auto dis = double(signed_distance(plane, planeMesh.posInt(h.vertex_from())));
         TG_ASSERT(dis == 0 && "invalid plane?");
 
         plane.d = -(ob::mul<geometry_t::bits_plane_d>(plane.a, p0.x) + //

@@ -59,9 +59,9 @@ int main() {
     //test_picker();
     //test_color_in_mesh();
     //test_octree();
-    test_cut_mesh();
+    //test_cut_mesh();
     //test_octree_two_meshes();
-    //mark_component_test();
+    mark_component_test();
     //test_color_in_mesh();
     /*while (true) {
         test_picker();
@@ -302,7 +302,7 @@ void test_trianle_classification() {
 }
 
 void mark_component_test() {
-    ObjConfig conf = ObjCollection::map.at("bunny_mesh_2");
+    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
 

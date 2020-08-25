@@ -154,6 +154,10 @@ public:
         bool intersectVertex2;
     };
 
+    static bool intersection(PlaneMesh& mMesh, const pm::face_handle& face) {
+        return false;
+    }
+
     IntersectionObject() = delete;
     IntersectionObject(PlaneMesh& mMeshA, PlaneMesh& mMeshB) : mPlaneMeshA(mMeshA), mPlaneMeshB(mMeshB) {}
     static void showFaces(PlaneMesh& mesh1, const pm::face_handle& polygon1, PlaneMesh& mesh2, const pm::face_handle& polygon2);

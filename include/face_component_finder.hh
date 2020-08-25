@@ -16,7 +16,7 @@ public:
                 continue;
 
             mfaceToComponent[face] = mCountComponents;
-            mComponentToFace[mCountComponents].push_back(face.idx);
+            mComponentToFace.push_back({ face.idx });
             mCountComponents++;
             assignComponent(face, intersectionMark);
         }

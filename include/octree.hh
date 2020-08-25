@@ -44,6 +44,15 @@ struct BoxAndDistance {
     scalar_t dinstance = -1;
 };
 
+struct OctreeNodePlanes {
+    Plane xyFront;
+    Plane xyBack;
+    Plane xzTop;
+    Plane xzBottom;
+    Plane yzRight;
+    Plane yzLeft;
+};
+
 class OctreeNode {
 public:
     enum class NodeType {
@@ -69,6 +78,27 @@ public:
     bool isInTree();
     bool hasParent();
     bool polygonInAABB(int meshIdx, pm::face_index faceIdx);
+
+    OctreeNodePlanes getPlanes() {
+        TG_ASSERT(mAABB != AABB());
+        OctreeNodePlanes planes;
+
+        Plane xyFront;
+        Plane xyBack;
+        Plane xzTop;
+        Plane xzBottom;
+        Plane yzRight;
+        Plane yzLeft;
+
+        planes.xyFront = Plane::from_pos_normal(mAABB.max, { 0, 0, 1 });
+        planes.xyBack = Plane::from_pos_normal(mAABB.min, { 0, 0, -1 });
+        planes.xzTop = Plane::from_pos_normal(mAABB.max, { 0, 1, 0 });
+        planes.xzBottom = Plane::from_pos_normal(mAABB.min, { 0, -1, 0 });
+        planes.yzRight = Plane::from_pos_normal(mAABB.max, { 1, 0, 0 });
+        planes.yzLeft = Plane::from_pos_normal(mAABB.min, { -1, 0, 0 });
+        return planes;
+    }
+
     virtual bool isNotLeafOrContainsData() {
         return true;
     }
@@ -116,6 +146,8 @@ public:
         vec_t distance = point - origin;
         return tg::length(distance);
     }
+
+
     
 
     Octree* getOctree();
@@ -126,7 +158,7 @@ protected:
     Octree* const mOctree;
 };
 
-class LeafNode : public OctreeNode {
+class LeafNode : public OctreeNode, public std::enable_shared_from_this<LeafNode> {
 public:
     LeafNode(const AABB& aabb, Octree* octree);
     LeafNode(const AABB& aabb, Octree* octree, SharedOctreeNode parent);
@@ -174,6 +206,7 @@ public:
     NearestFace getNearestFace(tg::vec3 ray, pos_t origin) override;
 
 private: 
+    friend class Octree;
     std::vector<uint32_t> mValueIndices;
     std::vector<pm::face_index> mFacesMeshA;
     std::vector<pm::face_index> mFacesMeshB;
@@ -255,6 +288,7 @@ private:
     
     std::array<SharedOctreeNode, 8> mChildNodes;
     void insertInLeaf(int child, int meshIdx, pm::face_index faceIdx);
+
 };
 
 class EmptyNode : public OctreeNode {
@@ -312,6 +346,8 @@ public:
         mRoot = std::make_shared<BranchNode>(powerOf2AABB, this);
         //mRoot->setOctree(shared_from_this());
         mRoot->initLeafNodes();
+        mFaceMeshAToNode = a->mesh().faces().make_attribute<SharedLeafNode>();
+        mFaceMeshBToNode = b->mesh().faces().make_attribute<SharedLeafNode>();
     }
 
     void insert_polygon(int meshIdx, pm::face_handle faceIdx) {
@@ -469,6 +505,20 @@ public:
         });
     }
 
+    SharedLeafNode findLeafNodeMeshA(const pm::face_handle& face) {
+        return mFaceMeshAToNode[face];
+    }
+
+    SharedLeafNode findLeafNodeMeshB(const pm::face_handle& face) {
+        return mFaceMeshBToNode[face];
+    }
+
+    void CastRayToNextCornerPointMesh(const pm::face_handle& face, PlaneMesh& planeMesh) {
+        SharedLeafNode node = planeMesh.id() == mMeshA->id() ? findLeafNodeMeshA(face) : findLeafNodeMeshB(face);
+        std::vector<pm::face_index>& FacesMeshA = node->mFacesMeshA;
+        std::vector<pm::face_index>& FacesMeshB = node->mFacesMeshB;
+    }
+
 private: 
     bool mSplitOnlyOneMesh = false;
     friend class OctreeNode;
@@ -478,4 +528,6 @@ private:
     PlaneMesh* mMeshA;
     PlaneMesh* mMeshB;
     int intersectionCounterTMP = 0;
+    pm::face_attribute<SharedLeafNode> mFaceMeshAToNode;
+    pm::face_attribute<SharedLeafNode> mFaceMeshBToNode;
 };

@@ -173,7 +173,7 @@ std::tuple<pm::face_handle, pm::face_handle> IntersectionCut::splitFace(PlaneMes
 //TODO: Remove Debug entries
 std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, IntersectionEdges& intersectionEdges, Plane& iSectPlane) {
     //Only Test
-    TG_ASSERT(planeMesh.planeMesh.allFacesAreValid());
+    //TG_ASSERT(planeMesh.planeMesh.allFacesAreValid());
 
     pm::Mesh& mesh = planeMesh.planeMesh.mesh();
     int countEdges1 = mesh.halfedges().count();
@@ -232,7 +232,7 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
     int countEdges5 = mesh.halfedges().count();
     auto newFace2 = addFaceFromCycleAndStopPoint(mesh, h2Next, v1New);
     int countEdges6 = mesh.halfedges().count();
-    TG_ASSERT(planeMesh.planeMesh.allFacesAreValid());
+    //TG_ASSERT(planeMesh.planeMesh.allFacesAreValid());
     //faceTest1 = h1.opposite().face().is_valid();
     //faceTest2 = h2.opposite().face().is_valid();
     TG_ASSERT(newFace1.is_valid());

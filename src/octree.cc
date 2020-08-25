@@ -43,8 +43,7 @@ bool OctreeNode::polygonInAABB(int meshIdx, pm::face_index faceIdx)
 {
     TG_ASSERT(mOctree);
     PlaneMesh* mesh = meshIdx == mOctree->mMeshA->id() ? mOctree->mMeshA : mOctree->mMeshB;
-    PlanePolygon polygon = mesh->planePolygon(faceIdx);
-    auto intersection = ob::intersection_type<geometry128>(polygon, mAABB);
+    auto intersection = ob::intersection_type<geometry128>(*mesh, faceIdx.of(mesh->mesh()), mAABB);
     if (intersection != ob::intersection_result::non_intersecting)
         return true;
     return false;
@@ -87,9 +86,11 @@ void LeafNode::insertPolygon(int meshIdx, pm::face_index faceIdx)
     pm::face_index index = faceIdx;
     if (mOctree->mMeshA->id() == meshIdx) {
         mFacesMeshA.push_back(index);
+        mOctree->mFaceMeshAToNode[index] = shared_from_this();
     }
     else if (mOctree->mMeshB->id() == meshIdx) {
         mFacesMeshB.push_back(index);
+        mOctree->mFaceMeshBToNode[index] = shared_from_this();
     }
     else {
         LOG_ERROR() << meshIdx << " is no valid Mesh ID";
