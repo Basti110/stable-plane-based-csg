@@ -513,7 +513,7 @@ public:
         return mFaceMeshBToNode[face];
     }
 
-    void CastRayToNextCornerPointMesh(const pm::face_handle& face, PlaneMesh& planeMesh) {
+    void CastRayToNextCornerPoint(const pm::face_handle& face, PlaneMesh& planeMesh) {
         SharedLeafNode node = planeMesh.id() == mMeshA->id() ? findLeafNodeMeshA(face) : findLeafNodeMeshB(face);
         std::vector<pm::face_index>& FacesMeshA = node->mFacesMeshA;
         std::vector<pm::face_index>& FacesMeshB = node->mFacesMeshB;

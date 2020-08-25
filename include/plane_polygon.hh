@@ -18,12 +18,10 @@ using SubDet = ob::subdeterminants<geometry128>;
 using VertexAttribute = pm::vertex_attribute<geometry128::pos_t>;
 
 
-/*struct PlanePolygon {
-    pm::face_handle face;
-    VertexAttribute& positions;
-    pm::face_attribute<Plane>& facePlanes;
-    pm::edge_attribute<Plane>& edgePlanes;
-};*/
+struct PlanePolygon {
+    Plane& basePlane;
+    std::vector<Plane> edgePlanes;
+};
 
 struct PlaneRay {
     Plane& plane1;

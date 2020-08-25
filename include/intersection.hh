@@ -154,8 +154,21 @@ public:
         bool intersectVertex2;
     };
 
-    static bool intersection(PlaneMesh& mMesh, const pm::face_handle& face) {
-        return false;
+    static bool intersection(const PlaneRay& planeRay, const PlanePolygon& polygon) {
+        if(ob::are_parallel(planeRay.plane1, polygon.basePlane))
+            return false;
+
+        if(ob::are_parallel(planeRay.plane1, polygon.basePlane))
+            return false;
+
+        SubDet subDet;
+        ob::compute_subdeterminants(planeRay.plane1, planeRay.plane2, polygon.basePlane, subDet);
+
+        for (const Plane& edgePlane : polygon.edgePlanes) {
+            if (ob::classify_vertex(subDet, edgePlane) > 0)
+                return false;
+        }
+        return true;
     }
 
     IntersectionObject() = delete;
