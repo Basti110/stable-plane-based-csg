@@ -154,7 +154,7 @@ public:
         bool intersectVertex2;
     };
 
-    static bool intersection(const PlaneRay& planeRay, const PlanePolygon& polygon) {
+    static bool isIntersecting(const PlaneRay& planeRay, const PlanePolygon& polygon) {
         if(ob::are_parallel(planeRay.plane1, polygon.basePlane))
             return false;
 

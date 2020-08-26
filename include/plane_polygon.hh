@@ -23,9 +23,20 @@ struct PlanePolygon {
     std::vector<Plane> edgePlanes;
 };
 
+struct PlaneInterval {
+    const Plane& plane1;
+    const Plane& plane2;
+};
+
+struct PlanePoint {
+    const Plane& basePlane;
+    const Plane& edgePlane1;
+    const Plane& edgePlane2;
+};
+
 struct PlaneRay {
-    Plane& plane1;
-    Plane& plane2;
+    const Plane& plane1;
+    const Plane& plane2;
 };
 
 class PlaneMesh {
@@ -473,6 +484,10 @@ public:
         return mEdges[edge];
     }
 
+    const Plane& face(const pm::face_index& face) const {
+        return mFaces[face];
+    }
+
     const Plane& edge(const pm::halfedge_handle& edge) const {
         return mEdges[edge.edge()];
     }
@@ -543,6 +558,19 @@ public:
 
     Plane& getPlane(const pm::edge_handle edge) {
         return mEdges[edge];
+    }
+
+    PlaneRay getRayPlanes(pm::vertex_handle vertex) const {
+        for (pm::halfedge_handle& he1 : vertex.incoming_halfedges()) {
+            for (pm::halfedge_handle& he2 : vertex.outgoing_halfedges()) {
+                if (!(edge(he1.edge()) == edge(he2.edge())))
+                    return PlaneRay{ edge(he1.edge()), edge(he2.edge()) };
+            }
+        }
+    }
+
+    const Plane& getAnyFace(pm::vertex_handle vertex) const {
+        return mFaces[vertex.any_face()];
     }
 
     const Plane& getPlane(const pm::edge_handle& edge) const {

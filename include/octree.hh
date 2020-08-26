@@ -513,10 +513,115 @@ public:
         return mFaceMeshBToNode[face];
     }
 
-    void CastRayToNextCornerPoint(const pm::face_handle& face, PlaneMesh& planeMesh) {
-        SharedLeafNode node = planeMesh.id() == mMeshA->id() ? findLeafNodeMeshA(face) : findLeafNodeMeshB(face);
+    bool checkIfPointInPolygon(pm::face_handle face, PlaneMesh* mesh, SubDet& subDet) {
+        for (auto halfEdge : face.halfedges()) {
+            uint8_t sign = ob::classify_vertex(subDet, mesh->edge(halfEdge.edge()));
+            if (sign * mesh->halfedge(halfEdge) > 1)
+                return false;
+        }
+        return true;
+    }
+
+    std::tuple<size_t, size_t> intersectionToNextPoint(SubDet& subDet, SharedLeafNode node, std::vector<int8_t>& singsMeshA, std::vector<int8_t>& singsMeshB) {
+        size_t intersectionCountA = 0;
+        size_t intersectionCountB = 0;
+        //Mesh A
+        for (int i = 0; i < node->mFacesMeshA.size(); ++i) {
+            const Plane& facePlane = mMeshA->face(node->mFacesMeshA[i]);
+            auto sign = ob::classify_vertex(subDet, facePlane);
+            if (sign == singsMeshA[i] || sign == 0)
+                continue;
+
+            singsMeshA[i] = sign;
+            if (checkIfPointInPolygon(node->mFacesMeshA[i].of(mMeshA->mesh()), mMeshA, subDet))
+                intersectionCountA++;
+        }
+
+        //Mesh B
+        for (int i = 0; i < node->mFacesMeshB.size(); ++i) {
+            const Plane& facePlane = mMeshB->face(node->mFacesMeshB[i]);
+            auto sign = ob::classify_vertex(subDet, facePlane);
+            if (sign == singsMeshB[i] || sign == 0)
+                continue;
+
+            singsMeshB[i] = sign;
+            if (checkIfPointInPolygon(node->mFacesMeshB[i].of(mMeshB->mesh()), mMeshB, subDet))
+                intersectionCountA++;
+        }
+        return std::make_tuple(intersectionCountA, intersectionCountB);
+    }
+
+    int castToNextPlanes(const PlanePoint& origin, SharedLeafNode node, const Plane& first, const Plane& second, const Plane& third) {
+        std::vector<int8_t> singsMeshA(node->mFacesMeshA.size());
+        std::vector<int8_t> singsMeshB(node->mFacesMeshB.size());
+        size_t intersectionCountA = 0;
+        size_t intersectionCountB = 0;
+
+        SubDet det = mMeshA->pos(origin.basePlane, origin.edgePlane1, origin.edgePlane2);
+        for (int i = 0; i < node->mFacesMeshA.size(); ++i) {
+            const Plane& facePlane = mMeshA->face(node->mFacesMeshA[i]);
+            singsMeshA[i] = ob::classify_vertex(det, facePlane);
+        }
+
+        for (int i = 0; i < node->mFacesMeshB.size(); ++i) {
+            const Plane& facePlane = mMeshA->face(node->mFacesMeshB[i]);
+            singsMeshB[i] = ob::classify_vertex(det, facePlane);
+        }
+
+        det = mMeshA->pos(first, origin.edgePlane1, origin.edgePlane2);
+        auto intersections = intersectionToNextPoint(det, node, singsMeshA, singsMeshB);
+        intersectionCountA += std::get<0>(intersections);
+        intersectionCountB += std::get<1>(intersections);
+
+        det = mMeshA->pos(first, second, origin.edgePlane1);
+        intersections = intersectionToNextPoint(det, node, singsMeshA, singsMeshB);
+        intersectionCountA += std::get<0>(intersections);
+        intersectionCountB += std::get<1>(intersections);
+
+        det = mMeshA->pos(first, second, third);
+        intersections = intersectionToNextPoint(det, node, singsMeshA, singsMeshB);
+        intersectionCountA += std::get<0>(intersections);
+        intersectionCountB += std::get<1>(intersections);
+    }
+
+    bool intersectInInterval(PlaneRay planeRay, const Plane& plane, PlaneInterval& interval) {
+
+    }
+
+    int CastRayToNextCornerPoint(const pm::vertex_handle& origin, const PlaneMesh& planeMesh) {
+        SharedLeafNode node = planeMesh.id() == mMeshA->id() ? findLeafNodeMeshA(origin.any_face()) : findLeafNodeMeshB(origin.any_face());
         std::vector<pm::face_index>& FacesMeshA = node->mFacesMeshA;
         std::vector<pm::face_index>& FacesMeshB = node->mFacesMeshB;
+        
+        OctreeNodePlanes np = node->getPlanes();
+
+        PlaneRay planeRay = planeMesh.getRayPlanes(origin);
+        const Plane& basePlane = planeMesh.getAnyFace(origin);
+        TG_ASSERT(!(basePlane == planeRay.plane1) && !(basePlane == planeRay.plane1));
+
+        const Plane oppositePlanes[] = { np.xyBack , np.xyFront ,np.xzBottom, np.xzTop, np.yzLeft, np.yzRight };
+        PlanePolygon nodeSides[] = {
+        { np.xyFront, {np.xzTop, np.yzLeft, np.xzBottom, np.yzRight}},
+        { np.xyBack, {np.xzTop, np.yzLeft, np.xzBottom, np.yzRight}},
+        { np.xzTop, {np.xyFront, np.yzRight, np.xyBack, np.yzLeft}},
+        { np.xzBottom, {np.xyFront, np.yzRight, np.xyBack, np.yzLeft}},
+        { np.yzRight, {np.xzTop, np.xyFront, np.xzBottom, np.xyBack}},
+        { np.yzLeft, {np.xzTop, np.xyFront, np.xzBottom, np.xyBack}}};
+
+        for (int i = 0; i < 6; ++i) {
+            auto side = nodeSides[i];
+            if (IntersectionObject::isIntersecting(planeRay, side)) {
+                PlaneRay nextRay = { planeRay.plane1, side.basePlane };
+                PlaneInterval interval = { side.basePlane, oppositePlanes[i] };
+                for (int j = 0; j < 4; j++) {
+                    auto sidePlane = side.edgePlanes[j];
+                    if (intersectInInterval(nextRay, sidePlane, interval)) {
+                        const Plane& thirdPlane = side.edgePlanes[(j + 1) % 4];
+                        castToNextPlanes({ basePlane , planeRay.plane1, planeRay.plane2 }, node, side.basePlane, sidePlane, thirdPlane);
+                    }
+                }
+            }
+        }
     }
 
 private: 
