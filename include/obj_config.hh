@@ -166,6 +166,10 @@ public:
             ObjConfig(1e9, 1e8, AABB({ -1, -1, -1 }, { 1, 1, 1 }),
             "../data/mesh/bun_zipper.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90)),
             "../data/mesh/bun_zipper.obj", tg::translation(tg::vec{ 0.0f, -.08f, 0.0f }), tg::mat4::identity) },
+            { "octree_easy",
+            ObjConfig(1e8, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
+            "../data/mesh/triangle.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
+            "../data/mesh/cube2.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
         };
     }
 };

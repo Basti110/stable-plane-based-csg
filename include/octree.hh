@@ -44,13 +44,21 @@ struct BoxAndDistance {
     scalar_t dinstance = -1;
 };
 
-struct OctreeNodePlanes {
-    Plane xyFront;
-    Plane xyBack;
-    Plane xzTop;
-    Plane xzBottom;
-    Plane yzRight;
-    Plane yzLeft;
+class OctreeNodePlanes {
+public:
+    OctreeNodePlanes() : xyFront(planes[0]), xyBack(planes[1]), xzTop(planes[2]), xzBottom(planes[3]), yzRight(planes[4]), yzLeft(planes[5]) {};
+    OctreeNodePlanes(Plane& xyFront, Plane& xyBack, Plane& xzTop, Plane& xzBottom, Plane& yzRight, Plane& yzLeft) :
+        planes{ xyFront, xyBack, xzTop, xzBottom, yzRight, yzLeft },
+        xyFront(planes[0]), xyBack(planes[1]), xzTop(planes[2]), xzBottom(planes[3]), yzRight(planes[4]), yzLeft(planes[5])
+    {}
+
+    Plane planes[6];
+    const Plane& xyFront;
+    const Plane& xyBack;
+    const Plane& xzTop;
+    const Plane& xzBottom;
+    const Plane& yzRight;
+    const Plane& yzLeft;
 };
 
 class OctreeNode {
@@ -83,19 +91,12 @@ public:
         TG_ASSERT(mAABB != AABB());
         OctreeNodePlanes planes;
 
-        Plane xyFront;
-        Plane xyBack;
-        Plane xzTop;
-        Plane xzBottom;
-        Plane yzRight;
-        Plane yzLeft;
-
-        planes.xyFront = Plane::from_pos_normal(mAABB.max, { 0, 0, 1 });
-        planes.xyBack = Plane::from_pos_normal(mAABB.min, { 0, 0, -1 });
-        planes.xzTop = Plane::from_pos_normal(mAABB.max, { 0, 1, 0 });
-        planes.xzBottom = Plane::from_pos_normal(mAABB.min, { 0, -1, 0 });
-        planes.yzRight = Plane::from_pos_normal(mAABB.max, { 1, 0, 0 });
-        planes.yzLeft = Plane::from_pos_normal(mAABB.min, { -1, 0, 0 });
+        planes.planes[0] = Plane::from_pos_normal(mAABB.max, { 0, 0, 1 });
+        planes.planes[1] = Plane::from_pos_normal(mAABB.min, { 0, 0, -1 });
+        planes.planes[2] = Plane::from_pos_normal(mAABB.max, { 0, 1, 0 });
+        planes.planes[3] = Plane::from_pos_normal(mAABB.min, { 0, -1, 0 });
+        planes.planes[4] = Plane::from_pos_normal(mAABB.max, { 1, 0, 0 });
+        planes.planes[5] = Plane::from_pos_normal(mAABB.min, { -1, 0, 0 });
         return planes;
     }
 
@@ -304,6 +305,12 @@ public:
     SharedOctreeNode parent() override;
 };
 
+class DebugRayInfo {
+public:
+    std::vector<SubDet> rayPath;
+};
+using SharedDebugRayInfo = std::shared_ptr<DebugRayInfo>;
+
 
 class Octree : public std::enable_shared_from_this<Octree> {
 
@@ -346,8 +353,8 @@ public:
         mRoot = std::make_shared<BranchNode>(powerOf2AABB, this);
         //mRoot->setOctree(shared_from_this());
         mRoot->initLeafNodes();
-        mFaceMeshAToNode = a->mesh().faces().make_attribute<SharedLeafNode>();
-        mFaceMeshBToNode = b->mesh().faces().make_attribute<SharedLeafNode>();
+        mFaceMeshAToNode = a->mesh().faces().make_attribute<std::vector<SharedLeafNode>>();
+        mFaceMeshBToNode = b->mesh().faces().make_attribute<std::vector<SharedLeafNode>>();
     }
 
     void insert_polygon(int meshIdx, pm::face_handle faceIdx) {
@@ -506,11 +513,15 @@ public:
     }
 
     SharedLeafNode findLeafNodeMeshA(const pm::face_handle& face) {
-        return mFaceMeshAToNode[face];
+        if(mFaceMeshAToNode[face].size() > 0)
+            return mFaceMeshAToNode[face][0];
+        return SharedLeafNode();
     }
 
     SharedLeafNode findLeafNodeMeshB(const pm::face_handle& face) {
-        return mFaceMeshBToNode[face];
+        if (mFaceMeshBToNode[face].size() > 0)
+            return mFaceMeshBToNode[face][0];
+        return SharedLeafNode();
     }
 
     bool checkIfPointInPolygon(pm::face_handle face, PlaneMesh* mesh, SubDet& subDet) {
@@ -584,12 +595,35 @@ public:
         intersectionCountB += std::get<1>(intersections);
     }
 
+    void fillRayInfo(const PlanePoint& origin, const Plane& first, const Plane& second, const Plane& third, SharedDebugRayInfo rayInfo) {
+
+    }
+
     bool intersectInInterval(PlaneRay planeRay, const Plane& plane, PlaneInterval& interval) {
 
     }
 
-    int CastRayToNextCornerPoint(const pm::vertex_handle& origin, const PlaneMesh& planeMesh) {
-        SharedLeafNode node = planeMesh.id() == mMeshA->id() ? findLeafNodeMeshA(origin.any_face()) : findLeafNodeMeshB(origin.any_face());
+    bool subDetInCell(const SubDet& subDet, const OctreeNodePlanes& planes) {
+        for (auto plane : planes.planes) {
+            if (ob::classify_vertex(subDet, plane) > 0)
+                return false;
+        }
+        return true;
+    }
+
+    SharedLeafNode getRightCell(const pm::vertex_handle& origin, const PlaneMesh& planeMesh) {
+        auto& faceToNode = planeMesh.id() == mMeshA->id() ? mFaceMeshAToNode : mFaceMeshBToNode;
+        auto subDet = mMeshA->pos(origin);
+        for (auto node : faceToNode[origin.any_face()]) {
+            auto planes = node->getPlanes();
+            if(subDetInCell(subDet, planes))
+                return node;
+        }
+        return SharedLeafNode();
+    }
+
+    int CastRayToNextCornerPoint(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
+        SharedLeafNode node = getRightCell(origin, planeMesh);
         std::vector<pm::face_index>& FacesMeshA = node->mFacesMeshA;
         std::vector<pm::face_index>& FacesMeshB = node->mFacesMeshB;
         
@@ -618,6 +652,8 @@ public:
                     if (intersectInInterval(nextRay, sidePlane, interval)) {
                         const Plane& thirdPlane = side.edgePlanes[(j + 1) % 4];
                         castToNextPlanes({ basePlane , planeRay.plane1, planeRay.plane2 }, node, side.basePlane, sidePlane, thirdPlane);
+                        if (rayInfo)
+                            fillRayInfo({ basePlane , planeRay.plane1, planeRay.plane2 }, side.basePlane, sidePlane, thirdPlane, rayInfo);
                     }
                 }
             }
@@ -633,6 +669,6 @@ private:
     PlaneMesh* mMeshA;
     PlaneMesh* mMeshB;
     int intersectionCounterTMP = 0;
-    pm::face_attribute<SharedLeafNode> mFaceMeshAToNode;
-    pm::face_attribute<SharedLeafNode> mFaceMeshBToNode;
+    pm::face_attribute<std::vector<SharedLeafNode>> mFaceMeshAToNode;
+    pm::face_attribute<std::vector<SharedLeafNode>> mFaceMeshBToNode;
 };

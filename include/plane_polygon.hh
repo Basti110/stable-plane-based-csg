@@ -19,7 +19,7 @@ using VertexAttribute = pm::vertex_attribute<geometry128::pos_t>;
 
 
 struct PlanePolygon {
-    Plane& basePlane;
+    const Plane& basePlane;
     std::vector<Plane> edgePlanes;
 };
 

@@ -20,12 +20,9 @@
 //std::string testObj = "../data/mesh/fox.obj";
 std::string testObj = "../data/mesh/bun_zipper.obj";
 
+void test_octree_cell_ray_cast();
 void test_cut_testAB_meshes();
 void test_picker();
-void testIntersectionTriangleNormal(); 
-void testIntersectionTrianglePlanar();
-void testIntersectionPolygon();
-void testIntersection();
 void test_cut_mesh();
 void test_color_in_mesh();
 void test_plane_visu();
@@ -60,8 +57,8 @@ int main() {
     //test_color_in_mesh();
     //test_octree();
     //test_cut_mesh();
-    //test_octree_two_meshes();
-    mark_component_test();
+    test_octree_cell_ray_cast();
+    //mark_component_test();
     //test_color_in_mesh();
     /*while (true) {
         test_picker();
@@ -252,7 +249,7 @@ void test_cut_mesh() {
 }
 
 void test_octree_two_meshes() {
-    ObjConfig conf = ObjCollection::map.at("bunny_mesh_2");
+    ObjConfig conf = ObjCollection::map.at("octree_easy");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
             
@@ -260,10 +257,25 @@ void test_octree_two_meshes() {
     //octree->startDebugView();
     //auto g = gv::grid();
     auto view = gv::view(planeMesh1->positions());
-    gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), "gv::lines(pos)");
+    gv::view(gv::lines(planeMesh1->positions()).line_width_world(1000000), "gv::lines(pos)");
     gv::view(planeMesh2->positions());
-    gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), "gv::lines(pos)");
-    gv::view(gv::lines(boxes).line_width_world(50000), tg::color3::blue, "gv::lines(pos)");
+    gv::view(gv::lines(planeMesh2->positions()).line_width_world(1000000), "gv::lines(pos)");
+    gv::view(gv::lines(boxes).line_width_world(500000), tg::color3::blue, "gv::lines(pos)");
+}
+
+void test_octree_cell_ray_cast() {
+    ObjConfig conf = ObjCollection::map.at("octree_easy");
+    auto planeMesh1 = conf.getMeshA();
+    auto planeMesh2 = conf.getMeshB();
+
+    auto boxes = conf.getOctreeBoxes();
+
+    //int intersections = conf.getOctree()->CastRayToNextCornerPoint();
+    auto view = gv::view(planeMesh1->positions());
+    gv::view(gv::lines(planeMesh1->positions()).line_width_world(1000000), "gv::lines(pos)");
+    gv::view(planeMesh2->positions());
+    gv::view(gv::lines(planeMesh2->positions()).line_width_world(1000000), "gv::lines(pos)");
+    gv::view(gv::lines(boxes).line_width_world(500000), tg::color3::blue, "gv::lines(pos)");
 
 }
 
