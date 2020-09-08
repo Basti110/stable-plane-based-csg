@@ -24,8 +24,9 @@ struct geometry
 
     using pos_scalar_t = fixed_int<bits_position>;
     using pos_t = tg::pos<3, pos_scalar_t>;
-    using vec_t = tg::vec<3, pos_scalar_t>;
+    using vec_t = tg::vec<3, pos_scalar_t>;  
     using normal_scalar_t = fixed_int<bits_normal>;
+    using normal_t = tg::vec<3, pos_scalar_t>;
     using plane_d_t = fixed_int<bits_plane_d>;
     using subdeterminants_t = subdeterminants<geometry>;
     using determinant_abc_t = fixed_int<bits_determinant_abc>;

@@ -158,7 +158,16 @@ public:
         if(ob::are_parallel(planeRay.plane1, polygon.basePlane))
             return false;
 
-        if(ob::are_parallel(planeRay.plane1, polygon.basePlane))
+        if(ob::are_parallel(planeRay.plane2, polygon.basePlane))
+            return false;
+
+        if (planeRay.plane1.a == 0 && planeRay.plane2.a == 0 && polygon.basePlane.a == 0)
+            return false;
+
+        if (planeRay.plane1.b == 0 && planeRay.plane2.b == 0 && polygon.basePlane.b == 0)
+            return false;
+
+        if (planeRay.plane1.c == 0 && planeRay.plane2.c == 0 && polygon.basePlane.c == 0)
             return false;
 
         SubDet subDet;

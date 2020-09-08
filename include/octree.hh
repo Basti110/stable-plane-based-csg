@@ -22,6 +22,7 @@ using SharedOctreeNode = std::shared_ptr<OctreeNode>;
 using WeakOctreeNode = std::weak_ptr<OctreeNode>;
 using SharedLeafNode = std::shared_ptr<LeafNode>;
 using SharedBranchNode = std::shared_ptr<BranchNode>;
+using WeakBranchNode = std::weak_ptr<BranchNode>;
 using SharedEmptyNode = std::shared_ptr<EmptyNode>;
 using SharedOctree = std::shared_ptr<Octree>;
 using AABB = tg::aabb<3, scalar_t>;
@@ -46,19 +47,26 @@ struct BoxAndDistance {
 
 class OctreeNodePlanes {
 public:
-    OctreeNodePlanes() : xyFront(planes[0]), xyBack(planes[1]), xzTop(planes[2]), xzBottom(planes[3]), yzRight(planes[4]), yzLeft(planes[5]) {};
+    OctreeNodePlanes() {};
     OctreeNodePlanes(Plane& xyFront, Plane& xyBack, Plane& xzTop, Plane& xzBottom, Plane& yzRight, Plane& yzLeft) :
-        planes{ xyFront, xyBack, xzTop, xzBottom, yzRight, yzLeft },
-        xyFront(planes[0]), xyBack(planes[1]), xzTop(planes[2]), xzBottom(planes[3]), yzRight(planes[4]), yzLeft(planes[5])
+        planes{ xyFront, xyBack, xzTop, xzBottom, yzRight, yzLeft }
     {}
+    OctreeNodePlanes(const OctreeNodePlanes& other) {
+        planes[0] = other.planes[0];
+        planes[1] = other.planes[1];
+        planes[2] = other.planes[2];
+        planes[3] = other.planes[3];
+        planes[4] = other.planes[4];
+        planes[5] = other.planes[5];
+    }
 
     Plane planes[6];
-    const Plane& xyFront;
-    const Plane& xyBack;
-    const Plane& xzTop;
-    const Plane& xzBottom;
-    const Plane& yzRight;
-    const Plane& yzLeft;
+    const Plane& xyFront = planes[0];
+    const Plane& xyBack = planes[1];
+    const Plane& xzTop = planes[2];
+    const Plane& xzBottom = planes[3];
+    const Plane& yzRight = planes[4];
+    const Plane& yzLeft = planes[5];
 };
 
 class OctreeNode {
@@ -72,7 +80,11 @@ public:
 public: 
     //OctreeNode(AABB aabb) : mAABB(aabb) {}
     OctreeNode(const AABB& aabb, Octree* octree) : mAABB(aabb), mOctree(octree) {}
-    OctreeNode(const AABB& aabb, Octree* octree, SharedOctreeNode parent) : mParentNode(parent), mAABB(aabb), mOctree(mParentNode->mOctree) {}
+    OctreeNode(const AABB& aabb, SharedBranchNode parent) : mAABB(aabb), mIsValid(true) {
+        mParentNode = parent;
+        mOctree = std::dynamic_pointer_cast<OctreeNode>(parent)->octree();
+    }
+
     void insertAABB(std::vector<AABB>& insertVec);
     virtual SharedOctreeNode childNode(int idx) = 0;
     //virtual OctreeNode& childNodeRef(int idx) = 0;
@@ -86,6 +98,8 @@ public:
     bool isInTree();
     bool hasParent();
     bool polygonInAABB(int meshIdx, pm::face_index faceIdx);
+    void setParent(SharedBranchNode node);
+    Octree* octree() { return mOctree; }
 
     OctreeNodePlanes getPlanes() {
         TG_ASSERT(mAABB != AABB());
@@ -100,6 +114,26 @@ public:
         return planes;
     }
 
+    pos_t getPosFromVertexIndex(size_t i) {
+        scalar_t len = mAABB.max.x - mAABB.min.y;
+        if (i == 0)
+            return mAABB.max;
+        else if (i == 1)
+            return mAABB.max + vec_t{ 0, 0, -len };
+        else if (i == 2)
+            return mAABB.max + vec_t{ 0, -len, -len };
+        else if (i == 3)
+            return mAABB.max + vec_t{ 0, -len, 0 };
+        else if (i == 4)
+            return mAABB.min + vec_t{ 0, len, len };
+        else if (i == 5)
+            return mAABB.min + vec_t{ 0, len, 0 };
+        else if (i == 6)
+            return mAABB.min;
+        else if (i == 7)
+            return mAABB.min + vec_t{ 0, 0, len };
+    }
+     
     virtual bool isNotLeafOrContainsData() {
         return true;
     }
@@ -154,15 +188,16 @@ public:
     Octree* getOctree();
 
 protected: 
-    SharedOctreeNode mParentNode;
+    bool mIsValid = false;
+    WeakBranchNode mParentNode;
     AABB mAABB;
-    Octree* const mOctree;
+    Octree* mOctree;
 };
 
 class LeafNode : public OctreeNode, public std::enable_shared_from_this<LeafNode> {
 public:
     LeafNode(const AABB& aabb, Octree* octree);
-    LeafNode(const AABB& aabb, Octree* octree, SharedOctreeNode parent);
+    LeafNode(const AABB& aabb, SharedBranchNode parent);
     //static SharedLeafNode create() { return std::make_shared<LeafNode>(); };
     //static SharedLeafNode create(SharedOctreeNode parent) { return std::make_shared<LeafNode>(parent); };
 
@@ -217,7 +252,7 @@ private:
 class BranchNode : public OctreeNode, public std::enable_shared_from_this<BranchNode>{
 public:
     BranchNode(const AABB& aabb, Octree* octree);
-    BranchNode(const AABB& aabb, Octree* octree, SharedOctreeNode parent);
+    BranchNode(const AABB& aabb, SharedBranchNode parent);
     //static SharedBranchNode create() { return std::make_shared<BranchNode>(); };
     //static SharedBranchNode create(SharedOctreeNode parent) { return std::make_shared<BranchNode>(parent); };
 
@@ -308,6 +343,7 @@ public:
 class DebugRayInfo {
 public:
     std::vector<SubDet> rayPath;
+    pos_t octreeVerex;
 };
 using SharedDebugRayInfo = std::shared_ptr<DebugRayInfo>;
 
@@ -526,81 +562,102 @@ public:
 
     bool checkIfPointInPolygon(pm::face_handle face, PlaneMesh* mesh, SubDet& subDet) {
         for (auto halfEdge : face.halfedges()) {
-            uint8_t sign = ob::classify_vertex(subDet, mesh->edge(halfEdge.edge()));
-            if (sign * mesh->halfedge(halfEdge) > 1)
+            TG_ASSERT(!ob::are_parallel(mesh->edge(halfEdge.edge()), mesh->face(face)));
+            int8_t sign = ob::classify_vertex(subDet, mesh->edge(halfEdge.edge()));
+            if (sign * mesh->halfedge(halfEdge) >= 1)
                 return false;
         }
         return true;
     }
 
-    std::tuple<size_t, size_t> intersectionToNextPoint(SubDet& subDet, SharedLeafNode node, std::vector<int8_t>& singsMeshA, std::vector<int8_t>& singsMeshB) {
-        size_t intersectionCountA = 0;
-        size_t intersectionCountB = 0;
+    size_t intersectionToNextPoint(const Plane& p1, const Plane& p2, SubDet& subDet, SharedLeafNode node, std::vector<int8_t>& singsMeshA, std::vector<int8_t>& singsMeshB) {
+        size_t intersectionCount = 0;
         //Mesh A
         for (int i = 0; i < node->mFacesMeshA.size(); ++i) {
             const Plane& facePlane = mMeshA->face(node->mFacesMeshA[i]);
             auto sign = ob::classify_vertex(subDet, facePlane);
+            if (singsMeshA[i] == 2)
+                singsMeshA[i] = sign;
+
             if (sign == singsMeshA[i] || sign == 0)
                 continue;
 
             singsMeshA[i] = sign;
             if (checkIfPointInPolygon(node->mFacesMeshA[i].of(mMeshA->mesh()), mMeshA, subDet))
-                intersectionCountA++;
+                intersectionCount++;
         }
 
         //Mesh B
         for (int i = 0; i < node->mFacesMeshB.size(); ++i) {
             const Plane& facePlane = mMeshB->face(node->mFacesMeshB[i]);
             auto sign = ob::classify_vertex(subDet, facePlane);
+            if (singsMeshB[i] == 2)
+                singsMeshB[i] == sign;
+
             if (sign == singsMeshB[i] || sign == 0)
                 continue;
 
             singsMeshB[i] = sign;
-            if (checkIfPointInPolygon(node->mFacesMeshB[i].of(mMeshB->mesh()), mMeshB, subDet))
-                intersectionCountA++;
+            auto subDetFacePlane = mMeshA->pos(p1, p2, facePlane);
+            if (checkIfPointInPolygon(node->mFacesMeshB[i].of(mMeshB->mesh()), mMeshB, subDetFacePlane))
+                intersectionCount++;
         }
-        return std::make_tuple(intersectionCountA, intersectionCountB);
+        return intersectionCount;
     }
 
     int castToNextPlanes(const PlanePoint& origin, SharedLeafNode node, const Plane& first, const Plane& second, const Plane& third) {
         std::vector<int8_t> singsMeshA(node->mFacesMeshA.size());
         std::vector<int8_t> singsMeshB(node->mFacesMeshB.size());
-        size_t intersectionCountA = 0;
-        size_t intersectionCountB = 0;
+        size_t intersectionCount = 0;
 
         SubDet det = mMeshA->pos(origin.basePlane, origin.edgePlane1, origin.edgePlane2);
         for (int i = 0; i < node->mFacesMeshA.size(); ++i) {
             const Plane& facePlane = mMeshA->face(node->mFacesMeshA[i]);
-            singsMeshA[i] = ob::classify_vertex(det, facePlane);
+            auto sign = ob::classify_vertex(det, facePlane);
+            singsMeshA[i] = sign == 0 ? 2 : sign;
         }
 
         for (int i = 0; i < node->mFacesMeshB.size(); ++i) {
-            const Plane& facePlane = mMeshA->face(node->mFacesMeshB[i]);
-            singsMeshB[i] = ob::classify_vertex(det, facePlane);
+            const Plane& facePlane = mMeshB->face(node->mFacesMeshB[i]);
+            auto sign = ob::classify_vertex(det, facePlane);
+            singsMeshB[i] = sign == 0 ? 2 : sign;
         }
 
         det = mMeshA->pos(first, origin.edgePlane1, origin.edgePlane2);
-        auto intersections = intersectionToNextPoint(det, node, singsMeshA, singsMeshB);
-        intersectionCountA += std::get<0>(intersections);
-        intersectionCountB += std::get<1>(intersections);
+        intersectionCount += intersectionToNextPoint(origin.edgePlane1, origin.edgePlane2, det, node, singsMeshA, singsMeshB);
 
         det = mMeshA->pos(first, second, origin.edgePlane1);
-        intersections = intersectionToNextPoint(det, node, singsMeshA, singsMeshB);
-        intersectionCountA += std::get<0>(intersections);
-        intersectionCountB += std::get<1>(intersections);
+        intersectionCount += intersectionToNextPoint(first, origin.edgePlane1, det, node, singsMeshA, singsMeshB);
 
         det = mMeshA->pos(first, second, third);
-        intersections = intersectionToNextPoint(det, node, singsMeshA, singsMeshB);
-        intersectionCountA += std::get<0>(intersections);
-        intersectionCountB += std::get<1>(intersections);
+        intersectionCount += intersectionToNextPoint(first, second, det, node, singsMeshA, singsMeshB);
+
+        return intersectionCount;
     }
 
     void fillRayInfo(const PlanePoint& origin, const Plane& first, const Plane& second, const Plane& third, SharedDebugRayInfo rayInfo) {
-
+        SubDet subDet = mMeshA->pos(origin.basePlane, origin.edgePlane1, origin.edgePlane2);
+        rayInfo->rayPath.push_back(subDet);
+        subDet = mMeshA->pos(origin.edgePlane1, origin.edgePlane2, first);
+        rayInfo->rayPath.push_back(subDet);
+        subDet = mMeshA->pos(origin.edgePlane1, first, second);
+        rayInfo->rayPath.push_back(subDet);
+        subDet = mMeshA->pos(first, second, third);
+        rayInfo->rayPath.push_back(subDet);
     }
 
     bool intersectInInterval(PlaneRay planeRay, const Plane& plane, PlaneInterval& interval) {
+        SubDet subDet = mMeshA->pos(planeRay.plane1, planeRay.plane2, plane);
 
+        int8_t sign = ob::classify_vertex(subDet, interval.plane1);
+        if (ob::classify_vertex(subDet, interval.plane1) >= 1)
+            return false;
+
+        sign = ob::classify_vertex(subDet, interval.plane2);
+        if (ob::classify_vertex(subDet, interval.plane2) >= 1)
+            return false;
+             
+        return true;
     }
 
     bool subDetInCell(const SubDet& subDet, const OctreeNodePlanes& planes) {
@@ -614,7 +671,8 @@ public:
     SharedLeafNode getRightCell(const pm::vertex_handle& origin, const PlaneMesh& planeMesh) {
         auto& faceToNode = planeMesh.id() == mMeshA->id() ? mFaceMeshAToNode : mFaceMeshBToNode;
         auto subDet = mMeshA->pos(origin);
-        for (auto node : faceToNode[origin.any_face()]) {
+        auto test = origin.any_incoming_halfedge().face();
+        for (auto node : faceToNode[test]) {
             auto planes = node->getPlanes();
             if(subDetInCell(subDet, planes))
                 return node;
@@ -622,19 +680,81 @@ public:
         return SharedLeafNode();
     }
 
-    int CastRayToNextCornerPoint(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
+    static pos_t getPointFromPlaneIndex(int i1, int i2, SharedLeafNode node) {
+        if (i1 == 0) {
+            if (i2 == 0)
+                return node->getPosFromVertexIndex(4);
+            else if (i2 == 1)
+                return node->getPosFromVertexIndex(8);
+            else if (i2 == 2)
+                return node->getPosFromVertexIndex(5);
+            else if (i2 == 3)
+                return node->getPosFromVertexIndex(1);
+        }
+        else if (i1 == 1) {
+            if (i2 == 0)
+                return node->getPosFromVertexIndex(3);
+            else if (i2 == 1)
+                return node->getPosFromVertexIndex(7);
+            else if (i2 == 2)
+                return node->getPosFromVertexIndex(6);
+            else if (i2 == 3)
+                return node->getPosFromVertexIndex(2);
+        }
+        else if (i1 == 2) {
+            if (i2 == 0)
+                return node->getPosFromVertexIndex(1);
+            else if (i2 == 1)
+                return node->getPosFromVertexIndex(2);
+            else if (i2 == 2)
+                return node->getPosFromVertexIndex(3);
+            else if (i2 == 3)
+                return node->getPosFromVertexIndex(4);
+        }
+        else if (i1 == 3) {
+            if (i2 == 0)
+                return node->getPosFromVertexIndex(5);
+            else if (i2 == 1)
+                return node->getPosFromVertexIndex(6);
+            else if (i2 == 2)
+                return node->getPosFromVertexIndex(7);
+            else if (i2 == 3)
+                return node->getPosFromVertexIndex(8);
+        }
+        else if (i1 == 4) {
+            if (i2 == 0)
+                return node->getPosFromVertexIndex(4);
+            else if (i2 == 1)
+                return node->getPosFromVertexIndex(8);
+            else if (i2 == 2)
+                return node->getPosFromVertexIndex(7);
+            else if (i2 == 3)
+                return node->getPosFromVertexIndex(3);
+        }
+        else if (i1 == 5) {
+            if (i2 == 0)
+                return node->getPosFromVertexIndex(1);
+            else if (i2 == 1)
+                return node->getPosFromVertexIndex(5);
+            else if (i2 == 2)
+                return node->getPosFromVertexIndex(6);
+            else if (i2 == 3)
+                return node->getPosFromVertexIndex(2);
+        }
+    }
+
+    std::tuple<int, pos_t> castRayToNextCornerPoint(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
         SharedLeafNode node = getRightCell(origin, planeMesh);
         std::vector<pm::face_index>& FacesMeshA = node->mFacesMeshA;
         std::vector<pm::face_index>& FacesMeshB = node->mFacesMeshB;
         
-        OctreeNodePlanes np = node->getPlanes();
+        const OctreeNodePlanes np = node->getPlanes();
 
         PlaneRay planeRay = planeMesh.getRayPlanes(origin);
         const Plane& basePlane = planeMesh.getAnyFace(origin);
         TG_ASSERT(!(basePlane == planeRay.plane1) && !(basePlane == planeRay.plane1));
 
-        const Plane oppositePlanes[] = { np.xyBack , np.xyFront ,np.xzBottom, np.xzTop, np.yzLeft, np.yzRight };
-        PlanePolygon nodeSides[] = {
+        PlanePolygon nodeSides[6] = {
         { np.xyFront, {np.xzTop, np.yzLeft, np.xzBottom, np.yzRight}},
         { np.xyBack, {np.xzTop, np.yzLeft, np.xzBottom, np.yzRight}},
         { np.xzTop, {np.xyFront, np.yzRight, np.xyBack, np.yzLeft}},
@@ -646,21 +766,49 @@ public:
             auto side = nodeSides[i];
             if (IntersectionObject::isIntersecting(planeRay, side)) {
                 PlaneRay nextRay = { planeRay.plane1, side.basePlane };
-                PlaneInterval interval = { side.basePlane, oppositePlanes[i] };
+                
                 for (int j = 0; j < 4; j++) {
-                    auto sidePlane = side.edgePlanes[j];
+                    auto& sidePlane = side.edgePlanes[j];
+                    auto& nextSidePlane = side.edgePlanes[(j + 1) % 4];
+                    PlaneInterval interval = { nextSidePlane, side.edgePlanes[(j + 3) % 4] };
                     if (intersectInInterval(nextRay, sidePlane, interval)) {
-                        const Plane& thirdPlane = side.edgePlanes[(j + 1) % 4];
-                        castToNextPlanes({ basePlane , planeRay.plane1, planeRay.plane2 }, node, side.basePlane, sidePlane, thirdPlane);
-                        if (rayInfo)
+                        const Plane& thirdPlane = nextSidePlane;
+
+                        pos_t point = getPointFromPlaneIndex(i, j, node);
+                        if (rayInfo) {
                             fillRayInfo({ basePlane , planeRay.plane1, planeRay.plane2 }, side.basePlane, sidePlane, thirdPlane, rayInfo);
+                            rayInfo->octreeVerex = point;
+                        }                            
+                        int intersectionCount = castToNextPlanes({ basePlane , planeRay.plane1, planeRay.plane2 }, node, side.basePlane, sidePlane, thirdPlane);                       
+                        return { intersectionCount, point };
                     }
                 }
             }
         }
+        return { -1, {0, 0, 0} };
     }
 
-private: 
+    int countIntersectionsToOutside(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
+
+    }
+
+    void planeToTriangles(const Plane& plane, int sideLen, std::vector<tg::triangle3>& insertVec) {
+        tg::vec3 upNormal = tg::normalize(tg::vec3(plane.to_dplane().normal));
+        tg::vec3 upNormalFace = upNormal != tg::vec3(0, 0, -1) && upNormal != tg::vec3(0, 0, 1) ? tg::vec3(0, 0, -1) : tg::vec3(0, 1, 0);
+        tg::dplane3 dplane = plane.to_dplane();
+        tg::vec3 normal = tg::vec3(dplane.normal);
+        auto ortho_vec1 = tg::normalize(tg::cross(normal, upNormalFace));
+        auto ortho_vec2 = tg::normalize(tg::cross(normal, ortho_vec1));
+        auto plane_pos = normal * dplane.dis;
+        auto pos_a = tg::pos3(plane_pos + 0.5 * sideLen * ortho_vec1 + 0.5 * sideLen * ortho_vec2);
+        auto pos_b = tg::pos3(plane_pos + 0.5 * sideLen * ortho_vec1 - 0.5 * sideLen * ortho_vec2);
+        auto pos_c = tg::pos3(plane_pos - 0.5 * sideLen * ortho_vec1 - 0.5 * sideLen * ortho_vec2);
+        auto pos_d = tg::pos3(plane_pos - 0.5 * sideLen * ortho_vec1 + 0.5 * sideLen * ortho_vec2);
+        insertVec.push_back({ pos_a , pos_b, pos_c });
+        insertVec.push_back({ pos_c , pos_d, pos_a });
+    }
+
+private:    
     bool mSplitOnlyOneMesh = false;
     friend class OctreeNode;
     friend class BranchNode;

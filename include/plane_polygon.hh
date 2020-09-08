@@ -14,12 +14,13 @@ using scalar_t = geometry128::pos_scalar_t;
 using pos_t = geometry128::pos_t;
 using vec_t = tg::vec<3, scalar_t>;
 using dir_t = tg::dir<3, scalar_t>;
+using normal_t = geometry128::normal_t;
 using SubDet = ob::subdeterminants<geometry128>;
 using VertexAttribute = pm::vertex_attribute<geometry128::pos_t>;
 
 
 struct PlanePolygon {
-    const Plane& basePlane;
+    const Plane basePlane;
     std::vector<Plane> edgePlanes;
 };
 
@@ -112,7 +113,36 @@ public:
         return face;
     }
 
+    void findNewEdgePlane(pm::halfedge_handle halfEdge, pm::face_handle face) {
+        const Plane& planeEdge = mEdges[halfEdge.edge()];
+        const Plane& planeFace = mFaces[face];
+        auto firstPoint = mPositions[halfEdge.vertex_from()];
+        auto secondPoint = mPositions[halfEdge.vertex_to()];
+
+        normal_t normal1 = { planeEdge.a, planeEdge.b, planeEdge.c };
+        normal_t normal2 = { planeFace.a, planeFace.b, planeFace.c };
+        normal_t normal = normal1 + normal2;
+        auto thirdPoint = (firstPoint + normal) * 0.5;
+        Plane potentialPlane = Plane::from_points(firstPoint, secondPoint, thirdPoint);  
+
+        auto oppositeFace = halfEdge.opposite().face();
+        if (oppositeFace.is_valid()) {
+            if (ob::are_parallel(mFaces[oppositeFace], potentialPlane)) {
+                const Plane& planeOppositeFace = mFaces[oppositeFace];
+                normal_t normal3 = { planeOppositeFace.a, planeOppositeFace.b, planeOppositeFace.c };
+                normal = normal + normal3;
+                auto thirdPoint = (firstPoint + normal) * 0.5;
+                potentialPlane = Plane::from_points(firstPoint, secondPoint, thirdPoint);
+            }
+        }
+        TG_ASSERT(!ob::are_parallel(mFaces[face], potentialPlane));
+        mEdges[halfEdge.edge()] = potentialPlane;
+        return;
+    }
+
     void generatePlanes(pm::face_handle& face) {
+        if (face.idx.value == 3)
+            int i = 4;
         pm::face_edge_ring edgeRing = face.edges();
         TG_ASSERT(edgeRing.count() >= 3);
 
@@ -127,9 +157,6 @@ public:
         auto normalDir = tg::cross(dir1, dir2);
         vec_t approxNormalDir = vec_t(tg::normalize(tg::f64vec3(normalDir)) * 100);
 
-
-
-
         for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
             pm::edge_handle edgeHandle = it.handle.edge();
             auto from = mPositions[it.handle.vertex_from()];
@@ -137,13 +164,17 @@ public:
             auto anotherPos = from + approxNormalDir;
             if (mEdges[edgeHandle] == mEdges.get_default_value()) {
                 mEdges[edgeHandle] = Plane::from_points(from, to, anotherPos);
+                //TG_ASSERT(!ob::are_parallel(mFaces[face], mEdges[edgeHandle]));
                 //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], posInFace) < 0); //TODO 
                 //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0); //TODO: Remove
                 //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), mEdges[edgeHandle]) == -1);
                 //TG_ASSERT(ob::classify_vertex(pos(it.handle.next().vertex_to()), edge(edgeHandle)) < 0);
                 mHalfEdges[it.handle] = 1;
             }
-            else {            
+            else {
+                if (ob::are_parallel(mFaces[face], mEdges[edgeHandle]))
+                    findNewEdgePlane(it.handle, face);
+
                 if (useHalfedges) {
                     if (ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0)
                         mHalfEdges[it.handle] = 1;
@@ -151,6 +182,7 @@ public:
                         mHalfEdges[it.handle] = -1;
                 }
             }
+            TG_ASSERT(!ob::are_parallel(mFaces[face], mEdges[edgeHandle]));
         }
 
         for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
@@ -290,6 +322,8 @@ public:
     bool faceHaveValidEdges(pm::face_handle f) {
         for (auto h : f.halfedges()) {
             if (h.is_invalid())
+                return false;
+            if (ob::are_parallel(mFaces[f], mEdges[h.edge()]))
                 return false;
         }
         return true;
@@ -570,7 +604,7 @@ public:
     }
 
     const Plane& getAnyFace(pm::vertex_handle vertex) const {
-        return mFaces[vertex.any_face()];
+        return mFaces[vertex.any_incoming_halfedge().face()];
     }
 
     const Plane& getPlane(const pm::edge_handle& edge) const {

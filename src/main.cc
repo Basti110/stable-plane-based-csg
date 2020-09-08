@@ -264,18 +264,28 @@ void test_octree_two_meshes() {
 }
 
 void test_octree_cell_ray_cast() {
-    ObjConfig conf = ObjCollection::map.at("octree_easy");
+    ObjConfig conf = ObjCollection::map.at("octree_hard");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
-
+    TG_ASSERT(planeMesh2->allFacesAreValid());
+    auto octree = conf.getOctree();
     auto boxes = conf.getOctreeBoxes();
 
-    //int intersections = conf.getOctree()->CastRayToNextCornerPoint();
+    pm::vertex_handle origin = planeMesh1->mesh().all_vertices().first();
+    SharedDebugRayInfo rayInfo = std::make_shared<DebugRayInfo>();
+    auto intersections = octree->castRayToNextCornerPoint(origin, *planeMesh1, rayInfo);
+    std::vector<tg::dsegment3> lines;
+    for (int i = 0; i < (int)rayInfo->rayPath.size() - 1; ++i) {
+        lines.push_back(tg::dsegment3{ ob::to_position(rayInfo->rayPath[i]), ob::to_position(rayInfo->rayPath[i + 1]) });
+    }
     auto view = gv::view(planeMesh1->positions());
     gv::view(gv::lines(planeMesh1->positions()).line_width_world(1000000), "gv::lines(pos)");
     gv::view(planeMesh2->positions());
+    
     gv::view(gv::lines(planeMesh2->positions()).line_width_world(1000000), "gv::lines(pos)");
     gv::view(gv::lines(boxes).line_width_world(500000), tg::color3::blue, "gv::lines(pos)");
+
+    gv::view(gv::lines(lines).line_width_world(2000000), tg::color3::red, "gv::lines(pos)");
 
 }
 

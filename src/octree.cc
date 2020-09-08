@@ -33,7 +33,7 @@ bool OctreeNode::isInTree()
 
 bool OctreeNode::hasParent()
 {
-    if (mParentNode)
+    if (!mParentNode.expired())
         return true;
     return false;
 }
@@ -49,10 +49,10 @@ bool OctreeNode::polygonInAABB(int meshIdx, pm::face_index faceIdx)
     return false;
 }
 
-
-Octree* OctreeNode::getOctree()
+void OctreeNode::setParent(SharedBranchNode node)
 {
-    return mOctree;
+    mParentNode = node;
+    mIsValid = true;
 }
 
 
@@ -65,7 +65,7 @@ LeafNode::LeafNode(const AABB& aabb, Octree* octree) : OctreeNode(aabb, octree)
 {
 }
 
-LeafNode::LeafNode(const AABB& aabb, Octree* octree, SharedOctreeNode parent) : OctreeNode(aabb, octree, parent)
+LeafNode::LeafNode(const AABB& aabb, SharedBranchNode parent) : OctreeNode(aabb, parent)
 {
 }
 
@@ -76,8 +76,8 @@ SharedOctreeNode LeafNode::childNode(int idx)
 
 SharedOctreeNode LeafNode::parent()
 {
-    if (mParentNode)
-        return mParentNode;
+    if (!mParentNode.expired())
+        return std::dynamic_pointer_cast<OctreeNode>(mParentNode.lock());
     return std::dynamic_pointer_cast<OctreeNode>(std::make_shared<EmptyNode>(mOctree));
 }
 
@@ -198,7 +198,7 @@ BranchNode::BranchNode(const AABB& aabb, Octree* octree) : OctreeNode(aabb, octr
 {
 }
 
-BranchNode::BranchNode(const AABB& aabb, Octree* octree, SharedOctreeNode parent) : OctreeNode(aabb, octree, parent)
+BranchNode::BranchNode(const AABB& aabb, SharedBranchNode parent) : OctreeNode(aabb, parent)
 {
 }
 
@@ -209,7 +209,7 @@ void BranchNode::initLeafNodes()
     TG_ASSERT(mAABB.max.z - mAABB.min.z == aabbLen);
     TG_ASSERT(aabbLen % 2 == 0);
 
-    auto thisPtr = std::dynamic_pointer_cast<OctreeNode>(shared_from_this());
+    auto thisPtr = shared_from_this();
     for (int i = 0; i < 8; ++i) {
         TG_ASSERT(!mChildNodes[i] && "Pointer must be empty");
         AABB aabb;
@@ -217,7 +217,7 @@ void BranchNode::initLeafNodes()
         aabb.min.y = mAABB.min.y + ((uint8_t(i) >> 1) & 1) * (aabbLen / 2);
         aabb.min.z = mAABB.min.z + ((uint8_t(i) >> 2) & 1) * (aabbLen / 2);
         aabb.max = aabb.min + (aabbLen / 2);
-        mChildNodes[i] = std::dynamic_pointer_cast<OctreeNode>(std::make_shared<LeafNode>(aabb, mOctree, thisPtr));
+        mChildNodes[i] = std::dynamic_pointer_cast<OctreeNode>(std::make_shared<LeafNode>(aabb, thisPtr));
     }
     return;
 }
@@ -229,7 +229,9 @@ SharedOctreeNode BranchNode::childNode(int idx)
 
 SharedOctreeNode BranchNode::parent()
 {
-    return mParentNode;
+    if (!mParentNode.expired())
+        return std::dynamic_pointer_cast<OctreeNode>(mParentNode.lock());
+    return std::dynamic_pointer_cast<OctreeNode>(std::make_shared<EmptyNode>(mOctree));
 }
 
 void BranchNode::pushDown(int meshIdx, pm::face_index faceIdx)
@@ -277,11 +279,6 @@ void BranchNode::insertInLeaf(int child, int meshIdx, pm::face_index faceIdx)
 
 
 EmptyNode::EmptyNode(Octree* octree) : OctreeNode(AABB({ 0,0,0 }, { 0,0,0 }), octree)
-{
-
-}
-
-EmptyNode::EmptyNode(Octree*  octree, SharedOctreeNode parent) : OctreeNode(AABB({ 0,0,0 }, { 0,0,0 }), octree, parent)
 {
 
 }

@@ -118,6 +118,7 @@ private:
             pm::load(mPathObj2, *mMeshB, pos2);
             transformation(pos2, mTransformation2);
             mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, pos2, mScale);
+            TG_ASSERT(mPlaneMeshB->allFacesAreValid());
         }
     }
 
@@ -170,6 +171,10 @@ public:
             ObjConfig(1e8, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
             "../data/mesh/triangle.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
             "../data/mesh/cube2.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
+            { "octree_hard",
+            ObjConfig(3e7, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
+            "../data/mesh/triangle.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
+            "../data/mesh/cube3.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
         };
     }
 };
