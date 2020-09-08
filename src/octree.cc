@@ -113,12 +113,15 @@ bool LeafNode::mustSplitIfFull()
 SharedBranchNode LeafNode::split()
 {
     TG_ASSERT(mOctree);
-    auto branchNode = std::make_shared<BranchNode>(mAABB, mOctree);
+    auto branchNode = std::make_shared<BranchNode>(mAABB, mParentNode.lock());
     branchNode->initLeafNodes();
     for (auto& face : mFacesMeshA)
         branchNode->pushDown(mOctree->mMeshA->id(), face);
     for (auto& face : mFacesMeshB)
         branchNode->pushDown(mOctree->mMeshB->id(), face);
+    mFacesMeshA.clear();
+    mFacesMeshB.clear();
+    mIsValid = false;
     return branchNode;
 }
 

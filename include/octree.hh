@@ -98,8 +98,10 @@ public:
     bool isInTree();
     bool hasParent();
     bool polygonInAABB(int meshIdx, pm::face_index faceIdx);
+    bool isValid() { return mIsValid; }
     void setParent(SharedBranchNode node);
     Octree* octree() { return mOctree; }
+
 
     OctreeNodePlanes getPlanes() {
         TG_ASSERT(mAABB != AABB());
@@ -673,6 +675,9 @@ public:
         auto subDet = mMeshA->pos(origin);
         auto test = origin.any_incoming_halfedge().face();
         for (auto node : faceToNode[test]) {
+            if (!node->isValid())
+                continue;
+
             auto planes = node->getPlanes();
             if(subDetInCell(subDet, planes))
                 return node;
