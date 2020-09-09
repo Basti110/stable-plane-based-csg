@@ -95,6 +95,7 @@ public:
     virtual BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) { return { AABB(), -1 }; }
     virtual NearestFace getNearestFace(tg::vec3 ray, pos_t origin) { return { -1, pm::face_index(), -1 }; }
     virtual void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) { }
+    virtual void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices) {}
     bool isInTree();
     bool hasParent();
     bool polygonInAABB(int meshIdx, pm::face_index faceIdx);
@@ -223,10 +224,19 @@ public:
         return (mFacesMeshA.size() > 0 || mFacesMeshB.size() > 0);
     }
 
-    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) { 
+    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) override {
         if (mFacesMeshA.size() > 0 || mFacesMeshB.size() > 0)
             boxes.push_back(mAABB);
     }
+
+    void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices) {
+        if (mFacesMeshA.size() > 0)
+            indices.insert(indices.end(), mFacesMeshA.begin(), mFacesMeshA.end());
+            
+        if (mFacesMeshB.size() > 0)
+            indices.insert(indices.end(), mFacesMeshB.begin(), mFacesMeshB.end());
+    }
+
     /*void splitAccordingToIntersection() {
         std::vector<pm::face_index> Triangles = mFacesMeshA;
         //std::set<pm::face_index> checkedTriangles;
@@ -320,6 +330,15 @@ public:
                 currentNearest = nearestFace;
         }
         return currentNearest;
+    }
+
+    void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices) {
+        for (auto child : mChildNodes) {
+            if (!child->intersect(ray, origin))
+                continue;
+
+            child->getAllFaces(ray, origin, indices);
+        }
     }
     
 private: 
