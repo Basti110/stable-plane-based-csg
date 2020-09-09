@@ -264,7 +264,7 @@ void test_octree_two_meshes() {
 }
 
 void test_octree_cell_ray_cast() {
-    ObjConfig conf = ObjCollection::map.at("octree_hard");
+    ObjConfig conf = ObjCollection::map.at("raycast");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
     TG_ASSERT(planeMesh2->allFacesAreValid());
