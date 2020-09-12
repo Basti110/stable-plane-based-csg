@@ -622,7 +622,8 @@ public:
                 continue;
 
             singsMeshA[i] = sign;
-            if (checkIfPointInPolygon(node->mFacesMeshA[i].of(mMeshA->mesh()), mMeshA, subDet))
+            auto subDetFacePlane = mMeshA->pos(p1, p2, facePlane);
+            if (checkIfPointInPolygon(node->mFacesMeshA[i].of(mMeshA->mesh()), mMeshA, subDetFacePlane))
                 intersectionCount++;
         }
 
