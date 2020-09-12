@@ -273,19 +273,68 @@ void test_octree_cell_ray_cast() {
 
     pm::vertex_handle origin = planeMesh1->mesh().all_vertices().first();
     SharedDebugRayInfo rayInfo = std::make_shared<DebugRayInfo>();
-    auto intersections = octree->castRayToNextCornerPoint(origin, *planeMesh1, rayInfo);
+    auto intersections = octree->countIntersectionsToOutside2(origin, *planeMesh1, rayInfo);
+
     std::vector<tg::dsegment3> lines;
     for (int i = 0; i < (int)rayInfo->rayPath.size() - 1; ++i) {
         lines.push_back(tg::dsegment3{ ob::to_position(rayInfo->rayPath[i]), ob::to_position(rayInfo->rayPath[i + 1]) });
     }
-    auto view = gv::view(planeMesh1->positions());
-    gv::view(gv::lines(planeMesh1->positions()).line_width_world(1000000), "gv::lines(pos)");
-    gv::view(planeMesh2->positions());
-    
-    gv::view(gv::lines(planeMesh2->positions()).line_width_world(1000000), "gv::lines(pos)");
-    gv::view(gv::lines(boxes).line_width_world(500000), tg::color3::blue, "gv::lines(pos)");
+    //lines.push_back(tg::dsegment3{ tg::dpos3(rayInfo->rayStartDirect), tg::dpos3(rayInfo->rayEndDirect) });
 
-    gv::view(gv::lines(lines).line_width_world(2000000), tg::color3::red, "gv::lines(pos)");
+    for (int i = 0; i < (int)rayInfo->nexPointsCell.size() - 1; ++i) {
+        lines.push_back(tg::dsegment3{ tg::dpos3(rayInfo->nexPointsCell[i]), tg::dpos3(rayInfo->nexPointsCell[i + 1]) });
+    }
+
+    std::vector<tg::aabb3> returnBoxes;
+    for (auto box : rayInfo->rayBoxesDirect) {
+        returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+    }
+
+    auto const octreeCells = gv::lines(boxes).line_width_world(200000);
+    auto const rayCells = gv::lines(returnBoxes).line_width_world(2500000);
+    auto const rayPath = gv::lines(lines).line_width_world(3000000);
+    auto const positions1 = planeMesh1->positions();
+    auto const positionLines1 = gv::lines(planeMesh1->positions()).line_width_world(100000);
+    auto const positions2 = planeMesh2->positions();
+    auto const positionLines2 = gv::lines(planeMesh2->positions()).line_width_world(100000);
+    bool tooglePolygons = true;
+
+    if (tooglePolygons) {
+        auto view = gv::view(octreeCells, tg::color3::blue);
+        gv::view(rayCells, tg::color3::green);
+        gv::view(rayPath, tg::color3::red);
+        //gv::view(positions1);
+        //gv::view(positionLines1);
+        //gv::view(positions2);
+        //gv::view(positionLines2);
+    }
+
+    /*gv::interactive([&](auto) {
+        {
+            //auto view = gv::view(planeMesh1->positions());
+            //auto view = gv::view(gv::lines(planeMesh1->positions()).line_width_world(100000), "gv::lines(pos)");
+            //gv::view(planeMesh2->positions());
+
+            //gv::view(gv::lines(planeMesh2->positions()).line_width_world(100000), "gv::lines(pos)");
+            auto view = gv::view(octreeCells, tg::color3::blue);
+            gv::view(rayCells, tg::color3::green);
+            gv::view(rayPath, tg::color3::red);
+
+            if (tooglePolygons) {
+                gv::view(positions1);
+                gv::view(positionLines1);
+                gv::view(positions2);
+                gv::view(positionLines2);
+            }
+
+            ImGui::Begin("Move");
+            if (ImGui::IsKeyPressed('T')) {
+                tooglePolygons = !tooglePolygons;
+                gv::view_clear_accumulation();
+            }
+            ImGui::End();
+        }
+    });*/
 
 }
 

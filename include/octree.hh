@@ -45,6 +45,12 @@ struct BoxAndDistance {
     scalar_t dinstance = -1;
 };
 
+struct RayCastInfo {
+    int intersections;
+    pos_t currentPos;
+    SharedOctreeNode currentNode;
+};
+
 class OctreeNodePlanes {
 public:
     OctreeNodePlanes() {};
@@ -89,19 +95,21 @@ public:
     virtual SharedOctreeNode childNode(int idx) = 0;
     //virtual OctreeNode& childNodeRef(int idx) = 0;
     virtual NodeType nodeBase() = 0;
-    virtual SharedOctreeNode parent() = 0;
+    virtual SharedBranchNode parent() { return mParentNode.lock(); }
     virtual void cutPolygons(IntersectionCut& lookup) {};
     virtual void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {}
     virtual BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) { return { AABB(), -1 }; }
     virtual NearestFace getNearestFace(tg::vec3 ray, pos_t origin) { return { -1, pm::face_index(), -1 }; }
-    virtual void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) { }
-    virtual void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices) {}
+    virtual void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes, uint8_t exludeIndex = 255) { }
+    virtual void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices, uint8_t exludeIndex = 255) { }
     bool isInTree();
     bool hasParent();
     bool polygonInAABB(int meshIdx, pm::face_index faceIdx);
     bool isValid() { return mIsValid; }
     void setParent(SharedBranchNode node);
+    uint8_t childIndex() { return mChildIndex; }
     Octree* octree() { return mOctree; }
+    AABB aabb() { return mAABB; }
 
 
     OctreeNodePlanes getPlanes() {
@@ -119,21 +127,21 @@ public:
 
     pos_t getPosFromVertexIndex(size_t i) {
         scalar_t len = mAABB.max.x - mAABB.min.y;
-        if (i == 0)
+        if (i == 1)
             return mAABB.max;
-        else if (i == 1)
-            return mAABB.max + vec_t{ 0, 0, -len };
         else if (i == 2)
-            return mAABB.max + vec_t{ 0, -len, -len };
+            return mAABB.max + vec_t{ 0, 0, -len };
         else if (i == 3)
-            return mAABB.max + vec_t{ 0, -len, 0 };
+            return mAABB.max + vec_t{ 0, -len, -len };
         else if (i == 4)
-            return mAABB.min + vec_t{ 0, len, len };
+            return mAABB.max + vec_t{ 0, -len, 0 };
         else if (i == 5)
-            return mAABB.min + vec_t{ 0, len, 0 };
+            return mAABB.min + vec_t{ 0, len, len };
         else if (i == 6)
-            return mAABB.min;
+            return mAABB.min + vec_t{ 0, len, 0 };
         else if (i == 7)
+            return mAABB.min;
+        else if (i == 8)
             return mAABB.min + vec_t{ 0, 0, len };
     }
      
@@ -195,6 +203,7 @@ protected:
     WeakBranchNode mParentNode;
     AABB mAABB;
     Octree* mOctree;
+    uint8_t mChildIndex = 255;
 };
 
 class LeafNode : public OctreeNode, public std::enable_shared_from_this<LeafNode> {
@@ -207,12 +216,13 @@ public:
     NodeType nodeBase() override { return NodeType::LEAF; }
     SharedOctreeNode childNode(int idx) override;
     //OctreeNode& childNodeRef(int idx) override;
-    SharedOctreeNode parent() override;
-    
+    SharedBranchNode parent() override;
+    void setChildIndex(uint8_t i) { mChildIndex = i; }
     void insertPolygon(int meshIdx, pm::face_index faceIdx);
     int childCount();
     bool mustSplitIfFull();
     int maxValues() { return mMaxValues; }
+    
     SharedBranchNode split();
     void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override;
     void cutPolygons(IntersectionCut& lookup) override;
@@ -224,12 +234,12 @@ public:
         return (mFacesMeshA.size() > 0 || mFacesMeshB.size() > 0);
     }
 
-    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) override {
+    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes, uint8_t exludeIndex = 255) override {
         if (mFacesMeshA.size() > 0 || mFacesMeshB.size() > 0)
             boxes.push_back(mAABB);
     }
 
-    void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices) {
+    void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices, uint8_t exludeIndex = 255) override {
         if (mFacesMeshA.size() > 0)
             indices.insert(indices.end(), mFacesMeshA.begin(), mFacesMeshA.end());
             
@@ -271,7 +281,7 @@ public:
     NodeType nodeBase() override { return NodeType::BRANCH; }
     SharedOctreeNode childNode(int idx) override;
     //OctreeNode& childNodeRef(int idx) override;
-    SharedOctreeNode parent() override;
+    SharedBranchNode parent() override;
 
     void pushDown(int meshIdx, pm::face_index faceIdx);
     void initLeafNodes();
@@ -307,12 +317,12 @@ public:
         return currentBox;
     }
 
-    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) {
+    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes, uint8_t exludeIndex = 255) override {
         for (auto child : mChildNodes) {
-            if (!child->intersect(ray, origin))
+            if (!child->intersect(ray, origin) || child->childIndex() == exludeIndex)
                 continue;
 
-            child->getAllBoundingBoxes(ray, origin, boxes);
+            child->getAllBoundingBoxes(ray, origin, boxes, exludeIndex);
         }
     }
 
@@ -332,12 +342,12 @@ public:
         return currentNearest;
     }
 
-    void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices) {
+    void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices, uint8_t exludeIndex = 255) override {
         for (auto child : mChildNodes) {
-            if (!child->intersect(ray, origin))
+            if (!child->intersect(ray, origin) || child->childIndex() == exludeIndex)
                 continue;
 
-            child->getAllFaces(ray, origin, indices);
+            child->getAllFaces(ray, origin, indices, exludeIndex);
         }
     }
     
@@ -358,13 +368,21 @@ public:
     NodeType nodeBase() override { return NodeType::EMPTY; }
     SharedOctreeNode childNode(int idx) override;
     //OctreeNode& childNodeRef(int idx) override;
-    SharedOctreeNode parent() override;
+    SharedBranchNode parent() override;
 };
 
 class DebugRayInfo {
 public:
     std::vector<SubDet> rayPath;
     pos_t octreeVerex;
+
+    //Debug direct approach
+    std::vector<AABB> rayBoxesDirect;
+    pos_t rayStartDirect;
+    pos_t rayEndDirect;
+
+    //Cell approach
+    std::vector<pos_t> nexPointsCell;
 };
 using SharedDebugRayInfo = std::shared_ptr<DebugRayInfo>;
 
@@ -767,7 +785,7 @@ public:
         }
     }
 
-    std::tuple<int, pos_t> castRayToNextCornerPoint(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
+    RayCastInfo castRayToNextCornerPoint(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
         SharedLeafNode node = getRightCell(origin, planeMesh);
         std::vector<pm::face_index>& FacesMeshA = node->mFacesMeshA;
         std::vector<pm::face_index>& FacesMeshB = node->mFacesMeshB;
@@ -804,7 +822,7 @@ public:
                             rayInfo->octreeVerex = point;
                         }                            
                         int intersectionCount = castToNextPlanes({ basePlane , planeRay.plane1, planeRay.plane2 }, node, side.basePlane, sidePlane, thirdPlane);                       
-                        return { intersectionCount, point };
+                        return { intersectionCount, point,  std::dynamic_pointer_cast<OctreeNode>(node) };
                     }
                 }
             }
@@ -813,7 +831,40 @@ public:
     }
 
     int countIntersectionsToOutside(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
+        auto rayCastInfo = castRayToNextCornerPoint(origin, planeMesh, rayInfo);
+        auto curPos = rayCastInfo.currentPos;
+        vec_t ray = mRoot->aabb().max - curPos;
+        /*auto f = tg::gcd(tg::gcd(tg::abs(ray.x), tg::abs(ray.y)), tg::abs(ray.z));
+        if (f > 1)
+            ray /= f;*/
+        auto ray2 = tg::normalize(tg::vec3(ray));
 
+        std::vector<AABB> boxes;
+        if (rayInfo) {
+            mRoot->getAllBoundingBoxes(ray2, curPos, rayInfo->rayBoxesDirect);
+            rayInfo->rayStartDirect = curPos;
+            rayInfo->rayEndDirect = mRoot->aabb().max;
+        }
+        return 0;
+    }
+
+    int castToParentRecursive(SharedBranchNode node, pos_t pos, uint8_t exludeChild, SharedDebugRayInfo rayInfo) {
+        vec_t ray = node->aabb().max - pos;
+        rayInfo->nexPointsCell.push_back(node->aabb().max);
+        node->getAllBoundingBoxes(tg::vec3(ray), pos, rayInfo->rayBoxesDirect, exludeChild);
+        if (node->hasParent())
+            castToParentRecursive(node->parent(), node->aabb().max, node->childIndex(), rayInfo);
+        return -1;
+    }
+
+    int countIntersectionsToOutside2(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
+        auto rayCastInfo = castRayToNextCornerPoint(origin, planeMesh, rayInfo);
+        auto curPos = rayCastInfo.currentPos;
+        auto node = rayCastInfo.currentNode;
+        rayInfo->nexPointsCell.push_back(curPos);
+        if (node->hasParent())
+            castToParentRecursive(node->parent(), curPos, node->childIndex(), rayInfo);
+        return -1;
     }
 
     void planeToTriangles(const Plane& plane, int sideLen, std::vector<tg::triangle3>& insertVec) {

@@ -74,11 +74,11 @@ SharedOctreeNode LeafNode::childNode(int idx)
     return std::dynamic_pointer_cast<OctreeNode>(std::make_shared<EmptyNode>(mOctree));
 }
 
-SharedOctreeNode LeafNode::parent()
+SharedBranchNode LeafNode::parent()
 {
     if (!mParentNode.expired())
-        return std::dynamic_pointer_cast<OctreeNode>(mParentNode.lock());
-    return std::dynamic_pointer_cast<OctreeNode>(std::make_shared<EmptyNode>(mOctree));
+        return mParentNode.lock();
+    return SharedBranchNode();
 }
 
 void LeafNode::insertPolygon(int meshIdx, pm::face_index faceIdx)
@@ -220,7 +220,9 @@ void BranchNode::initLeafNodes()
         aabb.min.y = mAABB.min.y + ((uint8_t(i) >> 1) & 1) * (aabbLen / 2);
         aabb.min.z = mAABB.min.z + ((uint8_t(i) >> 2) & 1) * (aabbLen / 2);
         aabb.max = aabb.min + (aabbLen / 2);
-        mChildNodes[i] = std::dynamic_pointer_cast<OctreeNode>(std::make_shared<LeafNode>(aabb, thisPtr));
+        auto leaf = std::make_shared<LeafNode>(aabb, thisPtr);
+        leaf->setChildIndex(i);
+        mChildNodes[i] = std::dynamic_pointer_cast<OctreeNode>(leaf);
     }
     return;
 }
@@ -230,11 +232,11 @@ SharedOctreeNode BranchNode::childNode(int idx)
     return mChildNodes[idx];
 }
 
-SharedOctreeNode BranchNode::parent()
+SharedBranchNode BranchNode::parent()
 {
     if (!mParentNode.expired())
-        return std::dynamic_pointer_cast<OctreeNode>(mParentNode.lock());
-    return std::dynamic_pointer_cast<OctreeNode>(std::make_shared<EmptyNode>(mOctree));
+        return mParentNode.lock();
+    return SharedBranchNode();
 }
 
 void BranchNode::pushDown(int meshIdx, pm::face_index faceIdx)
@@ -291,7 +293,7 @@ SharedOctreeNode EmptyNode::childNode(int idx)
     return SharedOctreeNode();
 }
 
-SharedOctreeNode EmptyNode::parent()
+SharedBranchNode EmptyNode::parent()
 {
-    return SharedOctreeNode();
+    return SharedBranchNode();
 }
