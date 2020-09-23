@@ -114,6 +114,7 @@ SharedBranchNode LeafNode::split()
 {
     TG_ASSERT(mOctree);
     auto branchNode = std::make_shared<BranchNode>(mAABB, mParentNode.lock());
+    branchNode->setChildIndex(mChildIndex);
     branchNode->initLeafNodes();
     for (auto& face : mFacesMeshA)
         branchNode->pushDown(mOctree->mMeshA->id(), face);

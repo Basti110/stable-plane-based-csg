@@ -12,6 +12,7 @@
 #include <face_marker.hh>
 #include <glow-extras/viewer/view.hh>
 #include <glow-extras/viewer/experimental.hh>
+#include <unordered_set>
 
 class OctreeNode;
 class BranchNode;
@@ -100,13 +101,14 @@ public:
     virtual void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {}
     virtual BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) { return { AABB(), -1 }; }
     virtual NearestFace getNearestFace(tg::vec3 ray, pos_t origin) { return { -1, pm::face_index(), -1 }; }
-    virtual void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes, uint8_t exludeIndex = 255) { }
-    virtual void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices, uint8_t exludeIndex = 255) { }
+    virtual void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) { }
+    virtual void getAllFaces(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshA, std::set<pm::face_index>& fMeshB) { }
     bool isInTree();
     bool hasParent();
     bool polygonInAABB(int meshIdx, pm::face_index faceIdx);
     bool isValid() { return mIsValid; }
     void setParent(SharedBranchNode node);
+    void setChildIndex(uint8_t i) { mChildIndex = i; }
     uint8_t childIndex() { return mChildIndex; }
     Octree* octree() { return mOctree; }
     AABB aabb() { return mAABB; }
@@ -151,40 +153,75 @@ public:
 
     bool intersect(tg::vec3 ray, pos_t origin)
     {
-        double tmin = (mAABB.min.x - origin.x) / ray.x;
-        double tmax = (mAABB.max.x - origin.x) / ray.x;
+        {
+            int c = 0;
+            c = ray.x == 0 ? c + 1 : c;
+            c = ray.y == 0 ? c + 1 : c;
+            c = ray.z == 0 ? c + 1 : c;
+            if (c == 2)
+                return intersectOpt(ray, origin);
+        }
 
-        if (tmin > tmax) std::swap(tmin, tmax);
+        auto dir = tg::normalize(ray);
 
-        double tymin = (mAABB.min.y - origin.y) / ray.y;
-        double tymax = (mAABB.max.y - origin.y) / ray.y;
+        std::vector<pos_t> bounds = { mAABB.min , mAABB.max };
+        auto invdir = 1 / dir;
+        int8_t sign[3];       
+        sign[0] = (invdir.x < 0);
+        sign[1] = (invdir.y < 0);
+        sign[2] = (invdir.z < 0);
 
-        if (tymin > tymax) std::swap(tymin, tymax);
+        float tmin, tmax, tymin, tymax, tzmin, tzmax;
+        tmin = (bounds[sign[0]].x - origin.x) * invdir.x;
+        tmax = (bounds[1 - sign[0]].x - origin.x) * invdir.x;
+        tymin = (bounds[sign[1]].y - origin.y) * invdir.y;
+        tymax = (bounds[1 - sign[1]].y - origin.y) * invdir.y;
 
         if ((tmin > tymax) || (tymin > tmax))
             return false;
-
         if (tymin > tmin)
             tmin = tymin;
-
         if (tymax < tmax)
             tmax = tymax;
 
-        double tzmin = (mAABB.min.z - origin.z) / ray.z;
-        double tzmax = (mAABB.max.z - origin.z) / ray.z;
-
-        if (tzmin > tzmax) std::swap(tzmin, tzmax);
+        tzmin = (bounds[sign[2]].z - origin.z) * invdir.z;
+        tzmax = (bounds[1 - sign[2]].z - origin.z) * invdir.z;
 
         if ((tmin > tzmax) || (tzmin > tmax))
             return false;
-
         if (tzmin > tmin)
             tmin = tzmin;
-
         if (tzmax < tmax)
             tmax = tzmax;
 
         return true;
+    }
+
+    bool intersectOpt(tg::vec3 ray, pos_t origin) {
+        TG_ASSERT(ray.x * ray.y == 0);
+        TG_ASSERT(ray.y * ray.z == 0);
+        TG_ASSERT(ray.y * ray.z == 0);
+        if (ray.x != 0) {
+            if (origin.y > mAABB.max.y || origin.y < mAABB.min.y)
+                return false;
+            if (origin.z > mAABB.max.z || origin.z < mAABB.min.z)
+                return false;
+            return true;
+        }
+        if (ray.y != 0) {
+            if (origin.x > mAABB.max.x || origin.x < mAABB.min.x)
+                return false;
+            if (origin.z > mAABB.max.z || origin.z < mAABB.min.z)
+                return false;
+            return true;
+        }
+        if (ray.z != 0) {
+            if (origin.x > mAABB.max.x || origin.x < mAABB.min.x)
+                return false;
+            if (origin.y > mAABB.max.y || origin.y < mAABB.min.y)
+                return false;
+            return true;
+        }
     }
 
     scalar_t distance(pos_t point) {
@@ -217,7 +254,6 @@ public:
     SharedOctreeNode childNode(int idx) override;
     //OctreeNode& childNodeRef(int idx) override;
     SharedBranchNode parent() override;
-    void setChildIndex(uint8_t i) { mChildIndex = i; }
     void insertPolygon(int meshIdx, pm::face_index faceIdx);
     int childCount();
     bool mustSplitIfFull();
@@ -234,17 +270,25 @@ public:
         return (mFacesMeshA.size() > 0 || mFacesMeshB.size() > 0);
     }
 
-    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes, uint8_t exludeIndex = 255) override {
-        if (mFacesMeshA.size() > 0 || mFacesMeshB.size() > 0)
-            boxes.push_back(mAABB);
+    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) override {
+        //if (mFacesMeshA.size() > 0 || mFacesMeshB.size() > 0)
+        boxes.push_back(mAABB);
     }
 
-    void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices, uint8_t exludeIndex = 255) override {
-        if (mFacesMeshA.size() > 0)
-            indices.insert(indices.end(), mFacesMeshA.begin(), mFacesMeshA.end());
-            
-        if (mFacesMeshB.size() > 0)
-            indices.insert(indices.end(), mFacesMeshB.begin(), mFacesMeshB.end());
+    void getAllFaces(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshA, std::set<pm::face_index>& fMeshB) override {
+        if (mFacesMeshA.size() > 0) {
+            for (pm::face_index& i : mFacesMeshA) {
+                if (fMeshA.count(i) == 0)
+                    fMeshA.insert(i);
+            }
+        }
+
+        if (mFacesMeshB.size() > 0) {
+            for (pm::face_index& i : mFacesMeshB) {
+                if (fMeshB.count(i) == 0)
+                    fMeshB.insert(i);
+            }
+        }
     }
 
     /*void splitAccordingToIntersection() {
@@ -317,12 +361,12 @@ public:
         return currentBox;
     }
 
-    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes, uint8_t exludeIndex = 255) override {
+    void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) override {
         for (auto child : mChildNodes) {
-            if (!child->intersect(ray, origin) || child->childIndex() == exludeIndex)
+            if (!child->intersect(ray, origin))
                 continue;
 
-            child->getAllBoundingBoxes(ray, origin, boxes, exludeIndex);
+            child->getAllBoundingBoxes(ray, origin, boxes);
         }
     }
 
@@ -342,12 +386,12 @@ public:
         return currentNearest;
     }
 
-    void getAllFaces(tg::vec3 ray, pos_t origin, std::vector<pm::face_index>& indices, uint8_t exludeIndex = 255) override {
+    void getAllFaces(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshA, std::set<pm::face_index>& fMeshB) override {
         for (auto child : mChildNodes) {
-            if (!child->intersect(ray, origin) || child->childIndex() == exludeIndex)
+            if (!child->intersect(ray, origin))
                 continue;
 
-            child->getAllFaces(ray, origin, indices, exludeIndex);
+            child->getAllFaces(ray, origin, fMeshA, fMeshB);
         }
     }
     
@@ -466,6 +510,17 @@ public:
     }
     //PlaneMesh& meshA() { return mMeshA; }
     //PlaneMesh& meshB() { return mMeshB; }
+    int8_t getXNeightboor(int8_t childIndex) {
+        return childIndex ^ 0x1;
+    }
+
+    int8_t getYNeightboor(int8_t childIndex) {
+        return childIndex ^ 0x2;
+    }
+
+    int8_t getZNeightboor(int8_t childIndex) {
+        return childIndex ^ 0x4;
+    }
 
     std::string getBoolString(bool b) {
         if (b)
@@ -607,6 +662,44 @@ public:
                 return false;
         }
         return true;
+    }
+
+    size_t intersectionToNextPoint(const Plane& p1, const Plane& p2, pos_t& dest, SharedLeafNode node, std::vector<int8_t>& singsMeshA, std::vector<int8_t>& singsMeshB) {
+        size_t intersectionCount = 0;
+        //Mesh A
+        for (int i = 0; i < node->mFacesMeshA.size(); ++i) {
+            const Plane& facePlane = mMeshA->face(node->mFacesMeshA[i]);
+            auto distance = ob::signed_distance<geometry128>(facePlane, dest);
+            int8_t sign = distance >= 0 ? (distance == 0 ? 0 : 1) : -1;
+            if (singsMeshA[i] == 2)
+                singsMeshA[i] = sign;
+
+            if (sign == singsMeshA[i] || sign == 0)
+                continue;
+
+            singsMeshA[i] = sign;
+            auto subDetFacePlane = mMeshA->pos(p1, p2, facePlane);
+            if (checkIfPointInPolygon(node->mFacesMeshA[i].of(mMeshA->mesh()), mMeshA, subDetFacePlane))
+                intersectionCount++;
+        }
+
+        //Mesh B
+        for (int i = 0; i < node->mFacesMeshB.size(); ++i) {
+            const Plane& facePlane = mMeshB->face(node->mFacesMeshB[i]);
+            auto distance = ob::signed_distance<geometry128>(facePlane, dest);
+            int8_t sign = distance >= 0 ? (distance == 0 ? 0 : 1) : -1;
+            if (singsMeshB[i] == 2)
+                singsMeshB[i] == sign;
+
+            if (sign == singsMeshB[i] || sign == 0)
+                continue;
+
+            singsMeshB[i] = sign;
+            auto subDetFacePlane = mMeshA->pos(p1, p2, facePlane);
+            if (checkIfPointInPolygon(node->mFacesMeshB[i].of(mMeshB->mesh()), mMeshB, subDetFacePlane))
+                intersectionCount++;
+        }
+        return intersectionCount;
     }
 
     size_t intersectionToNextPoint(const Plane& p1, const Plane& p2, SubDet& subDet, SharedLeafNode node, std::vector<int8_t>& singsMeshA, std::vector<int8_t>& singsMeshB) {
@@ -849,13 +942,140 @@ public:
         return 0;
     }
 
-    int castToParentRecursive(SharedBranchNode node, pos_t pos, uint8_t exludeChild, SharedDebugRayInfo rayInfo) {
-        vec_t ray = node->aabb().max - pos;
-        rayInfo->nexPointsCell.push_back(node->aabb().max);
+    size_t faceIntersections(PlaneMesh* mesh, std::set<pm::face_index>& faces, PlaneRay& planeRay, std::vector<int8_t>& startSigns, pos_t endPoint) {
+        size_t intersectionCount = 0;
+        auto setIt = faces.begin();
+        for (int i = 0; i < faces.size(); ++i) {
+            const Plane& facePlane = mesh->face(*setIt);
+            auto distance = ob::signed_distance<geometry128>(facePlane, endPoint);
+            int8_t sign = distance >= 0 ? (distance == 0 ? 0 : 1) : -1;
+            if (startSigns[i] == 2)
+                startSigns[i] = sign;
+
+            if (sign == startSigns[i] || sign == 0) {
+                ++setIt;
+                continue;
+            }
+
+            startSigns[i] = sign;
+            auto subDetFacePlane = mesh->pos(planeRay.plane1, planeRay.plane2, facePlane);
+            if (checkIfPointInPolygon((*setIt).of(mesh->mesh()), mesh, subDetFacePlane))
+                intersectionCount++;
+            ++setIt;
+        }
+        return intersectionCount;
+    }
+
+    size_t intersectionToNextPointThroughNodes(std::vector<SharedOctreeNode> nodes, tg::vec3 ray, PlaneRay& planeRay, pos_t startPoint, pos_t endPoint) {
+        std::set<pm::face_index> facesMeshA;
+        std::set<pm::face_index> facesMeshB;
+
+        for (auto node : nodes) {
+            node->getAllFaces(ray, startPoint, facesMeshA, facesMeshB);
+        }
+
+        std::vector<int8_t> singsMeshA(facesMeshA.size());
+        std::vector<int8_t> singsMeshB(facesMeshB.size());
+        
+        auto setIt = facesMeshA.begin();
+        for (int i = 0; i < facesMeshA.size(); ++i) {
+            const Plane& facePlane = mMeshA->face(*setIt);
+            auto sign = ob::sign_of(ob::signed_distance(facePlane, startPoint));
+            singsMeshA[i] = sign == 0 ? 2 : sign;
+            ++setIt;
+        }
+        setIt = facesMeshB.begin();
+        for (int i = 0; i < facesMeshB.size(); ++i) {
+            const Plane& facePlane = mMeshB->face(*setIt);
+            auto sign = ob::sign_of(ob::signed_distance(facePlane, startPoint));
+            singsMeshB[i] = sign == 0 ? 2 : sign;
+            ++setIt;
+        }
+
+        size_t intersectionCount = 0;
+        intersectionCount += faceIntersections(mMeshA, facesMeshA, planeRay, singsMeshA, endPoint);
+        intersectionCount += faceIntersections(mMeshB, facesMeshB, planeRay, singsMeshB, endPoint);
+        return intersectionCount;
+    }
+  
+    int castToParentRecursive(SharedBranchNode node, pos_t p, uint8_t childIdx, SharedDebugRayInfo rayInfo) {
+        pos_t pos = p;
+        
+        /*rayInfo->nexPointsCell.push_back(node->aabb().max);
         node->getAllBoundingBoxes(tg::vec3(ray), pos, rayInfo->rayBoxesDirect, exludeChild);
         if (node->hasParent())
-            castToParentRecursive(node->parent(), node->aabb().max, node->childIndex(), rayInfo);
-        return -1;
+            castToParentRecursive(node->parent(), node->aabb().max, node->childIndex(), rayInfo);*/
+        pos_t parenPos = node->aabb().min;
+
+        int intersectionCount = 0;
+        auto childIndex = node->childIndex();
+        if (pos.x != parenPos.x) {
+            
+
+            Plane xyPlane = Plane::from_pos_normal(pos, {0, 0, -1});
+            Plane xzPlane = Plane::from_pos_normal(pos, {0, 1, 0});
+            pos_t newPos = pos_t{ parenPos.x, pos.y, pos.z };
+            std::vector<SharedOctreeNode> nodes{ node->childNode(childIdx), node->childNode(getXNeightboor(childIdx)) };
+            vec_t ray = newPos - pos;
+            intersectionCount += intersectionToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ xyPlane , xzPlane }, pos, newPos);
+            if (rayInfo) {
+                rayInfo->nexPointsCell.push_back(newPos);
+                nodes[0]->getAllBoundingBoxes(tg::normalize(tg::vec3(ray)), pos, rayInfo->rayBoxesDirect);
+                nodes[1]->getAllBoundingBoxes(tg::normalize(tg::vec3(ray)), pos, rayInfo->rayBoxesDirect);
+                //rayInfo->rayBoxesDirect.push_back(nodes[0]->aabb());
+                //rayInfo->rayBoxesDirect.push_back(nodes[1]->aabb());
+            }
+
+            if (pos.x < parenPos.x)
+                childIdx |= 0x1;
+            else
+                childIdx &= 0x6;
+                
+            pos = newPos;
+        }
+        if (pos.y != parenPos.y) {
+            Plane yxPlane = Plane::from_pos_normal(pos, { 0, 0, -1 });
+            Plane yzPlane = Plane::from_pos_normal(pos, { 1, 0, 0 });
+            pos_t newPos = pos_t{ pos.x, parenPos.y, pos.z };
+            std::vector<SharedOctreeNode> nodes{ node->childNode(childIdx), node->childNode(getYNeightboor(childIdx)) };
+            vec_t ray = newPos - pos;
+            intersectionCount += intersectionToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ yxPlane , yzPlane }, pos, newPos);
+            if (rayInfo) {
+                rayInfo->nexPointsCell.push_back(newPos);
+                nodes[0]->getAllBoundingBoxes(tg::normalize(tg::vec3(ray)), pos, rayInfo->rayBoxesDirect);
+                nodes[1]->getAllBoundingBoxes(tg::normalize(tg::vec3(ray)), pos, rayInfo->rayBoxesDirect);
+                //rayInfo->rayBoxesDirect.push_back(nodes[0]->aabb());
+                //rayInfo->rayBoxesDirect.push_back(nodes[1]->aabb());
+            }
+            if (pos.y < parenPos.y)
+                childIdx |= 0x2;
+            else
+                childIdx &= 0x5;
+            pos = newPos;
+        }
+        if (pos.z != parenPos.z) {
+            Plane zxPlane = Plane::from_pos_normal(pos, { 1, 0, 0 });
+            Plane zyPlane = Plane::from_pos_normal(pos, { 0, 1, 0 });
+            pos_t newPos = pos_t{ pos.x, pos.y, parenPos.z };
+            std::vector<SharedOctreeNode> nodes{ node->childNode(childIdx), node->childNode(getZNeightboor(childIdx)) };
+            vec_t ray = newPos - pos;
+            intersectionCount += intersectionToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ zxPlane , zyPlane }, pos, newPos);
+            if (rayInfo) {
+                rayInfo->nexPointsCell.push_back(newPos);
+                nodes[0]->getAllBoundingBoxes(tg::normalize(tg::vec3(ray)), pos, rayInfo->rayBoxesDirect);
+                nodes[1]->getAllBoundingBoxes(tg::normalize(tg::vec3(ray)), pos, rayInfo->rayBoxesDirect);
+                //rayInfo->rayBoxesDirect.push_back(nodes[0]->aabb());
+                //rayInfo->rayBoxesDirect.push_back(nodes[1]->aabb());
+            }
+            if (pos.y < parenPos.y)
+                childIdx |= 0x4;
+            else
+                childIdx &= 0x3;
+            pos = newPos;
+        }
+        if (node->hasParent())
+            intersectionCount += castToParentRecursive(node->parent(), pos, node->childIndex(), rayInfo);
+        return intersectionCount;
     }
 
     int countIntersectionsToOutside2(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
@@ -864,7 +1084,7 @@ public:
         auto node = rayCastInfo.currentNode;
         rayInfo->nexPointsCell.push_back(curPos);
         if (node->hasParent())
-            castToParentRecursive(node->parent(), curPos, node->childIndex(), rayInfo);
+            return castToParentRecursive(node->parent(), curPos, node->childIndex(), rayInfo);
         return -1;
     }
 
