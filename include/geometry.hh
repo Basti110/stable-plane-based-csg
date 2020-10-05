@@ -359,6 +359,17 @@ tg::i8 classify_vertex(subdeterminants<geometry_t> const& dets, plane<geometry_t
 }
 
 template <class geometry_t>
+auto distancePow2(typename geometry_t::pos_t p1, typename geometry_t::pos_t p2)
+{
+    geometry_t::pos_scalar_t x = p1.x - p2.x;
+    geometry_t::pos_scalar_t y = p1.y - p2.y;
+    geometry_t::pos_scalar_t z = p1.z - p2.z;
+
+    static constexpr int max_bits = geometry_t::bits_position * 2 + 3;
+    return mul<max_bits>(x, x) + mul<max_bits>(y, y) + mul<max_bits>(z, z);
+}
+
+template <class geometry_t>
 tg::dpos3 compute_intersection(plane<geometry_t> const& p, //
                                plane<geometry_t> const& q,
                                plane<geometry_t> const& r)

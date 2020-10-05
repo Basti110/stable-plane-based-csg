@@ -57,6 +57,7 @@ int main() {
     //test_color_in_mesh();
     //test_octree();
     //test_cut_mesh();
+    //mark_component_test();
     test_octree_cell_ray_cast();
     //mark_component_test();
     //test_color_in_mesh();
@@ -403,12 +404,12 @@ void mark_component_test() {
     auto test1 = planeMesh1->noDuplicatedVerticesInFaces(faceMask1);
     auto test2 = planeMesh2->noDuplicatedVerticesInFaces(faceMask2);
 
-    /*auto view = gv::view(planeMesh2->positions(), components2.getColorAssignment());
+    auto view = gv::view(planeMesh2->positions(), components2.getColorAssignment());
     gv::view(gv::lines(planeMesh2->positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));*/
-    auto view = gv::view(planeMesh1->positions(), components1.getColorAssignment());
+    gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));
+    /*gv::view(planeMesh1->positions(), components1.getColorAssignment());
     gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh1->positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh1->positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));*/
 }
 
 void test_picker() {

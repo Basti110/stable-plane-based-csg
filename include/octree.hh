@@ -206,6 +206,10 @@ public:
                 return false;
             if (origin.z > mAABB.max.z || origin.z < mAABB.min.z)
                 return false;
+            if (ray.x > 0 && origin.x > mAABB.max.x)
+                return false;
+            if (ray.x < 0 && origin.x < mAABB.min.x)
+                return false;
             return true;
         }
         if (ray.y != 0) {
@@ -213,12 +217,20 @@ public:
                 return false;
             if (origin.z > mAABB.max.z || origin.z < mAABB.min.z)
                 return false;
+            if (ray.y > 0 && origin.y > mAABB.max.y)
+                return false;
+            if (ray.y < 0 && origin.y < mAABB.min.y)
+                return false;
             return true;
         }
         if (ray.z != 0) {
             if (origin.x > mAABB.max.x || origin.x < mAABB.min.x)
                 return false;
             if (origin.y > mAABB.max.y || origin.y < mAABB.min.y)
+                return false;
+            if (ray.z > 0 && origin.z > mAABB.max.z)
+                return false;
+            if (ray.z < 0 && origin.z < mAABB.min.z)
                 return false;
             return true;
         }
@@ -230,8 +242,18 @@ public:
         return tg::length(distance);
     }
 
+    pos_t getPosFromIndex(uint8_t index) {
+        pos_t pos;
+        auto aabbLen = AABBLen();
+        pos.x = mAABB.min.x + ((uint8_t(index) >> 0) & 1) * (aabbLen);
+        pos.y = mAABB.min.y + ((uint8_t(index) >> 1) & 1) * (aabbLen);
+        pos.z = mAABB.min.z + ((uint8_t(index) >> 2) & 1) * (aabbLen);
+        return pos;
+    }
 
-    
+    scalar_t AABBLen() {
+        return mAABB.max.x - mAABB.min.x;
+    }
 
     Octree* getOctree();
 
@@ -998,14 +1020,14 @@ public:
         return intersectionCount;
     }
   
-    int castToParentRecursive(SharedBranchNode node, pos_t p, uint8_t childIdx, SharedDebugRayInfo rayInfo) {
+    int castToParentRecursive(SharedBranchNode node, pos_t p, int8_t parenIndex, uint8_t childIdx, SharedDebugRayInfo rayInfo) {
         pos_t pos = p;
         
         /*rayInfo->nexPointsCell.push_back(node->aabb().max);
         node->getAllBoundingBoxes(tg::vec3(ray), pos, rayInfo->rayBoxesDirect, exludeChild);
         if (node->hasParent())
             castToParentRecursive(node->parent(), node->aabb().max, node->childIndex(), rayInfo);*/
-        pos_t parenPos = node->aabb().min;
+        pos_t parenPos = node->getPosFromIndex(parenIndex);
 
         int intersectionCount = 0;
         auto childIndex = node->childIndex();
@@ -1074,7 +1096,7 @@ public:
             pos = newPos;
         }
         if (node->hasParent())
-            intersectionCount += castToParentRecursive(node->parent(), pos, node->childIndex(), rayInfo);
+            intersectionCount += castToParentRecursive(node->parent(), pos, parenIndex, node->childIndex(), rayInfo);
         return intersectionCount;
     }
 
@@ -1082,10 +1104,25 @@ public:
         auto rayCastInfo = castRayToNextCornerPoint(origin, planeMesh, rayInfo);
         auto curPos = rayCastInfo.currentPos;
         auto node = rayCastInfo.currentNode;
+
         rayInfo->nexPointsCell.push_back(curPos);
-        if (node->hasParent())
-            return castToParentRecursive(node->parent(), curPos, node->childIndex(), rayInfo);
-        return -1;
+        if (!node->hasParent())
+            return -1;
+
+        int8_t nearestPosIndex = -1;
+
+        auto len = mRoot->AABBLen();
+        auto nearestLen = ob::mul<geometry128::bits_position * 2 + 3>(len, len);
+        for (int8_t i = 0; i < 7; ++i) {
+            auto pos = mRoot->getPosFromIndex(i);
+            auto dis = ob::distancePow2<geometry128>(curPos, pos);
+            if (dis < nearestLen) {
+                nearestPosIndex = i;
+                nearestLen = dis;
+            }              
+        }
+        TG_ASSERT(nearestPosIndex != -1);
+        return castToParentRecursive(node->parent(), curPos, nearestPosIndex, node->childIndex(), rayInfo);
     }
 
     void planeToTriangles(const Plane& plane, int sideLen, std::vector<tg::triangle3>& insertVec) {
