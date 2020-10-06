@@ -601,6 +601,8 @@ public:
                     return PlaneRay{ edge(he1.edge()), edge(he2.edge()) };
             }
         }
+        //TODO
+        return PlaneRay{ edge(vertex.any_incoming_halfedge().edge()), edge(vertex.any_incoming_halfedge().edge()) };
     }
 
     const Plane& getAnyFace(pm::vertex_handle vertex) const {

@@ -145,6 +145,7 @@ public:
             return mAABB.min;
         else if (i == 8)
             return mAABB.min + vec_t{ 0, 0, len };
+        return { 0,0,0 };
     }
      
     virtual bool isNotLeafOrContainsData() {
@@ -234,6 +235,7 @@ public:
                 return false;
             return true;
         }
+        return false;
     }
 
     scalar_t distance(pos_t point) {
@@ -899,6 +901,7 @@ public:
             else if (i2 == 3)
                 return node->getPosFromVertexIndex(2);
         }
+        return { 0, 0,0 };
     }
 
     RayCastInfo castRayToNextCornerPoint(const pm::vertex_handle& origin, const PlaneMesh& planeMesh, SharedDebugRayInfo rayInfo = SharedDebugRayInfo()) {
