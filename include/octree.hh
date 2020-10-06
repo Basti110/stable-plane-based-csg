@@ -991,16 +991,16 @@ public:
         return intersectionCount;
     }
 
-    size_t intersectionToNextPointThroughNodes(std::vector<SharedOctreeNode> nodes, tg::vec3 ray, PlaneRay& planeRay, pos_t startPoint, pos_t endPoint) {
+    size_t intersectionAToNextPointThroughNodes(std::vector<SharedOctreeNode> nodes, tg::vec3 ray, PlaneRay& planeRay, pos_t startPoint, pos_t endPoint) {
         std::set<pm::face_index> facesMeshA;
         std::set<pm::face_index> facesMeshB;
 
+        //TODO: optimize functions for seperate A and B
         for (auto node : nodes) {
             node->getAllFaces(ray, startPoint, facesMeshA, facesMeshB);
         }
 
         std::vector<int8_t> singsMeshA(facesMeshA.size());
-        std::vector<int8_t> singsMeshB(facesMeshB.size());
         
         auto setIt = facesMeshA.begin();
         for (int i = 0; i < facesMeshA.size(); ++i) {
@@ -1009,7 +1009,22 @@ public:
             singsMeshA[i] = sign == 0 ? 2 : sign;
             ++setIt;
         }
-        setIt = facesMeshB.begin();
+
+        size_t intersectionCount = faceIntersections(mMeshA, facesMeshA, planeRay, singsMeshA, endPoint);
+        return intersectionCount;
+    }
+
+    size_t intersectionBToNextPointThroughNodes(std::vector<SharedOctreeNode> nodes, tg::vec3 ray, PlaneRay& planeRay, pos_t startPoint, pos_t endPoint) {
+        std::set<pm::face_index> facesMeshA;
+        std::set<pm::face_index> facesMeshB;
+
+        //TODO: optimize functions for seperate A and B
+        for (auto node : nodes) {
+            node->getAllFaces(ray, startPoint, facesMeshA, facesMeshB);
+        }
+
+        std::vector<int8_t> singsMeshB(facesMeshB.size());
+        auto setIt = facesMeshB.begin();
         for (int i = 0; i < facesMeshB.size(); ++i) {
             const Plane& facePlane = mMeshB->face(*setIt);
             auto sign = ob::sign_of(ob::signed_distance(facePlane, startPoint));
@@ -1017,13 +1032,11 @@ public:
             ++setIt;
         }
 
-        size_t intersectionCount = 0;
-        intersectionCount += faceIntersections(mMeshA, facesMeshA, planeRay, singsMeshA, endPoint);
-        intersectionCount += faceIntersections(mMeshB, facesMeshB, planeRay, singsMeshB, endPoint);
+        size_t intersectionCount = faceIntersections(mMeshB, facesMeshB, planeRay, singsMeshB, endPoint);
         return intersectionCount;
     }
   
-    int castToParentRecursive(SharedBranchNode node, pos_t p, int8_t parenIndex, uint8_t childIdx, SharedDebugRayInfo rayInfo) {
+    int castToParentRecursive(SharedBranchNode node, pos_t p, int8_t parenIndex, uint8_t childIdx, SharedDebugRayInfo rayInfo, bool isA) {
         pos_t pos = p;
         
         /*rayInfo->nexPointsCell.push_back(node->aabb().max);
@@ -1042,7 +1055,10 @@ public:
             pos_t newPos = pos_t{ parenPos.x, pos.y, pos.z };
             std::vector<SharedOctreeNode> nodes{ node->childNode(childIdx), node->childNode(getXNeightboor(childIdx)) };
             vec_t ray = newPos - pos;
-            intersectionCount += intersectionToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ xyPlane , xzPlane }, pos, newPos);
+            if(isA)
+                intersectionCount += intersectionAToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ xyPlane , xzPlane }, pos, newPos);
+            else 
+                intersectionCount += intersectionBToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ xyPlane , xzPlane }, pos, newPos);
             if (rayInfo) {
                 rayInfo->nexPointsCell.push_back(newPos);
                 nodes[0]->getAllBoundingBoxes(tg::normalize(tg::vec3(ray)), pos, rayInfo->rayBoxesDirect);
@@ -1064,7 +1080,10 @@ public:
             pos_t newPos = pos_t{ pos.x, parenPos.y, pos.z };
             std::vector<SharedOctreeNode> nodes{ node->childNode(childIdx), node->childNode(getYNeightboor(childIdx)) };
             vec_t ray = newPos - pos;
-            intersectionCount += intersectionToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ yxPlane , yzPlane }, pos, newPos);
+            if(isA)
+                intersectionCount += intersectionAToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ yxPlane , yzPlane }, pos, newPos);
+            else
+                intersectionCount += intersectionBToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ yxPlane , yzPlane }, pos, newPos);
             if (rayInfo) {
                 rayInfo->nexPointsCell.push_back(newPos);
                 nodes[0]->getAllBoundingBoxes(tg::normalize(tg::vec3(ray)), pos, rayInfo->rayBoxesDirect);
@@ -1084,7 +1103,10 @@ public:
             pos_t newPos = pos_t{ pos.x, pos.y, parenPos.z };
             std::vector<SharedOctreeNode> nodes{ node->childNode(childIdx), node->childNode(getZNeightboor(childIdx)) };
             vec_t ray = newPos - pos;
-            intersectionCount += intersectionToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ zxPlane , zyPlane }, pos, newPos);
+            if(isA)
+                intersectionCount += intersectionAToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ zxPlane , zyPlane }, pos, newPos);
+            else
+                intersectionCount += intersectionBToNextPointThroughNodes(nodes, tg::vec3(ray), PlaneRay{ zxPlane , zyPlane }, pos, newPos);
             if (rayInfo) {
                 rayInfo->nexPointsCell.push_back(newPos);
                 nodes[0]->getAllBoundingBoxes(tg::normalize(tg::vec3(ray)), pos, rayInfo->rayBoxesDirect);
@@ -1092,7 +1114,7 @@ public:
                 //rayInfo->rayBoxesDirect.push_back(nodes[0]->aabb());
                 //rayInfo->rayBoxesDirect.push_back(nodes[1]->aabb());
             }
-            if (pos.y < parenPos.y)
+            if (pos.z < parenPos.z)
                 childIdx |= 0x4;
             else
                 childIdx &= 0x3;
@@ -1125,7 +1147,7 @@ public:
             }              
         }
         TG_ASSERT(nearestPosIndex != -1);
-        return castToParentRecursive(node->parent(), curPos, nearestPosIndex, node->childIndex(), rayInfo);
+        return castToParentRecursive(node->parent(), curPos, nearestPosIndex, node->childIndex(), rayInfo, planeMesh.id() == mMeshA->id());
     }
 
     void planeToTriangles(const Plane& plane, int sideLen, std::vector<tg::triangle3>& insertVec) {
