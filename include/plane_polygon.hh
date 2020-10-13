@@ -466,6 +466,10 @@ public:
         return mPositions;
     }
 
+    const pm::vertex_attribute<geometry128::pos_t>& positions() const {
+        return mPositions;
+    }
+
     pm::face_attribute<Plane>& faces() {
         return mFaces;
     }

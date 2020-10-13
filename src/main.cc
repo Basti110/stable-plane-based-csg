@@ -16,6 +16,7 @@
 #include <tuple>
 #include <utility>
 #include "obj_config.hh"
+#include <component_categorization.hh>
 
 //std::string testObj = "../data/mesh/fox.obj";
 std::string testObj = "../data/mesh/bun_zipper.obj";
@@ -32,6 +33,7 @@ void test_octree_two_meshes();
 void test_trianle_classification();
 void test_color_lines();
 void mark_component_test();
+void test_component_classification();
 void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
 
 int main() {
@@ -56,9 +58,10 @@ int main() {
     //test_picker();
     //test_color_in_mesh();
     //test_octree();
+    test_component_classification();
     //test_cut_mesh();
     //mark_component_test();
-    test_octree_cell_ray_cast();
+    //test_octree_cell_ray_cast();
     //mark_component_test();
     //test_color_in_mesh();
     /*while (true) {
@@ -262,6 +265,20 @@ void test_octree_two_meshes() {
     gv::view(planeMesh2->positions());
     gv::view(gv::lines(planeMesh2->positions()).line_width_world(1000000), "gv::lines(pos)");
     gv::view(gv::lines(boxes).line_width_world(500000), tg::color3::blue, "gv::lines(pos)");
+}
+
+void test_component_classification() {
+    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
+    auto planeMesh1 = conf.getMeshA();
+    auto planeMesh2 = conf.getMeshB();
+    TG_ASSERT(planeMesh2->allFacesAreValid());
+    auto octree = conf.getOctree();
+    auto boxes = conf.getOctreeBoxes();
+
+    auto iCut = conf.getOctree()->cutPolygons();
+    std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
+    std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
+    ComponentCategorization(octree, components1, components2, iCut);
 }
 
 void test_octree_cell_ray_cast() {

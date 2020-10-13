@@ -96,6 +96,10 @@ public:
         return mCountComponents;
     }
 
+    const pm::face_attribute<int> getFaceToComponent() {
+        return mfaceToComponent;
+    }
+
 private: 
     int mCountComponents = 0;
     PlaneMesh& mPlaneMesh;

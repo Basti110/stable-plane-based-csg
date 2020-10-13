@@ -826,8 +826,9 @@ public:
     }
 
     SharedLeafNode getRightCell(const pm::vertex_handle& origin, const PlaneMesh& planeMesh) {
-        auto& faceToNode = planeMesh.id() == mMeshA->id() ? mFaceMeshAToNode : mFaceMeshBToNode;
-        auto subDet = mMeshA->pos(origin);
+        bool isA = planeMesh.id() == mMeshA->id();
+        auto& faceToNode = isA ? mFaceMeshAToNode : mFaceMeshBToNode;
+        auto subDet = isA ? mMeshA->pos(origin) : mMeshB->pos(origin);
         auto test = origin.any_incoming_halfedge().face();
         for (auto node : faceToNode[test]) {
             if (!node->isValid())
@@ -1108,7 +1109,9 @@ public:
         auto curPos = rayCastInfo.currentPos;
         auto node = rayCastInfo.currentNode;
 
-        rayInfo->nexPointsCell.push_back(curPos);
+        if(rayInfo)
+            rayInfo->nexPointsCell.push_back(curPos);
+
         if (!node->hasParent())
             return -1;
 
@@ -1142,6 +1145,24 @@ public:
         auto pos_d = tg::pos3(plane_pos - 0.5 * sideLen * ortho_vec1 + 0.5 * sideLen * ortho_vec2);
         insertVec.push_back({ pos_a , pos_b, pos_c });
         insertVec.push_back({ pos_c , pos_d, pos_a });
+    }
+
+    const PlaneMesh& getPlaneMeshA() const {
+        return *mMeshA;
+    }
+
+    const PlaneMesh& getPlaneMeshB() const {
+        return *mMeshB;
+    }
+
+    //Todo delete
+    PlaneMesh& getPlaneMeshA() {
+        return *mMeshA;
+    }
+
+    //Todo delete
+    PlaneMesh& getPlaneMeshB() {
+        return *mMeshB;
     }
 
 private:    
