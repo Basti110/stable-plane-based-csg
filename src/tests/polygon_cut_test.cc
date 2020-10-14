@@ -50,7 +50,7 @@ TEST("Test::Cut_Triangle_Normal_Marker") {
     auto view = gv::view(planeMesh2.positions());
     //gv::view(planeMesh2.positions());
     gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
 }
 
 TEST("Test::Cut_Triangle_Normal") {

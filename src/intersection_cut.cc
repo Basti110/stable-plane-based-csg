@@ -403,11 +403,23 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
             Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
             splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
             splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
+            auto he = isectNonPlanar->triangle1.intersectionEdge1.next();
+            TG_ASSERT(he != isectNonPlanar->triangle1.intersectionEdge2);
+            while (he != isectNonPlanar->triangle1.intersectionEdge2) {
+                mIntersectionEdgesMarkerA[he] = true;
+                he = he.next();
+            }
         }
         else if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_2_ON_1) {
             Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
             splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);
             splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
+            auto he = isectNonPlanar->triangle2.intersectionEdge1.next();
+            TG_ASSERT(he != isectNonPlanar->triangle2.intersectionEdge2);
+            while (he != isectNonPlanar->triangle2.intersectionEdge2) {
+                mIntersectionEdgesMarkerB[he] = true;
+                he = he.next();
+            }
         }
     }
     else if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
