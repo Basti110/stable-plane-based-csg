@@ -317,10 +317,12 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
 
     if (planeMesh.planeMesh.id() == mMeshA->id()) {
         mIntersectionEdgesMarkerA[edgeFace1.edge()] = true;
+        mIntersectionEdgesOnIntersectionLineA[edgeFace1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineA[-1];
     }
     else {
         TG_ASSERT(planeMesh.planeMesh.id() == mMeshB->id());
         mIntersectionEdgesMarkerB[edgeFace1.edge()] = true;
+        mIntersectionEdgesOnIntersectionLineB[edgeFace1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineB[-1];
     }
     invalidEdges = planeMesh.planeMesh.existsEdgesWithoutFace();
     TG_ASSERT(!invalidEdges);
@@ -388,6 +390,9 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
     if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::NON_PLANAR) {
         SharedTriIntersectNonPlanar isectNonPlanar = std::static_pointer_cast<TrianlgeIntersectionNonPlanar>(intersection);
         //TODO: nicht intuitiv
+        mIntersectionEdgesOnIntersectionLineA[-1] = { isectNonPlanar->triangle2.intersectionEdge1.idx, isectNonPlanar->triangle2.intersectionEdge2.idx };
+        mIntersectionEdgesOnIntersectionLineB[-1] = { isectNonPlanar->triangle1.intersectionEdge1.idx, isectNonPlanar->triangle1.intersectionEdge2.idx };
+
         if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::PROPER_INTERSECTION) {
             Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
             Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);

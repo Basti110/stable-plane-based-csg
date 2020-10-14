@@ -58,8 +58,8 @@ int main() {
     //test_picker();
     //test_color_in_mesh();
     //test_octree();
-    test_component_classification();
-    //test_cut_mesh();
+    //test_component_classification();
+    test_cut_mesh();
     //mark_component_test();
     //test_octree_cell_ray_cast();
     //mark_component_test();
@@ -197,7 +197,7 @@ void test_color_lines() {
 }
 
 void test_cut_mesh() {
-    ObjConfig conf = ObjCollection::map.at("bunny_mesh_2");
+    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
 

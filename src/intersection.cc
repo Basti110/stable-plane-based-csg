@@ -1,6 +1,9 @@
 #include <intersection.hh>
 
 //Also checks if there is a vertex on the plane
+//Eigenschaften:
+//1: Wenn touching: edge 1 zeigt hin, edge 2 zeigt weg
+//2: wenn Vertex auf baseplane: Intersection edge is die edge die von der Plane weg zeigt. 
 IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection(const PlaneMesh& mesh1, pm::face_handle const& planeBase, 
     const PlaneMesh& mesh2, pm::face_handle const& polygon)
 {
@@ -45,6 +48,7 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
             continue;
         }
 
+        //2
         if (wasZeroBefore && signPosAcc != 0 && signNegAcc != 0) {
             sign = signTmp;
             vertexOnEdge[index - 1] = true;
@@ -70,9 +74,16 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
     TG_ASSERT(index == 2 && "On a Convex Polygon are now exactly 2 intersections");
     if (signPosAcc > 0 && signNegAcc > 0)
         intersection.intersection = intersection_result::proper_intersection;
-    else
+    else {
+        
         intersection.intersection = intersection_result::touching;
-
+        //1
+        if (startWithSign0) { 
+            std::swap(halfedgeHandles[0], halfedgeHandles[1]);
+            std::swap(vertexOnEdge[0], vertexOnEdge[1]);
+        }
+    }
+        
     intersection.intersectionEdge1 = halfedgeHandles[0];
     intersection.intersectionEdge2 = halfedgeHandles[1];
     intersection.intersectVertex1 = vertexOnEdge[0];

@@ -1,4 +1,57 @@
 #include <intersection_cut.hh>
+#include <octree.hh>
+
+TEST("Test::Cut_Triangle_Normal_Marker") {
+    tg::triangle<3, scalar_t> triangle1({ { 0, 0, -20 }, { 10, 0, 0 }, { -10, 0, 0 } });
+    tg::triangle<3, scalar_t> triangle2({ { 0, 5, -15 }, { 3, 0, -10 }, { -3, 0, -10 } });
+    tg::triangle<3, scalar_t> triangle3({ { 3, 0, -10 }, { -3, 0, -10 }, { 0, -5, -5 } });
+    //tg::triangle<3, scalar_t> triangle4({ { 0, 2, -7 }, { 0, -2, -9 }, { 0, -2, -5 } });
+    //tg::triangle<3, scalar_t> triangle5({ { 5, -5, 0 }, { 5, 5, 0 }, { 10, -5, -10 } });
+
+    PlaneMesh planeMesh1;
+    PlaneMesh planeMesh2;
+
+    std::vector<pm::face_handle> faces;
+    scalar_t scale = 100;
+
+    auto face1 = planeMesh1.insertTriangle(triangle1 * scale);
+    faces.push_back(planeMesh2.insertTriangle(triangle2 * scale));
+    faces.push_back(planeMesh2.insertTriangle(triangle3 * scale));
+    //faces.push_back(planeMesh2.insertTriangle(triangle4 * scale));
+    //faces.push_back(planeMesh2.insertTriangle(triangle5 * scale));
+
+    auto octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, AABB{{-1600, -1600, -1600}, {1600, 1600, 1600}});
+
+    for (auto f : planeMesh1.allFaces()) {
+        octree->insert_polygon(planeMesh1.id(), f);
+    }
+
+    for (auto f : planeMesh2.allFaces()) {
+        octree->insert_polygon(planeMesh2.id(), f);
+    }
+    auto iCut = octree->cutPolygons();
+
+    planeMesh1.checkAndComputePositions();
+    planeMesh2.checkAndComputePositions();
+
+    //planeMesh1.mesh().compactify();
+    //planeMesh2.mesh().compactify();
+    auto test1 = planeMesh1.noDuplicatedVerticesInFaces();
+    auto test2 = planeMesh2.noDuplicatedVerticesInFaces();
+
+    /*std::cout << "Mesh1 " <<  planeMesh1.positions().count() << " positions" << std::endl;
+    std::cout << "Mesh1 " << planeMesh1.edges().count() << " edges" << std::endl;
+    std::cout << "Mesh2 " << planeMesh2.positions().count() << " positions" << std::endl;
+    std::cout << "Mesh2 " << planeMesh2.edges().count() << " edges" << std::endl;*/
+
+    /*auto view = gv::view(planeMesh1.positions());
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));*/
+    auto view = gv::view(planeMesh2.positions());
+    //gv::view(planeMesh2.positions());
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
+}
 
 TEST("Test::Cut_Triangle_Normal") {
     tg::triangle<3, scalar_t> triangle1({ { 0, 0, -20 }, { 10, 0, 0 }, { -10, 0, 0 } });

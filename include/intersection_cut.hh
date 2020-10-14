@@ -1,3 +1,4 @@
+#pragma once
 #include <plane_polygon.hh>
 #include <nexus/test.hh>
 #include <aabb.hh>
@@ -16,6 +17,11 @@ struct PlaneMeshInfo {
 struct NewFaces {
     std::vector<pm::face_handle> facesT1;
     std::vector<pm::face_handle> facesT2;
+};
+
+struct IntersectionEdgesIndices {
+    pm::halfedge_index intersectionEdge1;
+    pm::halfedge_index intersectionEdge2;
 };
 
 typedef TrianlgeIntersection::IntersectionEdges IntersectionEdges;
@@ -84,4 +90,6 @@ private:
 
     std::unordered_map<int, std::vector<pm::face_handle>> mLookupFacesA;
     std::unordered_map<int, std::vector<pm::face_handle>> mLookupFacesB;
+    std::unordered_map<int, IntersectionEdgesIndices> mIntersectionEdgesOnIntersectionLineA;
+    std::unordered_map<int, IntersectionEdgesIndices> mIntersectionEdgesOnIntersectionLineB;
 };
