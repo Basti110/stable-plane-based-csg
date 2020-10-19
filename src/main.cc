@@ -44,6 +44,9 @@ int main() {
     }
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
+
+    char* argv[] = { "main", "Test::Cut_Triangle_Normal_Marker"};
+    tests.applyCmdArgs(2, argv);
     tests.run();
 
     pm::vertex_attribute<tg::pos3> test3;
@@ -64,10 +67,10 @@ int main() {
     //test_octree_cell_ray_cast();
     //mark_component_test();
     //test_color_in_mesh();
-    /*while (true) {
+    while (true) {
         test_picker();
         test_cut_testAB_meshes();
-    }*/
+    }
 
     //
     //test_cut_mesh();

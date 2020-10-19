@@ -82,6 +82,10 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
             std::swap(halfedgeHandles[0], halfedgeHandles[1]);
             std::swap(vertexOnEdge[0], vertexOnEdge[1]);
         }
+        if (halfedgeHandles[1] == halfedgeHandles[0].next()) {
+            intersection.intersection = intersection_result::non_intersecting;
+            return intersection;
+        }
     }
         
     intersection.intersectionEdge1 = halfedgeHandles[0];
@@ -286,6 +290,97 @@ SharedTriIntersect IntersectionObject::handleCoplanarIntersection(const pm::face
     return result;
 }
 
+bool IntersectionObject::handleTouchIntersection(const pm::face_handle& polygon1, const pm::face_handle& polygon2, SharedTriIntersectNonPlanar iSect) {
+    bool isMeshA = polygon1.mesh == &(mPlaneMeshA.mesh());
+    auto& t1 = isMeshA ? iSect->triangle1 : iSect->triangle2;
+    auto& t2 = isMeshA ? iSect->triangle2 : iSect->triangle1;
+    PlaneMesh& planeMeshA = isMeshA ? mPlaneMeshA : mPlaneMeshB;
+    PlaneMesh& planeMeshB = isMeshA ? mPlaneMeshB : mPlaneMeshA;
+
+    pm::halfedge_handle edge = t2.intersectionEdge1;
+    SubDet subdet = planeMeshB.pos(edge.vertex_to());
+    int8_t sign1 = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge1.edge()));
+    sign1 *= planeMeshA.halfedge(t1.intersectionEdge1);
+    int8_t sign2 = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge2.edge()));
+    sign2 *= planeMeshA.halfedge(t1.intersectionEdge2);
+    edge = edge.next();
+
+
+    if (sign1 != 0 && sign2 != 0 && sign1 != sign2) {
+        int8_t sign1Tmp = 0;
+        int8_t sign2Tmp = 0;
+        while (edge != t2.intersectionEdge2) {
+            subdet = planeMeshB.pos(edge.vertex_to());
+            int8_t sign1Tmp = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge1.edge()));
+            sign1Tmp *= planeMeshA.halfedge(t1.intersectionEdge1);
+            int8_t sign2Tmp = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge2.edge()));
+            sign2Tmp *= planeMeshA.halfedge(t1.intersectionEdge2);
+            TG_ASSERT(sign1Tmp || sign2Tmp);
+
+            if (sign1 != sign1Tmp || sign2 != sign2Tmp)
+                break;
+
+            edge = edge.next();
+        }
+
+        if (edge == t2.intersectionEdge2)
+            return false;
+
+        t2.intersectionEdge1 = edge.prev();
+        if (sign1 != sign1Tmp && sign2 != sign2Tmp) {
+            sign1 = -sign1;
+            sign2 = -sign2;
+        }
+        else {
+            sign1 = sign1Tmp;
+            sign2 = sign2Tmp;
+        }
+    }
+
+    edge = edge.next();
+    if (sign1 == 0 || sign2 == 0 || (sign1 == -1 && sign2 == -1)) {
+        int8_t sign1Tmp = 0;
+        int8_t sign2Tmp = 0;
+        while (edge != t2.intersectionEdge2) {
+            subdet = planeMeshB.pos(edge.vertex_to());
+            int8_t sign1Tmp = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge1.edge()));
+            sign1Tmp *= planeMeshA.halfedge(t1.intersectionEdge1);
+            int8_t sign2Tmp = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge2.edge()));
+            sign2Tmp *= planeMeshA.halfedge(t1.intersectionEdge2);
+            if(!(sign1Tmp || sign2Tmp))
+                return false;
+            TG_ASSERT(sign1Tmp || sign2Tmp);
+
+            if (sign1 != sign1Tmp) {
+                if (sign1 == 0 && sign1Tmp == 1)
+                    return false;
+
+                if (sign1 != 0) {
+                    t2.intersectionEdge2 = edge.next();
+                    break;
+                }
+            }
+
+            if (sign2 != sign2Tmp) {
+                if (sign2 == 0 && sign2Tmp == 1)
+                    return false;
+
+                if (sign2 != 0) {
+                    t2.intersectionEdge2 = edge.next();
+                    break;
+                }
+            }
+            edge = edge.next();
+        }
+    }  
+    else {
+        t2.intersectionEdge2 = edge;
+    }
+    if (t2.intersectionEdge2 == t2.intersectionEdge1.next())
+        return false;
+    return true;
+}
+
 SharedTriIntersect IntersectionObject::handleIntersection(const pm::face_handle& polygon1, const pm::face_handle& polygon2, IntersectionHandle& intersection1, IntersectionHandle& intersection2) {
     const Plane& basePlane1 = mPlaneMeshA.getPlane(polygon1);
     const Plane& basePlane2 = mPlaneMeshB.getPlane(polygon2);
@@ -316,10 +411,16 @@ SharedTriIntersect IntersectionObject::handleIntersection(const pm::face_handle&
 
     nonPlanarIntersection->state = TrianlgeIntersectionNonPlanar::NonPlanarState::PROPER_INTERSECTION;
 
-    if (intersection2.intersection == intersection_result::touching)
+    if (intersection1.intersection == intersection_result::touching && intersection2.intersection == intersection_result::touching) {
+        nonPlanarIntersection->state = TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING;
+        if(handleTouchIntersection(polygon1, polygon2, nonPlanarIntersection))
+            if(handleTouchIntersection(polygon2, polygon1, nonPlanarIntersection))
+                return nonPlanarIntersection;
+        return std::make_shared<TrianlgeIntersection>();
+    }       
+    else if (intersection2.intersection == intersection_result::touching)
         nonPlanarIntersection->state = TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_1_ON_2;
-
-    if (intersection1.intersection == intersection_result::touching)
+    else if (intersection1.intersection == intersection_result::touching)
         nonPlanarIntersection->state = TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_2_ON_1;
 
     if (sign1 == 0 || sign2 == 0)

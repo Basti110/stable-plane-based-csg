@@ -2,25 +2,82 @@
 #include <octree.hh>
 
 TEST("Test::Cut_Triangle_Normal_Marker") {
-    tg::triangle<3, scalar_t> triangle1({ { 0, 0, -20 }, { 10, 0, 0 }, { -10, 0, 0 } });
-    tg::triangle<3, scalar_t> triangle2({ { 0, 5, -15 }, { 3, 0, -10 }, { -3, 0, -10 } });
-    tg::triangle<3, scalar_t> triangle3({ { 3, 0, -10 }, { -3, 0, -10 }, { 0, -5, -5 } });
-    //tg::triangle<3, scalar_t> triangle4({ { 0, 2, -7 }, { 0, -2, -9 }, { 0, -2, -5 } });
-    //tg::triangle<3, scalar_t> triangle5({ { 5, -5, 0 }, { 5, 5, 0 }, { 10, -5, -10 } });
+
+    scalar_t scale = 100;
+    std::vector<pos_t> polygon1(4);
+    polygon1[0] = pos_t{ -10, 0, -20 } * scale;
+    polygon1[1] = pos_t{ -10, 0, 0 } * scale;
+    polygon1[2] = pos_t{ 10, 0, 0 } * scale;
+    polygon1[3] = pos_t{ 10, 0, -20 } * scale;
+
+    std::vector<pos_t> polygon2(3);
+    polygon2[0] = pos_t{ 0, 5, -15 } * scale;
+    polygon2[1] = pos_t{ 3, 0, -10 } * scale;
+    polygon2[2] = pos_t{ -3, 0, -10 } * scale;
+
+    std::vector<pos_t> polygon3(3);
+    polygon3[0] = pos_t{ 3, 0, -10 } * scale;
+    polygon3[1] = pos_t{ -3, 0, -10 } * scale;
+    polygon3[2] = pos_t{ 0, -5, -5 } * scale;
+
+    std::vector<pos_t> polygon4(3);
+    polygon4[0] = pos_t{ 15, 7, -10 } * scale;
+    polygon4[1] = pos_t{ 10, 0, -5 } * scale;
+    polygon4[2] = pos_t{ 10, 0, -15 } * scale;
+
+    std::vector<pos_t> polygon5(3);
+    polygon5[0] = pos_t{ 5, -7, -10 } * scale;
+    polygon5[1] = pos_t{ 10, 0, -5 } * scale;
+    polygon5[2] = pos_t{ 10, 0, -15 } * scale;
+
+    //Gerade 1
+    std::vector<pos_t> polygon6(4);
+    polygon6[0] = pos_t{ -15, 5, -10 } *scale;
+    polygon6[1] = pos_t{ -5, 5, -10 } * scale;
+    polygon6[2] = pos_t{ -5, -5, -10 } * scale;
+    polygon6[3] = pos_t{ -15, -5, -10 } * scale;
+
+    std::vector<pos_t> polygon7(4);
+    polygon7[0] = pos_t{ -5, 5, -10 } *scale;
+    polygon7[1] = pos_t{ 5, 5, -10 } *scale;
+    polygon7[2] = pos_t{ 5, -5, -10 } *scale;
+    polygon7[3] = pos_t{ -5, -5, -10 } *scale;
+
+    std::vector<pos_t> polygon8(4);
+    polygon8[0] = pos_t{ 5, 5, 5 } * scale;
+    polygon8[1] = pos_t{ 5, 5, -10 } * scale;
+    polygon8[2] = pos_t{ 5, -5, -10 } * scale;
+    polygon8[3] = pos_t{ 5, -5, 5 } * scale;
+
+    //Ecke 
+    std::vector<pos_t> polygon9(4);
+    polygon9[0] = pos_t{ 0, 5, -15 } *scale;
+    polygon9[1] = pos_t{ 0, 5, -25 } *scale;
+    polygon9[2] = pos_t{ 0, -5, -25 } *scale;
+    polygon9[3] = pos_t{ 0, -5, -15 } *scale;
+
+    std::vector<pos_t> polygon10(4);
+    polygon10[0] = pos_t{ -15, 5, -15 } *scale;
+    polygon10[1] = pos_t{ 0, 5, -15 } *scale;
+    polygon10[2] = pos_t{ 0, -5, -15 } *scale;
+    polygon10[3] = pos_t{ -15, -5, -15 } *scale;
 
     PlaneMesh planeMesh1;
     PlaneMesh planeMesh2;
 
     std::vector<pm::face_handle> faces;
-    scalar_t scale = 100;
+    auto face1 = planeMesh1.insertPolygon(polygon1);
+    //faces.push_back(planeMesh2.insertPolygon(polygon2));
+    //faces.push_back(planeMesh2.insertPolygon(polygon3));
+    //faces.push_back(planeMesh2.insertPolygon(polygon4));
+    //faces.push_back(planeMesh2.insertPolygon(polygon5));
+    faces.push_back(planeMesh2.insertPolygon(polygon6));
+    faces.push_back(planeMesh2.insertPolygon(polygon7));
+    faces.push_back(planeMesh2.insertPolygon(polygon8));
+    faces.push_back(planeMesh2.insertPolygon(polygon9));
+    faces.push_back(planeMesh2.insertPolygon(polygon10));
 
-    auto face1 = planeMesh1.insertTriangle(triangle1 * scale);
-    faces.push_back(planeMesh2.insertTriangle(triangle2 * scale));
-    faces.push_back(planeMesh2.insertTriangle(triangle3 * scale));
-    //faces.push_back(planeMesh2.insertTriangle(triangle4 * scale));
-    //faces.push_back(planeMesh2.insertTriangle(triangle5 * scale));
-
-    auto octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, AABB{{-1600, -1600, -1600}, {1600, 1600, 1600}});
+    auto octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, AABB{{-3200, -3200, -3200}, {3200, 3200, 3200}});
 
     for (auto f : planeMesh1.allFaces()) {
         octree->insert_polygon(planeMesh1.id(), f);
@@ -44,11 +101,11 @@ TEST("Test::Cut_Triangle_Normal_Marker") {
     std::cout << "Mesh2 " << planeMesh2.positions().count() << " positions" << std::endl;
     std::cout << "Mesh2 " << planeMesh2.edges().count() << " edges" << std::endl;*/
 
-    /*auto view = gv::view(planeMesh1.positions());
+    auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));*/
-    auto view = gv::view(planeMesh2.positions());
-    //gv::view(planeMesh2.positions());
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+    //auto view = gv::view(planeMesh2.positions());
+    gv::view(planeMesh2.positions());
     gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
     gv::view(gv::lines(planeMesh2.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
 }

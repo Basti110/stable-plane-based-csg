@@ -32,6 +32,7 @@ public:
     {
         TOUCHING_1_ON_2,
         TOUCHING_2_ON_1,
+        TOUCHING,
         PROPER_INTERSECTION,
     };
 
@@ -195,6 +196,7 @@ public:
    
     SharedTriIntersect getClassifiedEdgesFromSignChange(std::vector<int8_t>& signsFirstPoint, const std::vector<pm::halfedge_handle>& edges1, const std::vector<pm::halfedge_handle>& edges2);
     SharedTriIntersect handleCoplanarIntersection(const pm::face_handle& polygon1, const pm::face_handle& polygon2);
+    bool handleTouchIntersection(const pm::face_handle& polygon1, const pm::face_handle& polygon2, SharedTriIntersectNonPlanar iSect);
     SharedTriIntersect handleIntersection(const pm::face_handle& polygon1, const pm::face_handle& polygon2, IntersectionHandle& intersection1, IntersectionHandle& intersection2);
 
     template <class GeometryT>
@@ -210,7 +212,8 @@ public:
         using normalScalar = ob::fixed_int<GeometryT::bits_normal * 2>;
         using normalVec = tg::vec<3, normalScalar>;
         static constexpr int NormalOutBits = GeometryT::bits_normal * 2;
-
+        if (polygon1.idx.value == 2770)
+            int t = 0;
         IntersectionHandle intersection1 = planeBaseIntersection(mPlaneMeshA, polygon1, mPlaneMeshB, polygon2);
         if (intersection1.intersection == intersection_result::non_intersecting)
             return std::make_shared<TrianlgeIntersection>();
@@ -224,8 +227,8 @@ public:
         if (intersection2.intersection == intersection_result::non_intersecting)
             return std::make_shared<TrianlgeIntersection>();
 
-        if (intersection2.intersection == intersection_result::touching && intersection1.intersection == intersection_result::touching)
-            return std::make_shared<TrianlgeIntersection>();
+        //if (intersection2.intersection == intersection_result::touching && intersection1.intersection == intersection_result::touching)
+            //return std::make_shared<TrianlgeIntersection>();
 
         return handleIntersection(polygon1, polygon2, intersection1, intersection2);
     }
