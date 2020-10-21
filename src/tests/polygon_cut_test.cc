@@ -101,13 +101,13 @@ TEST("Test::Cut_Triangle_Normal_Marker") {
     std::cout << "Mesh2 " << planeMesh2.positions().count() << " positions" << std::endl;
     std::cout << "Mesh2 " << planeMesh2.edges().count() << " edges" << std::endl;*/
 
-    auto view = gv::view(planeMesh1.positions());
+    /*auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
     //auto view = gv::view(planeMesh2.positions());
     gv::view(planeMesh2.positions());
     gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
-    gv::view(gv::lines(planeMesh2.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));*/
 }
 
 TEST("Test::Cut_Triangle_Normal") {

@@ -176,14 +176,19 @@ int8_t computeSignToIntersectionLine(std::unordered_map<int, IntersectionEdgesIn
     auto iEdge = I[iE.edge().idx.value].intersectionEdge1.of(m.mesh());
     const Plane& plane = m.edge(iEdge);
     auto posDet = m.pos(plane, bP, eP);
-    auto signCheck = ob::classify_vertex(posDet, iP);
-    if (signCheck == 0) {
-        iEdge = I[iE.edge().idx.value].intersectionEdge2.of(m.mesh());
-        posDet = m.pos(m.edge(iEdge), bP, eP);
-        signCheck = ob::classify_vertex(posDet, iP);
-        TG_ASSERT(signCheck != 0);
-    }
-    return signCheck;
+    auto signCheck1 = ob::classify_vertex(posDet, iP);
+
+    iEdge = I[iE.edge().idx.value].intersectionEdge2.of(m.mesh());
+    posDet = m.pos(m.edge(iEdge), bP, eP);
+    auto signCheck2 = ob::classify_vertex(posDet, iP);
+    TG_ASSERT(signCheck1 != 0 || signCheck2 != 0);
+    if(signCheck1 == 0)
+        return signCheck2;
+    if(signCheck2 == 0)
+        return signCheck1;
+    if (signCheck1 == signCheck2)
+        return signCheck1;
+    return 2;
 }
 
 //TODO: Remove Debug entries
@@ -285,18 +290,20 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
 
         if (planeMesh.planeMesh.id() == mMeshA->id() && mIntersectionEdgesMarkerA[edge1_2]) {
             auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineA, *mMeshB, edge1_2, iSectPlane, planeH1, plane);
-            if (sign * signCheck == 1) {
+            if (sign * signCheck == 1 || signCheck == 2) {
                 mIntersectionEdgesMarkerA[edge1_1] = mIntersectionEdgesMarkerA[edge1_2];
                 mIntersectionEdgesOnIntersectionLineA[edge1_1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineA[edge1_2.edge().idx.value];
-                mIntersectionEdgesMarkerA[edge1_2] = false;
+                if(signCheck != 2)
+                    mIntersectionEdgesMarkerA[edge1_2] = false;
             }
         }
         else if (planeMesh.planeMesh.id() == mMeshB->id() && mIntersectionEdgesMarkerB[edge1_2]) {
             auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineB, *mMeshA, edge1_2, iSectPlane, planeH1, plane);
-            if (sign * signCheck == 1) {
+            if (sign * signCheck == 1 || signCheck == 2) {
                 mIntersectionEdgesMarkerB[edge1_1] = mIntersectionEdgesMarkerB[edge1_2];
                 mIntersectionEdgesOnIntersectionLineB[edge1_1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineB[edge1_2.edge().idx.value];
-                mIntersectionEdgesMarkerB[edge1_2] = false;
+                if (signCheck != 2)
+                    mIntersectionEdgesMarkerB[edge1_2] = false;
             }
         }
         
@@ -318,18 +325,20 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
 
         if (planeMesh.planeMesh.id() == mMeshA->id() && mIntersectionEdgesMarkerA[edge2_2]) {
             auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineA, *mMeshB, edge2_2, iSectPlane, planeH2, plane);
-            if (sign * signCheck == -1) {
+            if (sign * signCheck == -1 || signCheck == 2) {
                 mIntersectionEdgesMarkerA[edge2_1] = mIntersectionEdgesMarkerA[edge2_2];
                 mIntersectionEdgesOnIntersectionLineA[edge2_1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineA[edge2_2.edge().idx.value];
-                mIntersectionEdgesMarkerA[edge2_2] = false;
+                if(signCheck != 2)
+                    mIntersectionEdgesMarkerA[edge2_2] = false;
             }
         }
         else if (planeMesh.planeMesh.id() == mMeshB->id() && mIntersectionEdgesMarkerB[edge2_2]) {
             auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineB, *mMeshA, edge2_2, iSectPlane, planeH2, plane);        
-            if (sign * signCheck == -1) {
+            if (sign * signCheck == -1 || signCheck == 2) {
                 mIntersectionEdgesMarkerB[edge2_1] = mIntersectionEdgesMarkerB[edge2_2];
                 mIntersectionEdgesOnIntersectionLineB[edge2_1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineB[edge2_2.edge().idx.value];
-                mIntersectionEdgesMarkerB[edge2_2] = false;
+                if(signCheck != 2)
+                    mIntersectionEdgesMarkerB[edge2_2] = false;
             }
         }
     }
@@ -452,28 +461,28 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
             splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
             if(isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING)
                 splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
-            auto he = isectNonPlanar->triangle1.intersectionEdge1.next();
+            /*auto he = isectNonPlanar->triangle1.intersectionEdge1.next();
             TG_ASSERT(he != isectNonPlanar->triangle1.intersectionEdge2);
             while (he != isectNonPlanar->triangle1.intersectionEdge2) {
                 mIntersectionEdgesMarkerA[he] = true;
                 mIntersectionEdgesOnIntersectionLineA[he.edge().idx.value] = mIntersectionEdgesOnIntersectionLineA[-1];
                 he = he.next();
                 //break;
-            }
+            }*/
         }
         if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_2_ON_1 || isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
             Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
             if(isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING)
                 splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);
             splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
-            auto he = isectNonPlanar->triangle2.intersectionEdge1.next();
+            /*auto he = isectNonPlanar->triangle2.intersectionEdge1.next();
             TG_ASSERT(he != isectNonPlanar->triangle2.intersectionEdge2);
             while (he != isectNonPlanar->triangle2.intersectionEdge2) {
                 mIntersectionEdgesMarkerB[he] = true;
                 mIntersectionEdgesOnIntersectionLineB[he.edge().idx.value] = mIntersectionEdgesOnIntersectionLineB[-1];
                 he = he.next();
                 //break;
-            }
+            }*/
         }
     }
     else if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {

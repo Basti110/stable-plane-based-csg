@@ -56,7 +56,7 @@ public:
 		auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexA, mSharedOctree->getPlaneMeshA(), rayInfoA);
 		auto component = mFaceComponentsA->getComponentOfFace(vertexA.any_face());
 		mComponentIsOutsideA[component] = intersections % 2;
-		propagateComponentStateRecursive(mComponentIsOutsideA, component);
+		propagateComponentStateRecursiveA(mComponentIsOutsideA, component);
 
 		pm::vertex_handle vertexB = pm::vertex_handle::invalid;
 		auto iSectB = iCut.getIntersectionEdgesMarkerB();
@@ -71,7 +71,7 @@ public:
 		intersections = mSharedOctree->countIntersectionsToOutside2(vertexB, mSharedOctree->getPlaneMeshB(), rayInfoB);
 		component = mFaceComponentsB->getComponentOfFace(vertexB.any_face());
 		mComponentIsOutsideB[component] = intersections % 2;
-		propagateComponentStateRecursive(mComponentIsOutsideB, component);
+		propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
 		
 				
 		auto colorsA = getColorToStateA();
@@ -110,27 +110,39 @@ public:
 		auto const positionLines2 = gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(100000);
 		bool tooglePolygons = true;
 
+        auto colorMaskA = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::black; }));
+        auto colorMaskB = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::black; }));
 		if (tooglePolygons) {
 			//auto view = gv::view(octreeCells, tg::color3::blue);
 			//auto view = gv::view(rayCells, tg::color3::green);
 			//gv::view(rayPath, tg::color3::red);
-			//auto view = gv::view(positions1, colorsA);
+            auto view = gv::view(positions1, gv::masked(colorMaskA));
 			//gv::view(positionLines1);
-			//auto view = gv::view(positions2, colorsB);
-			auto view = gv::view(positions2, mFaceComponentsB->getColorAssignment());
-			gv::view(positionLines2);
+			gv::view(positions2, gv::masked(colorMaskB));
+            //auto view = gv::view(positions2, colorsB); // mFaceComponentsB->getColorAssignment());
+			//gv::view(positionLines2);
 		}
 	}
 
-	void propagateComponentStateRecursive(std::vector<int8_t>& componentIsOutside, int component) {
+	void propagateComponentStateRecursiveA(std::vector<int8_t>& componentIsOutside, int component) {
 		int8_t state = componentIsOutside[component];
 		for (int neighborComponent : mComponentNeighborsA[component]) {
 			if (componentIsOutside[neighborComponent] == (int8_t)InOutState::UNDEFINED) {
 				componentIsOutside[neighborComponent] = (state + 1) % 2;
-				propagateComponentStateRecursive(componentIsOutside, neighborComponent);
+				propagateComponentStateRecursiveA(componentIsOutside, neighborComponent);
 			}
 		}
 	}
+
+    void propagateComponentStateRecursiveB(std::vector<int8_t>& componentIsOutside, int component) {
+        int8_t state = componentIsOutside[component];
+        for (int neighborComponent : mComponentNeighborsB[component]) {
+            if (componentIsOutside[neighborComponent] == (int8_t)InOutState::UNDEFINED) {
+                componentIsOutside[neighborComponent] = (state + 1) % 2;
+                propagateComponentStateRecursiveB(componentIsOutside, neighborComponent);
+            }
+        }
+    }
 
 	pm::face_attribute<tg::color3> getColorToStateA() {
 		const pm::Mesh& mesh = mSharedOctree->getPlaneMeshA().mesh();

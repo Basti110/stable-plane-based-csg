@@ -413,10 +413,10 @@ SharedTriIntersect IntersectionObject::handleIntersection(const pm::face_handle&
 
     if (intersection1.intersection == intersection_result::touching && intersection2.intersection == intersection_result::touching) {
         nonPlanarIntersection->state = TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING;
-        if(handleTouchIntersection(polygon1, polygon2, nonPlanarIntersection))
+        /*if(handleTouchIntersection(polygon1, polygon2, nonPlanarIntersection))
             if(handleTouchIntersection(polygon2, polygon1, nonPlanarIntersection))
                 return nonPlanarIntersection;
-        return std::make_shared<TrianlgeIntersection>();
+        return std::make_shared<TrianlgeIntersection>();*/
     }       
     else if (intersection2.intersection == intersection_result::touching)
         nonPlanarIntersection->state = TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_1_ON_2;

@@ -61,8 +61,8 @@ int main() {
     //test_picker();
     //test_color_in_mesh();
     //test_octree();
-    //test_component_classification();
-    test_cut_mesh();
+    test_component_classification();
+    //test_cut_mesh();
     //mark_component_test();
     //test_octree_cell_ray_cast();
     //mark_component_test();
