@@ -72,56 +72,36 @@ public:
 		component = mFaceComponentsB->getComponentOfFace(vertexB.any_face());
 		mComponentIsOutsideB[component] = intersections % 2;
 		propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
-		
-				
-		auto colorsA = getColorToStateA();
-		auto colorsB = getColorToStateB();
+        /*
+        #define RAYINFO rayInfoA
+        std::vector<tg::dsegment3> lines;
+        for (int i = 0; i < (int)RAYINFO->rayPath.size() - 1; ++i) {
+            lines.push_back(tg::dsegment3{ ob::to_position(RAYINFO->rayPath[i]), ob::to_position(RAYINFO->rayPath[i + 1]) });
+        }
+        //lines.push_back(tg::dsegment3{ tg::dpos3(rayInfo->rayStartDirect), tg::dpos3(rayInfo->rayEndDirect) });
 
+        for (int i = 0; i < (int)RAYINFO->nexPointsCell.size() - 1; ++i) {
+            lines.push_back(tg::dsegment3{ tg::dpos3(RAYINFO->nexPointsCell[i]), tg::dpos3(RAYINFO->nexPointsCell[i + 1]) });
+        }
 
+        std::vector<tg::aabb3> returnBoxes;
+        for (auto box : RAYINFO->rayBoxesDirect) {
+            returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+        }
 
-		//##################################################################
-		int i = 0;
+        auto const rayCells = gv::lines(returnBoxes).line_width_world(250000);
+        auto const rayPath = gv::lines(lines).line_width_world(300000);
 
-		#define RAYINFO rayInfoA
-		std::vector<tg::dsegment3> lines;
-		for (int i = 0; i < (int)RAYINFO->rayPath.size() - 1; ++i) {
-			lines.push_back(tg::dsegment3{ ob::to_position(RAYINFO->rayPath[i]), ob::to_position(RAYINFO->rayPath[i + 1]) });
-		}
-		//lines.push_back(tg::dsegment3{ tg::dpos3(rayInfo->rayStartDirect), tg::dpos3(rayInfo->rayEndDirect) });
-
-		for (int i = 0; i < (int)RAYINFO->nexPointsCell.size() - 1; ++i) {
-			lines.push_back(tg::dsegment3{ tg::dpos3(RAYINFO->nexPointsCell[i]), tg::dpos3(RAYINFO->nexPointsCell[i + 1]) });
-		}
-
-		std::vector<tg::aabb3> returnBoxes;
-		for (auto box : RAYINFO->rayBoxesDirect) {
-			returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
-		}
-
-		mSharedOctree->getPlaneMeshA().checkAndComputePositions();
-		mSharedOctree->getPlaneMeshB().checkAndComputePositions();
-
-		//auto const octreeCells = gv::lines(boxes).line_width_world(200000);
-		auto const rayCells = gv::lines(returnBoxes).line_width_world(250000);
-		auto const rayPath = gv::lines(lines).line_width_world(300000);
-		auto const positions1 = mSharedOctree->getPlaneMeshA().positions();
-		auto const positionLines1 = gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(100000);
-		auto const positions2 = mSharedOctree->getPlaneMeshB().positions();
-		auto const positionLines2 = gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(100000);
-		bool tooglePolygons = true;
-
-        auto colorMaskA = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::black; }));
-        auto colorMaskB = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::black; }));
-		if (tooglePolygons) {
-			//auto view = gv::view(octreeCells, tg::color3::blue);
-			//auto view = gv::view(rayCells, tg::color3::green);
-			//gv::view(rayPath, tg::color3::red);
-            auto view = gv::view(positions1, gv::masked(colorMaskA));
-			//gv::view(positionLines1);
-			gv::view(positions2, gv::masked(colorMaskB));
+        if (tooglePolygons) {
+            //auto view = gv::view(octreeCells, tg::color3::blue);
+            //auto view = gv::view(rayCells, tg::color3::green);
+            //gv::view(rayPath, tg::color3::red);
+            //auto view = gv::view(positions1, gv::masked(colorMaskA));
+            //gv::view(positionLines1);
+            //gv::view(positions2, gv::masked(colorMaskB));
             //auto view = gv::view(positions2, colorsB); // mFaceComponentsB->getColorAssignment());
-			//gv::view(positionLines2);
-		}
+            //gv::view(positionLines2);
+        }*/
 	}
 
 	void propagateComponentStateRecursiveA(std::vector<int8_t>& componentIsOutside, int component) {
@@ -155,6 +135,57 @@ public:
 			});
 		return faceColors;
 	}
+
+    void renderFinalResult(const IntersectionCut& iCut) {
+        auto colorsA = getColorToStateA();
+        auto colorsB = getColorToStateB();
+
+
+        mSharedOctree->getPlaneMeshA().checkAndComputePositions();
+        mSharedOctree->getPlaneMeshB().checkAndComputePositions();
+
+        //auto const octreeCells = gv::lines(boxes).line_width_world(200000);
+
+        auto const positions1Masked = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
+        auto const positions1 = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
+        auto const positionLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(20000));
+        auto const isectLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(300000));
+        auto const positions2Masked = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
+        auto const positions2 = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
+        auto const positionLines2 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(30000));
+        bool tooglePolygons = true;
+        bool toogleLines = true;
+
+        auto colorMaskA = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white; }));
+        auto colorMaskB = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::black; }));
+
+        gv::interactive([&](auto dt) {
+            auto view = gv::view();
+            if (tooglePolygons) {
+                gv::view(positions1Masked, gv::masked(colorMaskA));
+                gv::view(positions2Masked, gv::masked(colorMaskB));
+            }
+            else {
+                gv::view(positions1);
+                gv::view(positions2);
+            }
+            gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+            if (toogleLines) {
+                gv::view(positionLines2);
+                gv::view(positionLines1);
+            }
+            ImGui::Begin("Move");
+            if (ImGui::IsKeyPressed('T')) {
+                tooglePolygons = !tooglePolygons;
+                gv::view_clear_accumulation();
+            }
+            if (ImGui::IsKeyPressed('L')) {
+                toogleLines = !toogleLines;
+                gv::view_clear_accumulation();
+            }
+            ImGui::End();
+            });
+    }
 
 	pm::face_attribute<tg::color3> getColorToStateB() {
 		const pm::Mesh& mesh = mSharedOctree->getPlaneMeshB().mesh();

@@ -17,6 +17,7 @@
 #include <utility>
 #include "obj_config.hh"
 #include <component_categorization.hh>
+#include <glow-extras/timing/CpuTimer.hh>
 
 //std::string testObj = "../data/mesh/fox.obj";
 std::string testObj = "../data/mesh/bun_zipper.obj";
@@ -271,17 +272,24 @@ void test_octree_two_meshes() {
 }
 
 void test_component_classification() {
+    glow::timing::CpuTimer timer;
+    timer.restart();
     ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
     TG_ASSERT(planeMesh2->allFacesAreValid());
     auto octree = conf.getOctree();
     auto boxes = conf.getOctreeBoxes();
-
+    std::cout << "Time for loading Mesh: " << timer.elapsedMilliseconds() << "ms" << std::endl;
+    timer.restart();
     auto iCut = conf.getOctree()->cutPolygons();
+    std::cout << "Time cutting the Mesh: " << timer.elapsedMilliseconds() << "ms" << std::endl;
+    timer.restart();
     std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
     std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
-    ComponentCategorization(octree, components1, components2, iCut);
+    ComponentCategorization components(octree, components1, components2, iCut);
+    std::cout << "Time categorization: " << timer.elapsedMilliseconds() << "ms" << std::endl;
+    components.renderFinalResult(iCut);
 }
 
 void test_octree_cell_ray_cast() {
