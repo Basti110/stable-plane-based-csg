@@ -146,43 +146,70 @@ public:
 
         //auto const octreeCells = gv::lines(boxes).line_width_world(200000);
 
-        auto const positions1Masked = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
+        auto const positions1MaskedIn = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
+        auto const positions1MaskedOut = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
         auto const positions1 = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
         auto const positionLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(20000));
-        auto const isectLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(300000));
-        auto const positions2Masked = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
+        
+        
+        
+        auto const positions2MaskedIn = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
+        auto const positions2MaskedOut = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
         auto const positions2 = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
         auto const positionLines2 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(30000));
-        bool tooglePolygons = true;
-        bool toogleLines = true;
 
-        auto colorMaskA = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white; }));
-        auto colorMaskB = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::black; }));
+        auto const isectLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(300000));
+        int tooglePolygons = 0;
+        bool toogleLines = true;
+        bool showIntersection = true;
+
+        auto colorMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white; }));
+        auto colorMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white; }));
+        auto colorMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::black; }));
+        auto colorMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::black; }));
 
         gv::interactive([&](auto dt) {
             auto view = gv::view();
-            if (tooglePolygons) {
-                gv::view(positions1Masked, gv::masked(colorMaskA));
-                gv::view(positions2Masked, gv::masked(colorMaskB));
-            }
-            else {
+            if (tooglePolygons == 0) {
                 gv::view(positions1);
                 gv::view(positions2);
             }
-            gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+            else if (tooglePolygons == 1) {
+                gv::view(positions1MaskedOut, gv::masked(colorMaskAOut));
+                gv::view(positions2MaskedOut, gv::masked(colorMaskBOut));
+            }
+            else if (tooglePolygons == 2) {
+                gv::view(positions1MaskedIn, gv::masked(colorMaskAIn));
+                gv::view(positions2MaskedIn, gv::masked(colorMaskBIn));
+            }
+            else if (tooglePolygons == 3) {
+                gv::view(positions1MaskedOut, gv::masked(colorMaskAOut));
+                gv::view(positions2MaskedIn, gv::masked(colorMaskBIn));
+            }
+            else if (tooglePolygons == 4) {
+                gv::view(positions1MaskedIn, gv::masked(colorMaskAIn));
+                gv::view(positions2MaskedOut, gv::masked(colorMaskBOut));
+            }
+            if(showIntersection)
+                gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
             if (toogleLines) {
                 gv::view(positionLines2);
                 gv::view(positionLines1);
             }
             ImGui::Begin("Move");
-            if (ImGui::IsKeyPressed('T')) {
-                tooglePolygons = !tooglePolygons;
-                gv::view_clear_accumulation();
-            }
+            bool toogled = ImGui::RadioButton("Mesh 1 + Mesh 2", &tooglePolygons, 0);
+            toogled |= ImGui::RadioButton("Mesh 2 AND Mesh 1", &tooglePolygons, 1);
+            toogled |= ImGui::RadioButton("Mesh 2 OR Mesh 1", &tooglePolygons, 2);
+            toogled |= ImGui::RadioButton("Mesh 1 - Mesh 2", &tooglePolygons, 3);
+            toogled |= ImGui::RadioButton("Mesh 2 - Mesh 1", &tooglePolygons, 4);
+            toogled |= ImGui::Checkbox("Show Lines", &toogleLines);
+            toogled |= ImGui::Checkbox("Show Intersection", &showIntersection);
             if (ImGui::IsKeyPressed('L')) {
                 toogleLines = !toogleLines;
-                gv::view_clear_accumulation();
+                toogled = true;
             }
+            if(toogled)
+                gv::view_clear_accumulation();
             ImGui::End();
             });
     }

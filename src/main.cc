@@ -15,19 +15,17 @@
 #include <polymesh/algorithms/deduplicate.hh>
 #include <tuple>
 #include <utility>
-#include "obj_config.hh"
 #include <component_categorization.hh>
 #include <glow-extras/timing/CpuTimer.hh>
+#include <obj_config.hh>
 
 //std::string testObj = "../data/mesh/fox.obj";
 std::string testObj = "../data/mesh/bun_zipper.obj";
 
 void test_octree_cell_ray_cast();
 void test_cut_testAB_meshes();
-void test_picker();
 void test_cut_mesh();
 void test_color_in_mesh();
-void test_plane_visu();
 void test_octree();
 void test_transpose();
 void test_octree_two_meshes();
@@ -46,9 +44,14 @@ int main() {
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
 
-    char* argv[] = { "main", "Test::Cut_Triangle_Normal_Marker"};
-    tests.applyCmdArgs(2, argv);
-    tests.run();
+    
+    //tests.run();
+    
+    //char* argv[] = { "main", "App::Plane_Geometry_Visu"};
+    //char* argv[] = { "main", "App::Picker" };
+    //char* argv[] = { "main", "App::test_cut_mesh" };
+    //tests.applyCmdArgs(2, argv);
+    //tests.run();
 
     pm::vertex_attribute<tg::pos3> test3;
 
@@ -59,7 +62,6 @@ int main() {
     positions.push_back({ 0, 0, 0 });
     positions.push_back({ 1, 0, -2 });
     
-    //test_picker();
     //test_color_in_mesh();
     //test_octree();
     test_component_classification();
@@ -68,56 +70,16 @@ int main() {
     //test_octree_cell_ray_cast();
     //mark_component_test();
     //test_color_in_mesh();
-    while (true) {
+    
+    /*while (true) {
         test_picker();
         test_cut_testAB_meshes();
-    }
+    }*/
 
     //
     //test_cut_mesh();
     //test_color_lines();
     //test_trianle_classification();
-}
-
-void test_plane_visu()
-{
-    std::vector<tg::ipos3> positions;
-    positions.push_back({ 2, 0, 0 });
-    positions.push_back({ 2, 0, 2 });
-    positions.push_back({ 0, 0, 2 });
-    positions.push_back({ 0, 0, 0 });
-    positions.push_back({ 1, 0, -2 });
-
-    auto mesh = PlaneMesh();
-    mesh.insertPolygon({ 4, 0, 0 }, { 2, -2, 3 }, { 0, 0, 0 });
-    mesh.insertPolygon({ 2, -2, 3 }, { -2, -2, 3 }, { 0, 0, 0 });
-    mesh.insertPolygon({ -2, -2, 3 }, { -4, 0, 0 }, { 0, 0, 0 });
-    mesh.insertPolygon({ -4, 0, 0 }, { -2, 2, -3 }, { 0, 0, 0 });
-    mesh.insertPolygon({ -2, 2, -3 }, { 2, 2, -3 }, { 0, 0, 0 });
-    mesh.insertPolygon({ 2, 2, -3 }, { 4, 0, 0 }, { 0, 0, 0 });
-    std::vector<tg::triangle3> planes;
-    mesh.planesTriangles(10, planes);
-
-    //auto colorV1 = tg::vec3(0, 119, 255) / 255; base
-    //auto colorV1 = tg::vec3(0, 115, 230) / 255;
-    //auto colorV2 = tg::vec3(237, 5, 82) / 255;
-
-    auto colorV2 = tg::vec3(0, 115, 230) / 255;
-    auto colorV1 = tg::vec3(214, 246, 255) / 255;
-    //auto colorV2 = tg::vec3(215, 247, 7) / 255;
-
-    auto color1 = tg::color3::color(colorV1.x, colorV1.y, colorV1.z);
-    auto color2 = tg::color3::color(colorV2.x, colorV2.y, colorV2.z);
-
-    auto view = gv::view();
-    for (int i = 0; i < 6; ++i) {
-        int o = i * 8;
-        gv::view(std::vector<tg::triangle3>(planes.begin() + o, planes.begin() + o + 2), color1);
-        gv::view(std::vector<tg::triangle3>(planes.begin() + o + 2, planes.begin() + o + 6), color2);
-    }
-   
-    //auto view = gv::view(mesh.positions());
-    //gv::view(gv::lines(mesh.positions()), "gv::lines(pos)");
 }
 
 void test_octree() {
@@ -438,11 +400,6 @@ void mark_component_test() {
     /*gv::view(planeMesh1->positions(), components1.getColorAssignment());
     gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
     gv::view(gv::lines(planeMesh1->positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));*/
-}
-
-void test_picker() {
-    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
-    conf.getOctree()->startDebugView();
 }
 
 void test_cut_testAB_meshes() {
