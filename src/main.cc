@@ -18,6 +18,7 @@
 #include <component_categorization.hh>
 #include <glow-extras/timing/CpuTimer.hh>
 #include <obj_config.hh>
+#include <polymesh/formats.hh>
 
 //std::string testObj = "../data/mesh/fox.obj";
 std::string testObj = "../data/mesh/bun_zipper.obj";
@@ -33,6 +34,7 @@ void test_trianle_classification();
 void test_color_lines();
 void mark_component_test();
 void test_component_classification();
+void convert();
 void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
 
 int main() {
@@ -44,23 +46,20 @@ int main() {
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
 
+    //convert();
+    //return 0;
+
+    //ObjConfig conf = ObjCollection::map.at("complex_1");
+    //conf.viewMesh(true);
     
     //tests.run();
-    
+    //test_octree();
     //char* argv[] = { "main", "App::Plane_Geometry_Visu"};
     //char* argv[] = { "main", "App::Picker" };
-    //char* argv[] = { "main", "App::test_cut_mesh" };
-    //tests.applyCmdArgs(2, argv);
+    //char* argv[] = { "main", "App::Picker_Cut" };
+    char* argv[] = { "main", "App::test_cut_mesh" };
+    tests.applyCmdArgs(2, argv);
     //tests.run();
-
-    pm::vertex_attribute<tg::pos3> test3;
-
-    std::vector<tg::ipos3> positions;
-    positions.push_back({ 2, 0, 0 });
-    positions.push_back({ 2, 0, 2 });
-    positions.push_back({ 0, 0, 2 });
-    positions.push_back({ 0, 0, 0 });
-    positions.push_back({ 1, 0, -2 });
     
     //test_color_in_mesh();
     //test_octree();
@@ -71,12 +70,13 @@ int main() {
     //mark_component_test();
     //test_color_in_mesh();
     
-    /*while (true) {
-        test_picker();
+    //ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
+    /*while (true) {        
+        //conf.getOctree()->startDebugView();
         test_cut_testAB_meshes();
     }*/
 
-    //
+    
     //test_cut_mesh();
     //test_color_lines();
     //test_trianle_classification();
@@ -132,6 +132,91 @@ void test_color_in_mesh() {
     gv::view(planeMesh2->positions(), faceColors2);
     gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000));
     gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000));
+}
+
+void convert() {
+    pm::Mesh m;
+    auto pos = m.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/soma_gyroid_Z_2.obj", m, pos);
+
+    for (auto& p : pos)
+        p = { p.x, p.z, -p.y };
+    pm::deduplicate(m, pos);
+    m.compactify();
+    pm::save("../data/mesh/soma_gyroid_Z_2.obj", pos);
+}
+
+void removeInvalidFaces() {
+    pm::Mesh m;
+    auto pos = m.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/soma_gyroid_Z_2.obj", m, pos);
+
+    pm::Mesh mMesh;
+    VertexAttribute mPositions(mMesh);
+    mMesh.copy_from(m);
+    auto vertices1 = mMesh.all_vertices();
+    auto vertices2 = m.all_vertices();
+    TG_ASSERT(vertices1.size() == vertices2.size());
+    for (int i = 0; i < vertices1.size(); ++i) {
+        auto v1 = vertices1[i];
+        auto v2 = vertices2[i];
+        if (vertices1[i].idx.value != vertices2[i].idx.value)
+            int i = 5;
+        auto dpos = pos[vertices2[i]] * 1e6;
+        mPositions[vertices1[i]] = pos_t(dpos);
+    }
+
+    //for (auto& face : mMesh.all_faces()) {
+    auto af = mMesh.all_faces();
+    auto afI = m.all_faces();
+    auto invalidFacesFacescount = 0;
+    auto invalidFacesFacescountI = 0;
+    for (int i = 0; i < af.count(); i++) {
+        auto& face = af[i];
+        auto& faceI = afI[i];
+        auto randomEdge = face.any_halfedge();
+        auto t1 = randomEdge.vertex_from();
+        auto t2 = randomEdge.vertex_to();
+        auto t3 = randomEdge.next().vertex_to();
+        auto x = mPositions[randomEdge.vertex_from()];
+        auto y = mPositions[randomEdge.vertex_to()];
+        auto z = mPositions[randomEdge.next().vertex_to()];
+        auto test = tg::pos3(x);
+        auto dir1 = y - x;
+        auto dir2 = z - x;
+
+        //######################################################
+        auto randomEdgeI = faceI.any_halfedge();
+        auto t1I = randomEdgeI.vertex_from();
+        auto t2I = randomEdgeI.vertex_to();
+        auto t3I = randomEdgeI.next().vertex_to();
+        auto xI = pos[randomEdgeI.vertex_from()];
+        auto yI = pos[randomEdgeI.vertex_to()];
+        auto zI = pos[randomEdgeI.next().vertex_to()];
+        auto dir1I = yI - xI;
+        auto dir2I = zI - xI;
+        auto n1 = tg::dvec3(tg::normalize(dir1I));
+        auto n2 = tg::dvec3(tg::normalize(dir2I));
+        auto n3 = n1 - n2;
+
+        double eps = std::abs(n3.x) + std::abs(n3.y) + std::abs(n3.z);
+        if (eps < 0.000001) {
+            invalidFacesFacescount++;
+            m.faces().remove(face);
+        }
+
+        //######################################################
+
+        if (tg::normalize(tg::vec3(dir1)) == tg::normalize(tg::vec3(dir2)))
+            invalidFacesFacescountI++;
+    }
+    std::cout << "Invalid faces: " << invalidFacesFacescount << " vs Invalid Faces Integer A. : " << invalidFacesFacescountI << std::endl;
+    {
+        auto view = gv::view(pos);
+        gv::view(gv::lines(pos).line_width_world(0.01));
+    }
+    m.compactify();
+    pm::save("../data/mesh/soma_gyroid_Z_2.obj", pos);
 }
 
 void test_color_lines() {
@@ -236,7 +321,7 @@ void test_octree_two_meshes() {
 void test_component_classification() {
     glow::timing::CpuTimer timer;
     timer.restart();
-    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
+    ObjConfig conf = ObjCollection::map.at("complex_1");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
     TG_ASSERT(planeMesh2->allFacesAreValid());
@@ -246,6 +331,22 @@ void test_component_classification() {
     timer.restart();
     auto iCut = conf.getOctree()->cutPolygons();
     std::cout << "Time cutting the Mesh: " << timer.elapsedMilliseconds() << "ms" << std::endl;
+
+    {
+        planeMesh1->checkAndComputePositions();
+        planeMesh2->checkAndComputePositions();
+
+        planeMesh1->mesh().compactify();
+
+
+        auto view = gv::view(planeMesh2->positions());
+        gv::view(gv::lines(planeMesh2->positions()).line_width_world(1000000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
+        gv::view(gv::lines(planeMesh2->positions()).line_width_world(100000), tg::color3::color(0.0));
+        //auto view = gv::view(planeMesh1->positions());
+        //gv::view(gv::lines(planeMesh1->positions()).line_width_world(100000), tg::color3::color(0.0));
+        //gv::view(gv::lines(planeMesh1->positions()).line_width_world(1000000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+    }
+
     timer.restart();
     std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
     std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
@@ -439,11 +540,6 @@ void test_cut_testAB_meshes() {
     auto seconds = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
 
     std::cout << "Cut in " << seconds << "ms" << std::endl;
-    if (planeMesh1.allFacesHaveEdges())
-        return;
-
-    if (planeMesh2.allFacesHaveEdges())
-        return;
 
     planeMesh1.checkAndComputePositions();
     planeMesh2.checkAndComputePositions();
@@ -451,9 +547,10 @@ void test_cut_testAB_meshes() {
     planeMesh1.mesh().compactify();
 
     {
-        auto view = gv::view(planeMesh2.positions());
+        auto view = gv::view(planeMesh2.positions());       
         gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::color(0.0));
         gv::view(gv::lines(planeMesh2.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
+        gv::view(planeMesh1.positions());
         gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::red);
     }
 

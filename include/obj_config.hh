@@ -4,6 +4,8 @@
 #include "plane_polygon.hh"
 #include "octree.hh"
 #include <unordered_map>
+#include <glow-extras/viewer/view.hh>
+#include <glow-extras/viewer/experimental.hh>
 
 //data class
 class ObjConfig {
@@ -78,16 +80,36 @@ public:
         loadMeshIfNotLoaded();
         return mPlaneMeshB;
     }
-       
 
+    void viewMesh(bool showOctree = false) {
+        loadMeshIfNotLoaded();
+        int sizeV = mPlaneMeshA->positions().count();
+        int sizeF = mPlaneMeshA->faces().count();
+        auto view = gv::view(mPlaneMeshA->positions());
+        gv::view(gv::lines(mPlaneMeshA->positions()).line_width_world((double)mScaleOctree / 20), tg::color3::color(0.0));
+        if (mNumObjects == 2) {
+            gv::view(mPlaneMeshB->positions());
+            gv::view(gv::lines(mPlaneMeshB->positions()).line_width_world((double)mScaleOctree / 20), tg::color3::color(0.0));
+        }
+        if (showOctree) {
+            auto boxes = getOctreeBoxes();
+            gv::view(gv::lines(boxes).line_width_world(mScaleOctree / 20), tg::color3::blue, "gv::lines(pos)");
+        }
+    }
+      
 private:
     void fillOctreeIfNotFilled() {  
         loadMeshIfNotLoaded();
         if (!mOctree) {
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            mOctree = std::make_shared<Octree>(&(*mPlaneMeshA), &(*mPlaneMeshB), mOctreeBox);
-            if (mNumObjects == 1)
+            
+            if (mNumObjects == 2) {
+                mOctree = std::make_shared<Octree>(&(*mPlaneMeshA), &(*mPlaneMeshB), mOctreeBox);
+            }
+            else {
+                mOctree = std::make_shared<Octree>(&(*mPlaneMeshA), mOctreeBox);
                 mOctree->setOption(Octree::Options::SPLIT_ONE_MESH);
+            }               
             
             for (auto f : mPlaneMeshA->allFaces()) {
                 mOctree->insert_polygon(mPlaneMeshA->id(), f);
@@ -122,6 +144,8 @@ private:
         }
     }
 
+
+
 private:
     int mNumObjects = 1;
     std::shared_ptr<pm::Mesh> mMeshA = std::make_shared<pm::Mesh>();
@@ -129,9 +153,9 @@ private:
     SharedPlaneMesh mPlaneMeshA;
     SharedPlaneMesh mPlaneMeshB;
     SharedOctree mOctree;
+    scalar_t mScale = 1;
+    scalar_t mScaleOctree = 1;
 
-    scalar_t mScale;
-    scalar_t mScaleOctree;
     AABB mOctreeBox;
 
     std::string mPathObj1;
@@ -154,31 +178,38 @@ public:
     static inline void init() {
         map = {
             { "fox_mesh_1",
-            ObjConfig(1e6, 1e6, AABB({ -60, -60, -40 }, { 60, 60, 80 }),
-            "../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90))) },
+                ObjConfig(1e6, 1e6, AABB({ -60, -60, -40 }, { 60, 60, 80 }),
+                "../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90))) },
             { "fox_mesh_2",
-            ObjConfig(1e6, 1e6, AABB({ -60, -60, -40 }, { 60, 60, 80 }),
-            "../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90)),
-            "../data/mesh/fox.obj", tg::mat4::identity, tg::mat4::identity) },
+                ObjConfig(1e6, 1e6, AABB({ -60, -60, -40 }, { 60, 60, 80 }),
+                "../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90)),
+                "../data/mesh/fox.obj", tg::mat4::identity, tg::mat4::identity) },
             { "bunny_mesh_1",
-            ObjConfig(1e9, 1e8, AABB({ -1, -1, -1 }, { 1, 1, 1 }),
-            "../data/mesh/bun_zipper.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90))) },
+                ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/bunny.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90))) },
             { "bunny_mesh_2",
-            ObjConfig(1e9, 1e8, AABB({ -1, -1, -1 }, { 1, 1, 1 }),
-            "../data/mesh/bun_zipper.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90)),
-            "../data/mesh/bun_zipper.obj", tg::translation(tg::vec{ 0.0f, -.08f, 0.0f }), tg::mat4::identity) },
+                ObjConfig(1e6, 1e6, AABB({ -1, -1, -1 }, { 1, 1, 1 }),
+                "../data/mesh/bunny.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90)),
+                "../data/mesh/bunny.obj", tg::translation(tg::vec{ 0.0f, -.08f, 0.0f }), tg::mat4::identity) },
+            { "gyroid_mesh_1",
+                ObjConfig(1e6, 1e6, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/soma_gyroid_Z_2.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90))) },
             { "octree_easy",
-            ObjConfig(1e8, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
-            "../data/mesh/triangle.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
-            "../data/mesh/cube2.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
+                ObjConfig(1e8, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
+                "../data/mesh/triangle.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
+                "../data/mesh/cube2.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
             { "octree_hard",
-            ObjConfig(3e7, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
-            "../data/mesh/triangle.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
-            "../data/mesh/cube3.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
+                ObjConfig(3e7, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
+                "../data/mesh/triangle.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
+                "../data/mesh/cube3.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
             { "raycast",
-            ObjConfig(2e7, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
-            "../data/mesh/raycast1.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
-            "../data/mesh/raycast2.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
+                ObjConfig(2e7, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
+                "../data/mesh/raycast1.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
+                "../data/mesh/raycast2.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
+            { "complex_1",
+                ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/bunny.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
+                "../data/mesh/soma_gyroid_Z.obj", tg::translation(tg::vec{-25.0f, -.5f, 10.0f }), tg::scaling(1.3f, 1.3f, 1.3f))},
         };
     }
 };

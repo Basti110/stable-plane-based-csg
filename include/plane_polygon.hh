@@ -5,6 +5,9 @@
 #include <geometry.hh>
 #include <iostream>
 #include <polymesh/pm.hh>
+//only debug
+#include <glow-extras/viewer/view.hh>
+#include <glow-extras/viewer/experimental.hh>
 
 using geometry128 = ob::geometry<48, 49>;//ob::geometry<32, 21>;
 using plane128 = geometry128::plane_t;
@@ -147,10 +150,13 @@ public:
         TG_ASSERT(edgeRing.count() >= 3);
 
         auto randomEdge = face.any_halfedge();
+        auto t1 = randomEdge.vertex_from();
+        auto t2 = randomEdge.vertex_to();
+        auto t3 = randomEdge.next().vertex_to();
         auto x = mPositions[randomEdge.vertex_from()];
         auto y = mPositions[randomEdge.vertex_to()];
         auto z = mPositions[randomEdge.next().vertex_to()];
-
+        auto test = tg::pos3(x);
         auto dir1 = y - x;
         auto dir2 = z - x;
 
@@ -239,13 +245,14 @@ public:
                 continue;
 
             auto h = f.any_halfedge();
-            pm::halfedge_handle hTmp;
+            pm::halfedge_handle hTmp = h.next();
             int count = 0;
+            int t = f.halfedges().count();
             do {
                 count++;
-                hTmp = h.next();
-            } while (hTmp != h && count <= f.halfedges().count());
-            if (h != hTmp)
+                hTmp = hTmp.next();
+            } while (hTmp.idx.value != h.idx.value && count <= f.halfedges().count());
+            if (h.idx.value != hTmp.idx.value)
                 return false;
         }
         return true;
@@ -329,6 +336,17 @@ public:
         return true;
     }
 
+    bool allVerticesInFacePlane(std::vector<pm::face_handle>& insertVec) {
+        bool success = true;
+        for (pm::face_handle& f : mMesh.all_faces()) {
+            if (!allVerticesInFacePlane(f)) {
+                insertVec.push_back(f);
+                success = false;
+            }               
+        }
+        return success;
+    }
+
     bool allVerticesInFacePlane(pm::face_index f) {
         return allVerticesInFacePlane(f.of(mMesh));
     }
@@ -336,6 +354,7 @@ public:
     bool allVerticesInFacePlane(pm::face_handle f) {
         for (auto v : f.vertices()) {
             auto dis = signDistanceToBasePlane(f, v);
+            double disD = (double)dis;
             if (dis != 0)
                 return false;
         }
@@ -384,8 +403,7 @@ public:
         return -1;
     }
 
-    void planesTriangles(int sideLen, std::vector<tg::triangle3>& insertVec) {
-        
+    void planesTriangles(int sideLen, std::vector<tg::triangle3>& insertVec) {       
         auto faces = mMesh.faces();
         for (auto face : faces) {
             tg::dplane3 dplane = mFaces[face].to_dplane();
@@ -413,6 +431,21 @@ public:
         insertVec.push_back({ pos_c , pos_d, pos_a });
     }
 
+    // Debug ##############
+
+    void showPlaneAndPoint(Plane& plane, int sideLen, pos_t point) {
+        tg::dplane3 dplane = plane.to_dplane();
+        tg::vec3 upNormal = tg::normalize(tg::vec3(dplane.normal));
+        tg::vec3 upNormalFace = upNormal != tg::vec3(0, 0, -1) ? tg::vec3(0, 0, -1) : tg::vec3(0, 1, 0);
+        std::vector<tg::triangle3> triangles;
+        planeTriangle(plane, sideLen, upNormalFace, triangles);
+        double dis = tg::distance(tg::dpos3(point), dplane);
+        auto view = gv::view(triangles);
+        gv::view(gv::points(point).point_size_world(1000000), tg::color3::red);
+    }
+
+    // #####################
+
     void checkAndComputePositions() {
         //mMesh.polymesh::Mesh::compactify();
         for (auto vertex : mMesh.vertices()) {
@@ -438,9 +471,17 @@ public:
                         break;
                 }
                               
-             
+                
                 Plane plane3 = mFaces[face];
-                pos_t pos = pos_t(ob::compute_intersection(plane1, plane2, plane3));
+                TG_ASSERT(ob::classify_vertex(pos(plane1, plane2, plane3), plane3) == 0);
+                
+                auto pos3 = ob::compute_intersection(plane1, plane2, plane3);
+                pos_t pos = pos_t(pos3);
+                auto dis = ob::signed_distance(plane3, pos);
+                auto disD = double(dis);
+                /*if (dis != 0)
+                    showPlaneAndPoint(plane3, 100000000, pos);*/
+                //TG_ASSERT(dis == 0);
                 mPositions[vertex] = pos;
             }
         }
@@ -456,6 +497,10 @@ public:
         for (auto vertex : face.vertices())
             vertices.push_back(mPositions[vertex]);
         return vertices;
+    }
+
+    ob::i128 signDistanceToBasePlaneInt(const pm::face_handle& polygon, const pm::vertex_handle& point) const {
+        return ob::signed_distance(mFaces[polygon], posInt(point));
     }
 
     int8_t signDistanceToBasePlane(const pm::face_handle& polygon, const pm::vertex_handle& point) const {

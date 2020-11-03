@@ -336,7 +336,7 @@ private:
     std::vector<uint32_t> mValueIndices;
     std::vector<pm::face_index> mFacesMeshA;
     std::vector<pm::face_index> mFacesMeshB;
-    int mMaxValues = 15;
+    int mMaxValues = 30;
 };
 
 class BranchNode : public OctreeNode, public std::enable_shared_from_this<BranchNode>{
@@ -498,6 +498,16 @@ public:
         mRoot->initLeafNodes();
         mFaceMeshAToNode = a->mesh().faces().make_attribute<std::vector<SharedLeafNode>>();
         mFaceMeshBToNode = b->mesh().faces().make_attribute<std::vector<SharedLeafNode>>();
+    }
+
+    Octree(PlaneMesh* a, const AABB& aabb) {
+        mMeshA = a;
+        mMeshB = nullptr;
+        AABB powerOf2AABB = getAABBWithNextPowerLen(aabb);
+        mRoot = std::make_shared<BranchNode>(powerOf2AABB, this);
+        //mRoot->setOctree(shared_from_this());
+        mRoot->initLeafNodes();
+        mFaceMeshAToNode = a->mesh().faces().make_attribute<std::vector<SharedLeafNode>>();
     }
 
     void insert_polygon(int meshIdx, pm::face_handle faceIdx) {

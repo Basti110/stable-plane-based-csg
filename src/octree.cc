@@ -208,7 +208,7 @@ BranchNode::BranchNode(const AABB& aabb, SharedBranchNode parent) : OctreeNode(a
 
 void BranchNode::initLeafNodes()
 {
-    int aabbLen = mAABB.max.x - mAABB.min.x;
+    scalar_t aabbLen = mAABB.max.x - mAABB.min.x;
     TG_ASSERT(mAABB.max.y - mAABB.min.y == aabbLen);
     TG_ASSERT(mAABB.max.z - mAABB.min.z == aabbLen);
     TG_ASSERT(aabbLen % 2 == 0);
