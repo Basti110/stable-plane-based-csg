@@ -32,7 +32,6 @@ void test_transpose();
 void test_octree_two_meshes();
 void test_trianle_classification();
 void test_color_lines();
-void mark_component_test();
 void test_component_classification();
 void convert();
 void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
@@ -57,15 +56,15 @@ int main() {
     //char* argv[] = { "main", "App::Plane_Geometry_Visu"};
     //char* argv[] = { "main", "App::Picker" };
     //char* argv[] = { "main", "App::Picker_Cut" };
-    char* argv[] = { "main", "App::test_cut_mesh" };
+    char* argv[] = { "main", "App::component_classification" };
+    //char* argv[] = { "main", "App::test_cut_mesh" };
     tests.applyCmdArgs(2, argv);
-    //tests.run();
+    tests.run();
     
     //test_color_in_mesh();
     //test_octree();
     test_component_classification();
     //test_cut_mesh();
-    //mark_component_test();
     //test_octree_cell_ray_cast();
     //mark_component_test();
     //test_color_in_mesh();
@@ -332,7 +331,7 @@ void test_component_classification() {
     auto iCut = conf.getOctree()->cutPolygons();
     std::cout << "Time cutting the Mesh: " << timer.elapsedMilliseconds() << "ms" << std::endl;
 
-    {
+    /*{
         planeMesh1->checkAndComputePositions();
         planeMesh2->checkAndComputePositions();
 
@@ -345,7 +344,7 @@ void test_component_classification() {
         //auto view = gv::view(planeMesh1->positions());
         //gv::view(gv::lines(planeMesh1->positions()).line_width_world(100000), tg::color3::color(0.0));
         //gv::view(gv::lines(planeMesh1->positions()).line_width_world(1000000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
-    }
+    }*/
 
     timer.restart();
     std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
@@ -462,45 +461,6 @@ void test_trianle_classification() {
     std::cout << "comp 1 " << comp1 << std::endl;
     std::cout << "comp 2 " << comp2 << std::endl;
     std::cout << "comp 3 " << comp3 << std::endl;
-}
-
-void mark_component_test() {
-    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
-    auto planeMesh1 = conf.getMeshA();
-    auto planeMesh2 = conf.getMeshB();
-
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    auto iCut = conf.getOctree()->cutPolygons();
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    auto seconds = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
-
-    FaceComponentFinder components1(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
-    FaceComponentFinder components2(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
-    std::cout << "Found " << components1.countComponents() << " components" << std::endl;
-
-    std::cout << "Cut in " << seconds << "ms" << std::endl;
-    if (planeMesh1->allFacesHaveEdges())
-        return;
-
-    if (planeMesh2->allFacesHaveEdges())
-        return;
-
-    planeMesh1->checkAndComputePositions();
-    planeMesh2->checkAndComputePositions();
-
-    planeMesh1->mesh().compactify();
-    auto faceMask1 = planeMesh1->mesh().faces().make_attribute_with_default(false);
-    auto faceMask2 = planeMesh2->mesh().faces().make_attribute_with_default(false);
-
-    auto test1 = planeMesh1->noDuplicatedVerticesInFaces(faceMask1);
-    auto test2 = planeMesh2->noDuplicatedVerticesInFaces(faceMask2);
-
-    auto view = gv::view(planeMesh2->positions(), components2.getColorAssignment());
-    gv::view(gv::lines(planeMesh2->positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));
-    /*gv::view(planeMesh1->positions(), components1.getColorAssignment());
-    gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh1->positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));*/
 }
 
 void test_cut_testAB_meshes() {

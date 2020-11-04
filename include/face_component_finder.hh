@@ -2,6 +2,7 @@
 #include <plane_polygon.hh>
 #include <nexus/test.hh>
 #include <aabb.hh>
+#include <queue>
 
 class FaceComponentFinder {
    
@@ -22,29 +23,37 @@ public:
         }
     } 
 
+    //Todo opt: Faces to index
     void assignComponent(const pm::face_handle& face, const pm::edge_attribute<bool>& intersectionMark) {
         TG_ASSERT(mfaceToComponent[face] != -1);
-        std::vector<pm::face_handle> facesToMark;
+        //std::vector<pm::face_handle> facesToMark;
+        std::queue<pm::face_handle> facesToMark;
+        facesToMark.push(face);
 
-        for (pm::halfedge_handle& he : face.halfedges()) {
-            if (intersectionMark[he])
-                continue;
+        while (!facesToMark.empty()) {
+            pm::face_handle& currentFace = facesToMark.front();          
+            for (pm::halfedge_handle& he : currentFace.halfedges()) {
+                if (intersectionMark[he])
+                    continue;
 
-            pm::face_handle& neighborFace = he.opposite().face();
-            if (neighborFace.is_invalid())
-                continue;
+                pm::face_handle& neighborFace = he.opposite().face();
+                if (neighborFace.is_invalid())
+                    continue;
 
-            if (mfaceToComponent[neighborFace] != -1)
-                continue;
-
-            facesToMark.push_back(neighborFace);
-            mfaceToComponent[neighborFace] = mfaceToComponent[face];
-            mComponentToFace[mfaceToComponent[face]].push_back(neighborFace.idx);
+                if (mfaceToComponent[neighborFace] != -1)
+                    continue;
+                
+                mfaceToComponent[neighborFace] = mfaceToComponent[currentFace];
+                mComponentToFace[mfaceToComponent[currentFace]].push_back(neighborFace.idx);
+                facesToMark.push(neighborFace);
+            }
+            facesToMark.pop();
         }
 
-        for (pm::face_handle& neighborFace : facesToMark) {
+
+        /*for (pm::face_handle& neighborFace : facesToMark) {
             assignComponent(neighborFace, intersectionMark);
-        }
+        }*/
     }
 
     size_t countComponents() const {
