@@ -3,7 +3,6 @@
 #include <geometry.hh>
 #include <memory>
 #include <array>
-#include <unordered_map>
 #include <imgui/imgui.h>
 //#include <set>
 #include "plane_polygon.hh"
@@ -13,6 +12,7 @@
 #include <glow-extras/viewer/view.hh>
 #include <glow-extras/viewer/experimental.hh>
 #include <unordered_set>
+#include <unordered_map>
 
 class OctreeNode;
 class BranchNode;
@@ -26,6 +26,7 @@ using SharedBranchNode = std::shared_ptr<BranchNode>;
 using WeakBranchNode = std::weak_ptr<BranchNode>;
 using SharedEmptyNode = std::shared_ptr<EmptyNode>;
 using SharedOctree = std::shared_ptr<Octree>;
+using SharedIntersectionList = std::shared_ptr<std::unordered_map<int, std::unordered_set<int>>>;
 using AABB = tg::aabb<3, scalar_t>;
 
 struct PolygonIndex
@@ -99,6 +100,7 @@ public:
     virtual SharedBranchNode parent() { return mParentNode.lock(); }
     virtual void cutPolygons(IntersectionCut& lookup) {};
     virtual void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {}
+    virtual int countIntersections(SharedIntersectionList intersectionList) { return 0; }
     virtual BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) { return { AABB(), -1 }; }
     virtual NearestFace getNearestFace(tg::vec3 ray, pos_t origin) { return { -1, pm::face_index(), -1 }; }
     virtual void getAllBoundingBoxes(tg::vec3 ray, pos_t origin, std::vector<AABB>& boxes) { }
@@ -285,6 +287,8 @@ public:
     
     SharedBranchNode split();
     void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override;
+    int countIntersections(SharedIntersectionList intersectionList = SharedIntersectionList()) override;
+
     void cutPolygons(IntersectionCut& lookup) override;
     BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) override {
         return { mAABB, distance(origin) };
@@ -358,6 +362,13 @@ public:
     void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override {
         for (auto child : mChildNodes)
             child->markIntersections(faceColor1, faceColor2);
+    }
+
+    int countIntersections(SharedIntersectionList intersectionList = SharedIntersectionList()) override {
+        int count = 0;
+        for (auto child : mChildNodes)
+            count += child->countIntersections(intersectionList);
+        return count;
     }
 
     void cutPolygons(IntersectionCut& lookup) override {
@@ -531,6 +542,10 @@ public:
         int count = intersectionCounterTMP;
         intersectionCounterTMP = 0;
         return count;
+    }
+
+    int countIntersections(SharedIntersectionList intersectionList = SharedIntersectionList()) {;
+        return mRoot->countIntersections(intersectionList);
     }
 
     IntersectionCut cutPolygons() {

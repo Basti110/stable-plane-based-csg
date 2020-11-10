@@ -1,11 +1,14 @@
 #pragma once
 #include <string>
 #include <typed-geometry/tg.hh>
+#include <algorithm>
 #include "plane_polygon.hh"
 #include "octree.hh"
 #include <unordered_map>
+#include <unordered_set>
 #include <glow-extras/viewer/view.hh>
 #include <glow-extras/viewer/experimental.hh>
+#include <glow-extras/timing/CpuTimer.hh>
 
 //data class
 class ObjConfig {
@@ -96,12 +99,56 @@ public:
             gv::view(gv::lines(boxes).line_width_world(mScaleOctree / 20), tg::color3::blue, "gv::lines(pos)");
         }
     }
+
+    static int meshHasBoundaries(SharedPlaneMesh mesh) {
+        int invalidCount = 0;
+        for (auto& he : mesh->mesh().all_halfedges()) {
+            if (he.is_invalid()) {
+                invalidCount++;
+                continue;
+            }
+
+            if (he.face().is_invalid()) {
+                invalidCount++;
+                continue;
+            }
+        }
+        return invalidCount;
+    }
+
+    static void meshHasBoundaries(SharedPlaneMesh mesh, std::vector<pm::halfedge_handle>& edgeVector) {
+        for (auto& he : mesh->mesh().all_halfedges()) {
+            if (he.is_invalid()) {
+                edgeVector.push_back(he);
+                continue;
+            }
+
+            if (he.face().is_invalid()) {
+                edgeVector.push_back(he);
+                continue;
+            }
+        }
+    }
+
+    void viewMeshWithBoundaries(SharedPlaneMesh mesh) {
+        std::vector<pm::halfedge_handle> faceVector;
+        meshHasBoundaries(mesh, faceVector);
+
+        pm::halfedge_attribute<bool> boundaryEdges = mesh->mesh().halfedges().map([&](pm::halfedge_handle& he) {
+            return std::find(faceVector.begin(), faceVector.end(), he) != faceVector.end();
+        }, false);
+
+        auto const boundaryLines = gv::make_renderable(gv::lines(mesh->positions()).line_width_world(300000));
+        auto view = gv::view(mesh->positions());
+        gv::view(gv::lines(mesh->positions()).line_width_world(100000));
+        gv::view(boundaryLines, gv::masked(boundaryEdges), tg::color3::color(0.0));
+    }
       
 private:
     void fillOctreeIfNotFilled() {  
         loadMeshIfNotLoaded();
         if (!mOctree) {
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            glow::timing::CpuTimer timer;
             
             if (mNumObjects == 2) {
                 mOctree = std::make_shared<Octree>(&(*mPlaneMeshA), &(*mPlaneMeshB), mOctreeBox);
@@ -120,14 +167,15 @@ private:
                     mOctree->insert_polygon(mPlaneMeshB->id(), f);
                 }
             }
-
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            auto seconds = std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count();
-            std::cout << "Created Octree in " << seconds << "ms" << std::endl;
+            std::cout << "Created Octree in " << timer.elapsedMilliseconds() << "ms" << std::endl;
         }       
     }
 
     void loadMeshIfNotLoaded() {
+        if (mPlaneMeshA && mPlaneMeshB)
+            return;
+
+        glow::timing::CpuTimer timer;
         if (!mPlaneMeshA) {
             pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
             pm::load(mPathObj1, *mMeshA, pos1);
@@ -142,6 +190,7 @@ private:
             mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, pos2, mScale);
             TG_ASSERT(mPlaneMeshB->allFacesAreValid());
         }
+        std::cout << "Load Meshes in " << timer.elapsedMilliseconds() << "ms" << std::endl;
     }
 
 

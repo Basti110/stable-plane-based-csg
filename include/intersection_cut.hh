@@ -39,7 +39,7 @@ public:
         std::cout << "total time intersection: " << (double)intersectionTimeCount / 1000000 << "ms" << std::endl;
         std::cout << "total time split: " << (double)splitTimeCount / 1000000 << "ms" << std::endl;
         std::cout << "intersection calls: " << intersectionCount << std::endl;
-        std::cout << "total time split: " << splitCount << std::endl;
+        std::cout << "split calls: " << splitCount << std::endl;
     }
 
     const pm::edge_attribute<bool>& getIntersectionEdgesMarkerA() const {
@@ -77,10 +77,11 @@ private:
     
 private:
     //Todo: Only debug
-    long splitTimeCount = 0;
-    long intersectionTimeCount = 0;
+    long long splitTimeCount = 0;
+    long long intersectionTimeCount = 0;
     long intersectionCount = 0;
     long splitCount = 0;
+    long actuallyIntersections = 0;
 
     pm::edge_attribute<bool> mIntersectionEdgesMarkerA;
     pm::edge_attribute<bool> mIntersectionEdgesMarkerB;

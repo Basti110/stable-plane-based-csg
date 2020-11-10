@@ -150,6 +150,34 @@ void LeafNode::markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm:
     }
 }
 
+int LeafNode::countIntersections(SharedIntersectionList intersectionList)
+{
+    if (mFacesMeshA.size() <= 0 || mFacesMeshB.size() <= 0)
+        return 0;
+    int intersectionCount = 0;
+    for (pm::face_index face1Index : mFacesMeshA) {
+        auto face1 = face1Index.of(mOctree->mMeshA->mesh());
+        for (pm::face_index face2Index : mFacesMeshB) {
+            auto face2 = face2Index.of(mOctree->mMeshB->mesh());
+            if (intersectionList) {
+                if (intersectionList->count(face1Index.value) == 0) {
+                    intersectionList->operator[](face1Index.value) = std::unordered_set<int>();
+                }
+                else {
+                    if (intersectionList->operator[](face1Index.value).count(face2Index.value) != 0)
+                        continue;
+                }
+            }
+            if (IsectOb(*(mOctree->mMeshA), *(mOctree->mMeshB)).intersect<geometry128>(face1, face2)->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING) {
+                intersectionCount++;
+                if(intersectionList)
+                    intersectionList->operator[](face1Index.value).insert(face2Index.value);
+            }               
+        }
+    }
+    return intersectionCount;
+}
+
 NearestFace LeafNode::getNearestFace(tg::vec3 ray, pos_t origin) {
     NearestFace currentNearest = { -1, pm::face_index(), -1 };
     

@@ -163,7 +163,7 @@ APP("App::component_classification") {
     ObjConfig conf = ObjCollection::map.at("complex_1");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
-
+ 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     auto iCut = conf.getOctree()->cutPolygons();
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -188,4 +188,66 @@ APP("App::component_classification") {
     auto view = gv::view(planeMesh2->positions(), components2.getColorAssignment());
     gv::view(gv::lines(planeMesh2->positions()).line_width_world(1000000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
     gv::view(gv::lines(planeMesh2->positions()).line_width_world(100000), tg::color3::color(0.0));
+}
+
+APP("App::count_intersections") {
+    ObjConfig conf = ObjCollection::map.at("complex_1");
+    auto planeMesh1 = conf.getMeshA();
+    auto planeMesh2 = conf.getMeshB();
+
+    /*int noBoundaryCount = ObjConfig::meshHasBoundaries(planeMesh1);
+    std::cout << "Mesh 1 has Boundaries: " << noBoundaryCount << std::endl;
+    noBoundaryCount = ObjConfig::meshHasBoundaries(planeMesh2);
+    std::cout << "Mesh 2 has Boundaries: " << noBoundaryCount << std::endl;*/
+    conf.viewMeshWithBoundaries(planeMesh2);
+    std::vector<pm::halfedge_handle> boundaries2;
+    ObjConfig::meshHasBoundaries(planeMesh2, boundaries2);
+    /*int idx1 = boundaries2[0].idx.value;
+    int idx2 = boundaries2[1].idx.value;
+    int idx3 = boundaries2[2].idx.value;
+    int idx1Next = boundaries2[0].next().idx.value;
+    int idx1NextNext = boundaries2[0].next().next().idx.value;*/
+
+    auto octree = conf.getOctree();
+
+    glow::timing::CpuTimer timer;
+    auto list = std::make_shared<std::unordered_map<int, std::unordered_set<int>>>();
+    int intersections = octree->countIntersections(list);
+    std::cout << "Intersections: " << intersections << std::endl;
+    std::cout << "Time: " << timer.elapsedMilliseconds() << "ms" << std::endl;
+}
+
+APP("Benchmark:SubdetVsIntPos") {
+    ObjConfig conf = ObjCollection::map.at("complex_1");
+    auto planeMesh = conf.getMeshA();
+    
+    int iterations = 30000;
+    auto faces = planeMesh->faces().to_vector();
+    auto positions = planeMesh->positions().to_vector();
+    auto posHandles = planeMesh->mesh().vertices().to_vector();
+    auto vec1 = std::vector<int8_t>(iterations);
+    auto vec2 = std::vector<int8_t>(iterations);
+
+    glow::timing::CpuTimer timer;
+    for (int i = 0; i < iterations; ++i) {
+        auto dis = ob::signed_distance(faces[i], positions[i]);
+        vec1[i] = dis > 0 ? 1 : dis < 0 ? -1 : 0;
+    }
+    std::cout << "Time signed_distance: " << timer.elapsedMilliseconds() << "ms" << std::endl;
+
+    timer.restart();
+    std::cout << "Timer: " << timer.elapsedMilliseconds() << "ms" << std::endl;
+    for (int i = 0; i < iterations; ++i) {
+        SubDet det = planeMesh->pos(posHandles[i]);
+        auto dis = ob::classify_vertex(det, faces[i]);
+        vec2[i] = dis;
+    }
+    std::cout << "Time classify_vertex: " << timer.elapsedMilliseconds() << "ms" << std::endl;
+
+    int differs = 0;
+    for (int i = 0; i < iterations; ++i) {
+        if (vec1[i] != vec2[i])
+            differs++;
+    }
+    std::cout << "result differs in " << differs << " values" << std::endl;
 }
