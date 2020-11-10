@@ -43,6 +43,7 @@ public:
         std::cout << "test time split3: " << (double)testTimeCount3 / 1000000 << "ms" << std::endl;
         std::cout << "intersection calls: " << intersectionCount << std::endl;
         std::cout << "split calls: " << splitCount << std::endl;
+        mISectObject->printTimes();
     }
 
     const pm::edge_attribute<bool>& getIntersectionEdgesMarkerA() const {
@@ -88,6 +89,7 @@ private:
     long intersectionCount = 0;
     long splitCount = 0;
     long actuallyIntersections = 0;
+    std::shared_ptr<IsectOb> mISectObject;
 
     pm::edge_attribute<bool> mIntersectionEdgesMarkerA;
     pm::edge_attribute<bool> mIntersectionEdgesMarkerB;

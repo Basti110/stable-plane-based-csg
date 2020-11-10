@@ -515,6 +515,7 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
 
 
 IntersectionCut::IntersectionCut(PlaneMesh* mMeshA, PlaneMesh* mMeshB) : mMeshA(mMeshA), mMeshB(mMeshB) {
+    mISectObject = std::make_shared<IsectOb>(*mMeshA, *mMeshB);
     mIntersectionEdgesMarkerA = mMeshA->mesh().edges().make_attribute_with_default(false);
     mIntersectionEdgesMarkerB = mMeshB->mesh().edges().make_attribute_with_default(false);
 }
@@ -526,7 +527,7 @@ IntersectionCut::IntersectionCut() {
 SharedTriIntersect IntersectionCut::getIntersectionStateWithTimer(pm::face_handle& t1, pm::face_handle& t2) {
     this->intersectionCount++;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    auto intersection = IsectOb(*mMeshA, *mMeshB).intersect<geometry128>(t1, t2);
+    auto intersection = mISectObject->intersect<geometry128>(t1, t2);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
     this->intersectionTimeCount += nSeconds;

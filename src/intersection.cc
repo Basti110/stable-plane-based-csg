@@ -382,6 +382,7 @@ bool IntersectionObject::handleTouchIntersection(const pm::face_handle& polygon1
 }
 
 SharedTriIntersect IntersectionObject::handleIntersection(const pm::face_handle& polygon1, const pm::face_handle& polygon2, IntersectionHandle& intersection1, IntersectionHandle& intersection2) {
+    
     const Plane& basePlane1 = mPlaneMeshA.getPlane(polygon1);
     const Plane& basePlane2 = mPlaneMeshB.getPlane(polygon2);
 
