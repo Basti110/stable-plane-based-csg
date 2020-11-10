@@ -38,6 +38,9 @@ public:
     void printTimes() {
         std::cout << "total time intersection: " << (double)intersectionTimeCount / 1000000 << "ms" << std::endl;
         std::cout << "total time split: " << (double)splitTimeCount / 1000000 << "ms" << std::endl;
+        std::cout << "test time split1: " << (double)testTimeCount1 / 1000000 << "ms" << std::endl;
+        std::cout << "test time split2: " << (double)testTimeCount2 / 1000000 << "ms" << std::endl;
+        std::cout << "test time split3: " << (double)testTimeCount3 / 1000000 << "ms" << std::endl;
         std::cout << "intersection calls: " << intersectionCount << std::endl;
         std::cout << "split calls: " << splitCount << std::endl;
     }
@@ -79,6 +82,9 @@ private:
     //Todo: Only debug
     long long splitTimeCount = 0;
     long long intersectionTimeCount = 0;
+    long long testTimeCount1 = 0;
+    long long testTimeCount2 = 0;
+    long long testTimeCount3 = 0;
     long intersectionCount = 0;
     long splitCount = 0;
     long actuallyIntersections = 0;

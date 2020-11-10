@@ -195,7 +195,7 @@ int8_t computeSignToIntersectionLine(std::unordered_map<int, IntersectionEdgesIn
 std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, IntersectionEdges& intersectionEdges, Plane& iSectPlane) {
     //Only Test
     //TG_ASSERT(planeMesh.planeMesh.allFacesAreValid());
-
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     pm::Mesh& mesh = planeMesh.planeMesh.mesh();
     int countEdges1 = mesh.halfedges().count();
     //int countFaces1 = mesh.faces().count();
@@ -213,7 +213,7 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
 
     pm::vertex_handle v1New;
     pm::vertex_handle v2New;
-
+    
     // split edges or not
     if (intersectionEdges.intersectVertex1) {
         v1New = h1.vertex_from();
@@ -229,13 +229,15 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
     else
         v2New = splitHalfEdgeLowAPI(mesh, h2);
 
+
+
     //auto v1New = splitHalfEdgeLowAPI(mesh, h1);
     //auto v2New = splitHalfEdgeLowAPI(mesh, h2);
     //Oder andersrum? vertex_to == new?
     TG_ASSERT(h1.vertex_to() == v1New);
     TG_ASSERT(h2.vertex_to() == v2New);
 
-
+    
     //Only Test
     bool testFace = planeMesh.planeMesh.faceHasValidHalfEdges(planeMesh.face);
 
@@ -243,7 +245,9 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
     //Only Test
     if (planeMesh.face.idx.value == 3108)
         int k = 10;
+    
 
+    
     mesh.faces().remove(planeMesh.face);
     int countEdges4 = mesh.halfedges().count();
     //TG_ASSERT(planeMesh.planeMesh.allFacesAreValid());
@@ -252,10 +256,21 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
     //bool faceTest2 = h2.opposite().face().is_valid();
     auto h1Next = h1.next();
     auto h2Next = h2.next();
+
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+    this->testTimeCount1 += nSeconds;
+    begin = std::chrono::steady_clock::now();
+    
     auto newFace1 = addFaceFromCycleAndStopPoint(mesh, h1Next, v2New);
     int countEdges5 = mesh.halfedges().count();
     auto newFace2 = addFaceFromCycleAndStopPoint(mesh, h2Next, v1New);
     int countEdges6 = mesh.halfedges().count();
+
+    end = std::chrono::steady_clock::now();
+    nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+    this->testTimeCount2 += nSeconds;
+    begin = std::chrono::steady_clock::now();
     //TG_ASSERT(planeMesh.planeMesh.allFacesAreValid());
     //faceTest1 = h1.opposite().face().is_valid();
     //faceTest2 = h2.opposite().face().is_valid();
@@ -265,12 +280,13 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
     bool invalidEdges = planeMesh.planeMesh.existsEdgesWithoutFace();
     TG_ASSERT(!invalidEdges);
 
+
+
     //Todo: Remove data in attributes
     //Set Planes on Faces
     planeMesh.planeMesh.setFace(newFace1, plane);
     planeMesh.planeMesh.setFace(newFace2, plane);
     //Set Planes on Edges if needed
-
 
 
     if (!intersectionEdges.intersectVertex1) {
@@ -388,6 +404,10 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
 
     if (!v1 || !v2)
         showFaces(planeMesh.planeMesh, std::vector<pm::face_handle>{newFace1, newFace2});
+
+    end = std::chrono::steady_clock::now();
+    nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+    this->testTimeCount3 += nSeconds;
 
     return std::vector<pm::face_handle>{newFace1, newFace2};
 }
