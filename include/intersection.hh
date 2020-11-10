@@ -220,6 +220,7 @@ public:
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
             this->testTimeCount1 += nSeconds;
+            testCount1++;
             return std::make_shared<TrianlgeIntersection>();
         }
             
@@ -234,6 +235,7 @@ public:
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
             this->testTimeCount1 += nSeconds;
+            testCount2++;
             return std::make_shared<TrianlgeIntersection>();
         }
             
@@ -249,6 +251,7 @@ public:
         end = std::chrono::steady_clock::now();
         nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
         this->testTimeCount2 += nSeconds;
+        testCount3++;
         return r;
     }
 
@@ -256,6 +259,9 @@ public:
         std::cout << "  [INTERSECTION] test time 1: " << (double)testTimeCount1 / 1000000 << "ms" << std::endl;
         std::cout << "  [INTERSECTION] test time 2: " << (double)testTimeCount2 / 1000000 << "ms" << std::endl;
         std::cout << "  [INTERSECTION] test time 3: " << (double)testTimeCount3 / 1000000 << "ms" << std::endl;
+        std::cout << "  [INTERSECTION] test count 1: " << testCount1 << std::endl;
+        std::cout << "  [INTERSECTION] test count 2: " << testCount2 << std::endl;
+        std::cout << "  [INTERSECTION] test count 3: " << testCount3 << std::endl;
     }
 
     private:
@@ -264,6 +270,9 @@ public:
         long long testTimeCount1 = 0;
         long long testTimeCount2 = 0;
         long long testTimeCount3 = 0;
+        long testCount1 = 0;
+        long testCount2 = 0;
+        long testCount3 = 0;
 };
 
 using IsectOb = IntersectionObject;

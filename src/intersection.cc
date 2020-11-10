@@ -7,15 +7,22 @@
 IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection(const PlaneMesh& mesh1, pm::face_handle const& planeBase, 
     const PlaneMesh& mesh2, pm::face_handle const& polygon)
 {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     int sign = 0;
     int index = 0;
     TG_ASSERT(!polygon.is_removed());
     TG_ASSERT(polygon.is_valid());
-    auto halfedges = polygon.halfedges().to_vector([](pm::halfedge_handle i) { return i; });
+    //auto halfedges = polygon.halfedges().to_vector();// [](pm::halfedge_handle i) { return i; });
+    std::vector<pm::halfedge_handle> halfedges;
+    halfedges.reserve(5);
+    for (auto& he: polygon.halfedges())
+        halfedges.push_back(he);
+
+
     pm::halfedge_handle halfedgeHandles[2];
     bool vertexOnEdge[2];
-
-    sign = ob::classify_vertex(mesh2.pos(halfedges[0].vertex_from()), mesh1.face(planeBase));
+    sign = mesh2.getSign(halfedges[0].vertex_from(), mesh1.face(planeBase));
+    //sign = ob::classify_vertex(mesh2.pos(halfedges[0].vertex_from()), mesh1.face(planeBase));
     //sign = mesh1.signDistanceToBasePlane(planeBase, halfedges[0].vertex_from());
     int signPosAcc = 0;
     int signNegAcc = 0;
@@ -27,9 +34,12 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
     else if (signTmp < 0)
         signNegAcc++;
 
+
+
     for (int i = 0; i < halfedges.size(); ++i) {
         bool wasZeroBefore = (signTmp == 0);
-        signTmp = ob::classify_vertex(mesh2.pos(halfedges[i].vertex_to()), mesh1.face(planeBase));
+        signTmp = mesh2.getSign(halfedges[i].vertex_to(), mesh1.face(planeBase));
+        //signTmp = ob::classify_vertex(mesh2.pos(halfedges[i].vertex_to()), mesh1.face(planeBase));
 
         if (signTmp > 0)
             signPosAcc++;
@@ -62,6 +72,10 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
         index++;
         TG_ASSERT(index <= 2);
     }
+
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+    this->testTimeCount3 += nSeconds;
 
     IntersectionHandle intersection;
     if (index == 0) {

@@ -197,6 +197,18 @@ public:
         }
     }
 
+    int8_t getSign(const pm::vertex_handle& v, const Plane& p) const {
+        auto position = mPositions[v];
+        if (position == pos_t(0, 0, 0)) {
+            SubDet det = pos(v);
+            return ob::classify_vertex(det, p);
+        }
+        else {
+            auto dis = ob::signed_distance(p, position);
+            return dis > 0 ? 1 : dis < 0 ? -1 : 0;
+        }
+    }
+
     //#############################################################################
     //#                          Validation on Mesh                               #
     //#############################################################################
