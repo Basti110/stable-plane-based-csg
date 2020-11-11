@@ -209,12 +209,14 @@ public:
     template <class GeometryT>
     SharedTriIntersect intersect(const pm::face_handle& polygon1, const pm::face_handle& polygon2)
     {
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        
 
         using normalScalar = ob::fixed_int<GeometryT::bits_normal * 2>;
         using normalVec = tg::vec<3, normalScalar>;
         static constexpr int NormalOutBits = GeometryT::bits_normal * 2;
 
+
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         IntersectionHandle intersection1 = planeBaseIntersection(mPlaneMeshA, polygon1, mPlaneMeshB, polygon2);
         if (intersection1.intersection == intersection_result::non_intersecting) {
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -226,15 +228,16 @@ public:
             
 
         if (intersection1.intersection == intersection_result::co_planar) {
-            SharedTriIntersect Coplanar = handleCoplanarIntersection(polygon1, polygon2);
+            SharedTriIntersect Coplanar = handleCoplanarIntersection(polygon1, polygon2);           
             return Coplanar;
         }
 
         IntersectionHandle intersection2 = planeBaseIntersection(mPlaneMeshB, polygon2, mPlaneMeshA, polygon1);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+        this->testTimeCount1 += nSeconds;
+
         if (intersection2.intersection == intersection_result::non_intersecting) {
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-            this->testTimeCount1 += nSeconds;
             testCount2++;
             return std::make_shared<TrianlgeIntersection>();
         }
@@ -242,9 +245,7 @@ public:
 
         //if (intersection2.intersection == intersection_result::touching && intersection1.intersection == intersection_result::touching)
             //return std::make_shared<TrianlgeIntersection>();
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-        this->testTimeCount1 += nSeconds;
+
 
         begin = std::chrono::steady_clock::now();
         auto r = handleIntersection(polygon1, polygon2, intersection1, intersection2);

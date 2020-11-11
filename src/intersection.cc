@@ -73,9 +73,7 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
         TG_ASSERT(index <= 2);
     }
 
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-    this->testTimeCount3 += nSeconds;
+
 
     IntersectionHandle intersection;
     if (index == 0) {
@@ -83,6 +81,9 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
             intersection.intersection = intersection_result::co_planar;
         else
             intersection.intersection = intersection_result::non_intersecting;
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+        this->testTimeCount3 += nSeconds;
         return intersection;
     }
     TG_ASSERT(index == 2 && "On a Convex Polygon are now exactly 2 intersections");
@@ -98,6 +99,9 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
         }
         if (halfedgeHandles[1] == halfedgeHandles[0].next()) {
             intersection.intersection = intersection_result::non_intersecting;
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+            this->testTimeCount3 += nSeconds;
             return intersection;
         }
     }
@@ -106,6 +110,9 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
     intersection.intersectionEdge2 = halfedgeHandles[1];
     intersection.intersectVertex1 = vertexOnEdge[0];
     intersection.intersectVertex2 = vertexOnEdge[1];
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+    this->testTimeCount3 += nSeconds;
     return intersection;
 }
 
