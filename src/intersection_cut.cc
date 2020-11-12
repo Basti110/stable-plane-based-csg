@@ -518,6 +518,8 @@ IntersectionCut::IntersectionCut(PlaneMesh* mMeshA, PlaneMesh* mMeshB) : mMeshA(
     mISectObject = std::make_shared<IsectOb>(*mMeshA, *mMeshB);
     mIntersectionEdgesMarkerA = mMeshA->mesh().edges().make_attribute_with_default(false);
     mIntersectionEdgesMarkerB = mMeshB->mesh().edges().make_attribute_with_default(false);
+    //mLookupFacesA.reserve(10000);
+    //mLookupFacesB.reserve(10000);
 }
 
 IntersectionCut::IntersectionCut() {
@@ -546,6 +548,7 @@ NewFaces IntersectionCut::splitnWithTimer(pm::face_handle& t1, pm::face_handle& 
 
 std::vector<pm::face_handle> IntersectionCut::splitAccordingToIntersection(pm::face_handle triangle, std::vector<pm::face_handle>& triangles)
 {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     pm::face_handle t2;
     std::vector<pm::face_handle> trianglesTMP = triangles;
     int count = 0;
@@ -553,13 +556,23 @@ std::vector<pm::face_handle> IntersectionCut::splitAccordingToIntersection(pm::f
     while (trianglesTMP.size() > 0) {
         pm::face_handle t2 = trianglesTMP[0];
         //showFaces(triangle, t2);
-
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+        this->testTimeCount4 += nSeconds;
         auto intersection = getIntersectionStateWithTimer(triangle, t2);
-        trianglesTMP.erase(trianglesTMP.begin() + 0);
+        
 
+        trianglesTMP.erase(trianglesTMP.begin() + 0);
+        begin = std::chrono::steady_clock::now();
         if (intersection->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING) {
             triangles.erase(triangles.begin() + count);
+            end = std::chrono::steady_clock::now();
+            nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+            this->testTimeCount5 += nSeconds;
             auto splits = splitnWithTimer(triangle, t2, intersection);
+            begin = std::chrono::steady_clock::now();
+
+            
 
             if (mLookupFacesA.count(triangle.idx.value) == 0 && splits.facesT1.size() > 1) {
                 mLookupFacesA[triangle.idx.value] = splits.facesT1;
@@ -573,9 +586,15 @@ std::vector<pm::face_handle> IntersectionCut::splitAccordingToIntersection(pm::f
 
             for (auto& tri : splits.facesT1) {
                 if (tri.is_valid()) {
+                    end = std::chrono::steady_clock::now();
+                    nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+                    this->testTimeCount6 += nSeconds;
                     splitAccordingToIntersection(tri, trianglesTMP);
+                    begin = std::chrono::steady_clock::now();
                 }
             }
+
+            
 
             triangles.erase(triangles.begin() + count, triangles.end());
             triangles.insert(triangles.end(), trianglesTMP.begin(), trianglesTMP.end());
@@ -585,11 +604,16 @@ std::vector<pm::face_handle> IntersectionCut::splitAccordingToIntersection(pm::f
                     triangles.push_back(triangle);
                 }
             }
-
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+            this->testTimeCount7 += nSeconds;
             return splits.facesT1;
         }
         count++;
     }
+    /*std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+    this->testTimeCount4 += nSeconds;*/
     return std::vector<pm::face_handle>{triangle};
 }
 
@@ -629,7 +653,9 @@ void IntersectionCut::checkLookupAndSplit(std::vector<pm::face_handle>& faces1, 
     if (mLookupFacesA.count(index.idx.value) == 0) {
         TG_ASSERT(index.is_valid());
         TG_ASSERT(!index.is_removed());
+        
         auto newFaces = splitAccordingToIntersection(index, faces2);
+
         faces1.insert(faces1.end(), newFaces.begin(), newFaces.end());
         return;
     }
@@ -656,10 +682,11 @@ void IntersectionCut::fillFacesFromLookupBInVec(std::vector<pm::face_handle>& ve
 
 void IntersectionCut::cutPolygons(std::vector<pm::face_index>& facesMeshA, std::vector<pm::face_index>& facesMeshB) {
     TG_ASSERT(mMeshA && mMeshB);
-
+    
     std::vector<pm::face_handle> faces1;
     std::vector<pm::face_handle> faces2;
 
+    
     //TODO: Cann remove first IF
     for (pm::face_index& face2Index : facesMeshB) {
         fillFacesFromLookupBInVec(faces2, face2Index.of(mMeshB->mesh()));
@@ -669,7 +696,7 @@ void IntersectionCut::cutPolygons(std::vector<pm::face_index>& facesMeshA, std::
     for (pm::face_index& face1Index : facesMeshA) {
         checkLookupAndSplit(faces1, faces2, face1Index.of(mMeshA->mesh()));
     }
-
+    
     facesMeshA.clear();
     facesMeshB.clear();
     facesMeshA.reserve(faces1.size());
@@ -681,4 +708,6 @@ void IntersectionCut::cutPolygons(std::vector<pm::face_index>& facesMeshA, std::
 
     for (int i = 0; i < faces2.size(); ++i)
         facesMeshB.push_back(faces2[i].idx);
+
+
 }

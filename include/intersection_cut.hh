@@ -37,13 +37,17 @@ public:
 
     void printTimes() {
         std::cout << "total time intersection: " << (double)intersectionTimeCount / 1000000 << "ms" << std::endl;
-        std::cout << "total time split: " << (double)splitTimeCount / 1000000 << "ms" << std::endl;
-        std::cout << "test time split1: " << (double)testTimeCount1 / 1000000 << "ms" << std::endl;
-        std::cout << "test time split2: " << (double)testTimeCount2 / 1000000 << "ms" << std::endl;
-        std::cout << "test time split3: " << (double)testTimeCount3 / 1000000 << "ms" << std::endl;
-        std::cout << "intersection calls: " << intersectionCount << std::endl;
-        std::cout << "split calls: " << splitCount << std::endl;
         mISectObject->printTimes();
+        std::cout << "total time split: " << (double)splitTimeCount / 1000000 << "ms" << std::endl;
+        std::cout << "   [Cut] test time split1: " << (double)testTimeCount1 / 1000000 << "ms" << std::endl;
+        std::cout << "   [Cut] test time split2: " << (double)testTimeCount2 / 1000000 << "ms" << std::endl;
+        std::cout << "   [Cut] test time split3: " << (double)testTimeCount3 / 1000000 << "ms" << std::endl;
+        std::cout << "   [Cut] test time split4: " << (double)testTimeCount4 / 1000000 << "ms" << std::endl;
+        std::cout << "   [Cut] test time split5: " << (double)testTimeCount5 / 1000000 << "ms" << std::endl;
+        std::cout << "   [Cut] test time split6: " << (double)testTimeCount6 / 1000000 << "ms" << std::endl;
+        std::cout << "   [Cut] test time split7: " << (double)testTimeCount7 / 1000000 << "ms" << std::endl;
+        std::cout << "intersection calls: " << intersectionCount << std::endl;
+        std::cout << "split calls: " << splitCount << std::endl;     
     }
 
     const pm::edge_attribute<bool>& getIntersectionEdgesMarkerA() const {
@@ -86,6 +90,10 @@ private:
     long long testTimeCount1 = 0;
     long long testTimeCount2 = 0;
     long long testTimeCount3 = 0;
+    long long testTimeCount4 = 0;
+    long long testTimeCount5 = 0;
+    long long testTimeCount6 = 0;
+    long long testTimeCount7 = 0;
     long intersectionCount = 0;
     long splitCount = 0;
     long actuallyIntersections = 0;

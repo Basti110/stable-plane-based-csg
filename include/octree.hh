@@ -340,7 +340,7 @@ private:
     std::vector<uint32_t> mValueIndices;
     std::vector<pm::face_index> mFacesMeshA;
     std::vector<pm::face_index> mFacesMeshB;
-    int mMaxValues = 30;
+    int mMaxValues = 20;
 };
 
 class BranchNode : public OctreeNode, public std::enable_shared_from_this<BranchNode>{

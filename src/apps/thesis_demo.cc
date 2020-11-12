@@ -185,9 +185,9 @@ APP("App::component_classification") {
     auto test1 = planeMesh1->noDuplicatedVerticesInFaces(faceMask1);
     auto test2 = planeMesh2->noDuplicatedVerticesInFaces(faceMask2);
 
-    auto view = gv::view(planeMesh2->positions(), components2.getColorAssignment());
+    /*auto view = gv::view(planeMesh2->positions(), components2.getColorAssignment());
     gv::view(gv::lines(planeMesh2->positions()).line_width_world(1000000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
-    gv::view(gv::lines(planeMesh2->positions()).line_width_world(100000), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh2->positions()).line_width_world(100000), tg::color3::color(0.0));*/
 }
 
 APP("App::count_intersections") {
