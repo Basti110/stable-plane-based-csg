@@ -21,7 +21,7 @@
 #include <polymesh/formats.hh>
 
 //std::string testObj = "../data/mesh/fox.obj";
-std::string testObj = "../data/mesh/bun_zipper.obj";
+std::string testObj = "../data/mesh/buddha_2.obj";
 
 void test_octree_cell_ray_cast();
 void test_cut_testAB_meshes();
@@ -58,15 +58,17 @@ int main() {
     //char* argv[] = { "main", "App::Picker_Cut" };
     //char* argv[] = { "main", "App::component_classification" };
     char* argv[] = { "main", "App::component_classification" };
+    //char* argv[] = { "main", "App::Show_Mesh" };
     //char* argv[] = { "main", "App::count_intersections" };
     //char* argv[] = { "main", "Benchmark:SubdetVsIntPos" };
 
     tests.applyCmdArgs(2, argv);
-    tests.run();
-    
+    //tests.run();
+
+    //test_transpose();  
     //test_color_in_mesh();
     //test_octree();
-    //test_component_classification();
+    test_component_classification();
     //test_cut_mesh();
     //test_octree_cell_ray_cast();
     //mark_component_test();
@@ -104,14 +106,14 @@ void test_transpose() {
     pm::vertex_attribute<tg::pos3> pos2(mesh2);
     pm::load(testObj, mesh2, pos2);
 
-    auto translation1 = tg::translation(tg::vec{ -.0f, .0f, .04f });  
+    auto translation1 = tg::translation(tg::vec{ -1.0f, 0.0f, 2.0f });  
     auto rotatation1 = tg::rotation_y(tg::angle::from_degree(-90));
     auto trans1 = translation1 * rotatation1;
 
-    auto trans2 = tg::translation(tg::vec{ 0.f, .01f, .0f });
+    auto trans2 = tg::translation(tg::vec{ 0.f, 0.0f, .0f });
 
     transformation(pos1, trans1);
-    transformation(pos2, trans2);
+    //transformation(pos2, trans2);
 
     auto view = gv::view(pos1);
     gv::view(pos2);
@@ -139,13 +141,14 @@ void test_color_in_mesh() {
 void convert() {
     pm::Mesh m;
     auto pos = m.vertices().make_attribute<tg::pos3>();
-    load("../data/mesh/soma_gyroid_Z_2.obj", m, pos);
+    load("../data/mesh/buddha.obj", m, pos);
 
     for (auto& p : pos)
-        p = { p.x, p.z, -p.y };
+        p = { p.x, -p.z, p.y };
     pm::deduplicate(m, pos);
     m.compactify();
-    pm::save("../data/mesh/soma_gyroid_Z_2.obj", pos);
+    gv::view(pos);
+    pm::save("../data/mesh/buddha_2.obj", pos);
 }
 
 void removeInvalidFaces() {
@@ -323,7 +326,7 @@ void test_octree_two_meshes() {
 void test_component_classification() {
     glow::timing::CpuTimer timer;
     timer.restart();
-    ObjConfig conf = ObjCollection::map.at("complex_1");
+    ObjConfig conf = ObjCollection::map.at("Buddha");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
     TG_ASSERT(planeMesh2->allFacesAreValid());

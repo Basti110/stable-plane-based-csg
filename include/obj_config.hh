@@ -168,6 +168,7 @@ private:
                 }
             }
             std::cout << "Created Octree in " << timer.elapsedMilliseconds() << "ms" << std::endl;
+            std::cout << "  -- Smallest Cell Lenght: " << (double)mOctree->smallestCellLen() << std::endl;
         }       
     }
 
@@ -175,22 +176,30 @@ private:
         if (mPlaneMeshA && mPlaneMeshB)
             return;
 
+        long long pmLoadTime = 0;       
         glow::timing::CpuTimer timer;
         if (!mPlaneMeshA) {
             pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             pm::load(mPathObj1, *mMeshA, pos1);
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            pmLoadTime += std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count();
             transformation(pos1, mTransformation1);
             mPlaneMeshA = std::make_shared<PlaneMesh>(*mMeshA, pos1, mScale);
         }
 
         if (!mPlaneMeshB && mNumObjects == 2) {
             pm::vertex_attribute<tg::pos3> pos2(*mMeshB);
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             pm::load(mPathObj2, *mMeshB, pos2);
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            pmLoadTime += std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count();
             transformation(pos2, mTransformation2);
             mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, pos2, mScale);
             TG_ASSERT(mPlaneMeshB->allFacesAreValid());
-        }
+        }      
         std::cout << "Load Meshes in " << timer.elapsedMilliseconds() << "ms" << std::endl;
+        std::cout << " -- PM load in " << pmLoadTime / 1000.0 << "ms" << std::endl;
     }
 
 
@@ -203,7 +212,7 @@ private:
     SharedPlaneMesh mPlaneMeshB;
     SharedOctree mOctree;
     scalar_t mScale = 1;
-    scalar_t mScaleOctree = 1;
+    scalar_t mScaleOctree = 1;    
 
     AABB mOctreeBox;
 
@@ -259,6 +268,14 @@ public:
                 ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/bunny.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
                 "../data/mesh/soma_gyroid_Z.obj", tg::translation(tg::vec{-25.0f, -.5f, 10.0f }), tg::scaling(1.3f, 1.3f, 1.3f))},
+            { "Armadillo", //
+                ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/Armadillo.obj", tg::mat4::identity, tg::mat4::identity,
+                "../data/mesh/Armadillo.obj", tg::translation(tg::vec{ -20.0f, 0.0f, 20.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
+            { "Buddha", //
+                ObjConfig(1e8, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/Buddha.obj", tg::translation(tg::vec{ 0.0f, -10.5f, 0.0f }), tg::mat4::identity,
+                "../data/mesh/Buddha.obj", tg::translation(tg::vec{ -1.0f, -10.0f, 2.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
         };
     }
 };

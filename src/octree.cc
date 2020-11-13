@@ -240,6 +240,7 @@ void BranchNode::initLeafNodes()
     TG_ASSERT(mAABB.max.y - mAABB.min.y == aabbLen);
     TG_ASSERT(mAABB.max.z - mAABB.min.z == aabbLen);
     TG_ASSERT(aabbLen % 2 == 0);
+    mOctree->setSmallestCellLen(aabbLen / 2);
 
     auto thisPtr = shared_from_this();
     for (int i = 0; i < 8; ++i) {
