@@ -57,18 +57,18 @@ int main() {
     //char* argv[] = { "main", "App::Picker" };
     //char* argv[] = { "main", "App::Picker_Cut" };
     //char* argv[] = { "main", "App::component_classification" };
-    char* argv[] = { "main", "App::component_classification" };
+    char* argv[] = { "main", "Test::Cut_Triangle_Normal_Marker" };
     //char* argv[] = { "main", "App::Show_Mesh" };
     //char* argv[] = { "main", "App::count_intersections" };
     //char* argv[] = { "main", "Benchmark:SubdetVsIntPos" };
 
     tests.applyCmdArgs(2, argv);
-    //tests.run();
+    tests.run();
 
     //test_transpose();  
     //test_color_in_mesh();
     //test_octree();
-    test_component_classification();
+    //test_component_classification();
     //test_cut_mesh();
     //test_octree_cell_ray_cast();
     //mark_component_test();
