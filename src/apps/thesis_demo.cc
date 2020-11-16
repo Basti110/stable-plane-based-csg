@@ -258,3 +258,15 @@ APP("Benchmark:SubdetVsIntPos") {
     }
     std::cout << "result differs in " << differs << " values" << std::endl;
 }
+
+APP("Benchmark:TestAvgTime") {
+    int testCount = 20;
+    glow::timing::CpuTimer timer;
+    for (int i = 0; i < testCount; i++) {
+        ObjConfig conf = ObjCollection::map.at("complex_1");
+        auto planeMesh1 = conf.getMeshA();
+        auto planeMesh2 = conf.getMeshB();
+        auto iCut = conf.getOctree()->cutPolygons();
+    }
+    std::cout << "AVG Time with  " << testCount << " iterations: " << timer.elapsedMilliseconds() / testCount  << "ms" << std::endl;
+}

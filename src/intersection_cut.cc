@@ -187,30 +187,34 @@ int8_t computeSignToIntersectionLine(std::unordered_map<int, IntersectionEdgesIn
     if(signCheck2 == 0)
         return signCheck1;
     if (signCheck1 == signCheck2)
-        return signCheck1;
-    return 2;
+        return signCheck1 * 2;
+    return 0;
 }
+
+
 //Sign = 1 if isectPlane points toward edge1.from(), else -1
 void IntersectionCut::setIntersectionLineDirection(const PlaneMesh& planeMesh, const pm::halfedge_handle& edge1, const pm::halfedge_handle& edge2, int8_t sign, const Plane& iSectPlane) {
     const Plane& planeH2 = planeMesh.edge(edge1);
     const Plane& plane = planeMesh.face(edge1.face());
-    if (planeMesh.id() == mMeshA->id() && mIntersectionEdgesMarkerA[edge2]) {
-        auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineA, *mMeshB, edge2, iSectPlane, planeH2, plane);
-        if (sign * signCheck == -1 || signCheck == 2) {
-            mIntersectionEdgesMarkerA[edge1] = mIntersectionEdgesMarkerA[edge2];
-            mIntersectionEdgesOnIntersectionLineA[edge1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineA[edge2.edge().idx.value];
-            if (signCheck != 2)
-                mIntersectionEdgesMarkerA[edge2] = false;
+
+    auto func = [=](std::unordered_map<int, IntersectionEdgesIndices>& intersectionEdgesOnIntersectionLine, pm::edge_attribute<bool>& intersectionEdgesMarker) {
+        auto signCheck = computeSignToIntersectionLine(intersectionEdgesOnIntersectionLine, *mMeshB, edge2, iSectPlane, planeH2, plane);
+        if (sign * signCheck == -1 || signCheck == 0) {
+            intersectionEdgesMarker[edge1] = intersectionEdgesMarker[edge2];
+            intersectionEdgesOnIntersectionLine[edge1.edge().idx.value] = intersectionEdgesOnIntersectionLine[edge2.edge().idx.value];
+            if (signCheck != 0)
+                intersectionEdgesMarker[edge2] = false;
         }
+        else if (signCheck == 2 || signCheck == -2) {
+            intersectionEdgesMarker[edge1] = false;
+        }
+    };
+
+    if (planeMesh.id() == mMeshA->id() && mIntersectionEdgesMarkerA[edge2]) {
+        func(mIntersectionEdgesOnIntersectionLineA, mIntersectionEdgesMarkerA);
     }
     else if (planeMesh.id() == mMeshB->id() && mIntersectionEdgesMarkerB[edge2]) {
-        auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineB, *mMeshA, edge2, iSectPlane, planeH2, plane);
-        if (sign * signCheck == -1 || signCheck == 2) {
-            mIntersectionEdgesMarkerB[edge1] = mIntersectionEdgesMarkerB[edge2];
-            mIntersectionEdgesOnIntersectionLineB[edge1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineB[edge2.edge().idx.value];
-            if (signCheck != 2)
-                mIntersectionEdgesMarkerB[edge2] = false;
-        }
+        func(mIntersectionEdgesOnIntersectionLineB, mIntersectionEdgesMarkerB);
     }
 }
 
@@ -326,26 +330,7 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
         planeMesh.planeMesh.setHalfedge(edge1_1.opposite(), signH1Opp); //<= bug line
         planeMesh.planeMesh.setHalfedge(edge1_2.opposite(), signH1Opp);
 
-
-        if (planeMesh.planeMesh.id() == mMeshA->id() && mIntersectionEdgesMarkerA[edge1_2]) {
-            auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineA, *mMeshB, edge1_2, iSectPlane, planeH1, plane);
-            if (sign * signCheck == 1 || signCheck == 2) {
-                mIntersectionEdgesMarkerA[edge1_1] = mIntersectionEdgesMarkerA[edge1_2];
-                mIntersectionEdgesOnIntersectionLineA[edge1_1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineA[edge1_2.edge().idx.value];
-                if(signCheck != 2)
-                    mIntersectionEdgesMarkerA[edge1_2] = false;
-            }
-        }
-        else if (planeMesh.planeMesh.id() == mMeshB->id() && mIntersectionEdgesMarkerB[edge1_2]) {
-            auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineB, *mMeshA, edge1_2, iSectPlane, planeH1, plane);
-            if (sign * signCheck == 1 || signCheck == 2) {
-                mIntersectionEdgesMarkerB[edge1_1] = mIntersectionEdgesMarkerB[edge1_2];
-                mIntersectionEdgesOnIntersectionLineB[edge1_1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineB[edge1_2.edge().idx.value];
-                if (signCheck != 2)
-                    mIntersectionEdgesMarkerB[edge1_2] = false;
-            }
-        }
-        
+        setIntersectionLineDirection(planeMesh.planeMesh, edge1_1, edge1_2, -sign, iSectPlane);      
     }
 
     if (!intersectionEdges.intersectVertex2) {
@@ -362,24 +347,7 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
         planeMesh.planeMesh.setHalfedge(edge2_1.opposite(), signH2Opp);
         planeMesh.planeMesh.setHalfedge(edge2_2.opposite(), signH2Opp);
 
-        if (planeMesh.planeMesh.id() == mMeshA->id() && mIntersectionEdgesMarkerA[edge2_2]) {
-            auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineA, *mMeshB, edge2_2, iSectPlane, planeH2, plane);
-            if (sign * signCheck == -1 || signCheck == 2) {
-                mIntersectionEdgesMarkerA[edge2_1] = mIntersectionEdgesMarkerA[edge2_2];
-                mIntersectionEdgesOnIntersectionLineA[edge2_1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineA[edge2_2.edge().idx.value];
-                if(signCheck != 2)
-                    mIntersectionEdgesMarkerA[edge2_2] = false;
-            }
-        }
-        else if (planeMesh.planeMesh.id() == mMeshB->id() && mIntersectionEdgesMarkerB[edge2_2]) {
-            auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineB, *mMeshA, edge2_2, iSectPlane, planeH2, plane);        
-            if (sign * signCheck == -1 || signCheck == 2) {
-                mIntersectionEdgesMarkerB[edge2_1] = mIntersectionEdgesMarkerB[edge2_2];
-                mIntersectionEdgesOnIntersectionLineB[edge2_1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineB[edge2_2.edge().idx.value];
-                if(signCheck != 2)
-                    mIntersectionEdgesMarkerB[edge2_2] = false;
-            }
-        }
+        setIntersectionLineDirection(planeMesh.planeMesh, edge2_1, edge2_2, sign, iSectPlane);
     }
 
 
