@@ -67,6 +67,8 @@ private:
     //Schnitt Plane Zweites Face (direction * plane) zeigt nach innen (signed distance = 1)
     std::tuple<pm::face_handle, pm::face_handle> splitFace(PlaneMeshInfo& faceInfo, Plane& plane, int8_t direction);
     
+    void setIntersectionLineDirection(const PlaneMesh& planeMesh, const pm::halfedge_handle& edge1, const pm::halfedge_handle& edge2, int8_t sign, const Plane& iSectPlane);
+
     //TODO: Remove Debug entries
     std::vector<pm::face_handle> split(PlaneMeshInfo& planeMesh, IntersectionEdges& intersectionEdges, Plane& iSectPlane);  
     std::vector<pm::face_handle> splitFacesWithAllIntersectionEdges(PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2, std::vector<TrianlgeIntersectionPlanar::EdgeData>& edgeData);

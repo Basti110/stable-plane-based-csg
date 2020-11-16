@@ -31,11 +31,11 @@ TEST("Test::Intersection_Triangle_Normal") {
    
     TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face2)->intersectionState == state::NON_PLANAR);
     TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face3)->intersectionState == state::NON_PLANAR);
-    TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face4)->intersectionState == state::NON_PLANAR);
+    TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face4)->intersectionState == state::NON_INTERSECTING);
     TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face5)->intersectionState == state::NON_PLANAR);
-    TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face6)->intersectionState == state::NON_INTERSECTING);
+    TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face6)->intersectionState == state::NON_PLANAR);
     TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face7)->intersectionState == state::NON_INTERSECTING);
-    TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face8)->intersectionState == state::NON_PLANAR);
+    TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face8)->intersectionState == state::NON_INTERSECTING);
     TG_ASSERT(IsectOb(planeMesh1, planeMesh2).intersect<geometry128>(face1, face9)->intersectionState == state::NON_INTERSECTING);
     TG_ASSERT(IsectOb(planeMesh2, planeMesh2).intersect<geometry128>(face5, face9)->intersectionState == state::NON_PLANAR);
 

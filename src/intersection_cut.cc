@@ -172,7 +172,7 @@ std::tuple<pm::face_handle, pm::face_handle> IntersectionCut::splitFace(PlaneMes
 }
 
 int8_t computeSignToIntersectionLine(std::unordered_map<int, IntersectionEdgesIndices>& I, const PlaneMesh& m, pm::halfedge_handle iE, const Plane& iP, const Plane& eP, const Plane& bP) {
-    auto test = iE.edge().idx.value;
+    //auto test = iE.edge().idx.value;
     auto iEdge = I[iE.edge().idx.value].intersectionEdge1.of(m.mesh());
     const Plane& plane = m.edge(iEdge);
     auto posDet = m.pos(plane, bP, eP);
@@ -189,6 +189,29 @@ int8_t computeSignToIntersectionLine(std::unordered_map<int, IntersectionEdgesIn
     if (signCheck1 == signCheck2)
         return signCheck1;
     return 2;
+}
+//Sign = 1 if isectPlane points toward edge1.from(), else -1
+void IntersectionCut::setIntersectionLineDirection(const PlaneMesh& planeMesh, const pm::halfedge_handle& edge1, const pm::halfedge_handle& edge2, int8_t sign, const Plane& iSectPlane) {
+    const Plane& planeH2 = planeMesh.edge(edge1);
+    const Plane& plane = planeMesh.face(edge1.face());
+    if (planeMesh.id() == mMeshA->id() && mIntersectionEdgesMarkerA[edge2]) {
+        auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineA, *mMeshB, edge2, iSectPlane, planeH2, plane);
+        if (sign * signCheck == -1 || signCheck == 2) {
+            mIntersectionEdgesMarkerA[edge1] = mIntersectionEdgesMarkerA[edge2];
+            mIntersectionEdgesOnIntersectionLineA[edge1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineA[edge2.edge().idx.value];
+            if (signCheck != 2)
+                mIntersectionEdgesMarkerA[edge2] = false;
+        }
+    }
+    else if (planeMesh.id() == mMeshB->id() && mIntersectionEdgesMarkerB[edge2]) {
+        auto signCheck = computeSignToIntersectionLine(mIntersectionEdgesOnIntersectionLineB, *mMeshA, edge2, iSectPlane, planeH2, plane);
+        if (sign * signCheck == -1 || signCheck == 2) {
+            mIntersectionEdgesMarkerB[edge1] = mIntersectionEdgesMarkerB[edge2];
+            mIntersectionEdgesOnIntersectionLineB[edge1.edge().idx.value] = mIntersectionEdgesOnIntersectionLineB[edge2.edge().idx.value];
+            if (signCheck != 2)
+                mIntersectionEdgesMarkerB[edge2] = false;
+        }
+    }
 }
 
 //TODO: Remove Debug entries
