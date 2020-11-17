@@ -109,6 +109,6 @@ private:
 
     std::unordered_map<int, std::vector<pm::face_handle>> mLookupFacesA;
     std::unordered_map<int, std::vector<pm::face_handle>> mLookupFacesB;
-    std::unordered_map<int, IntersectionEdgesIndices> mIntersectionEdgesOnIntersectionLineA;
-    std::unordered_map<int, IntersectionEdgesIndices> mIntersectionEdgesOnIntersectionLineB;
+    std::unordered_map<int, std::vector<IntersectionEdgesIndices>> mIntersectionEdgesOnIntersectionLineA;
+    std::unordered_map<int, std::vector<IntersectionEdgesIndices>> mIntersectionEdgesOnIntersectionLineB;
 };
