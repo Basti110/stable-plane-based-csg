@@ -13,6 +13,7 @@
 #include <glow-extras/viewer/experimental.hh>
 #include <unordered_set>
 #include <unordered_map>
+#include <ctracer/trace-config.hh>
 
 class OctreeNode;
 class BranchNode;
@@ -107,7 +108,7 @@ public:
     virtual void getAllFaces(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshA, std::set<pm::face_index>& fMeshB) { }
     bool isInTree();
     bool hasParent();
-    bool polygonInAABB(int meshIdx, pm::face_index faceIdx);
+    int8_t polygonInAABB(int meshIdx, pm::face_index faceIdx);
     bool isValid() { return mIsValid; }
     void setParent(SharedBranchNode node);
     void setChildIndex(uint8_t i) { mChildIndex = i; }
@@ -563,7 +564,7 @@ public:
         bool test1 = mMeshA->allFacesAreValidAndNotRemoved();
         bool test2 = mMeshB->allFacesAreValidAndNotRemoved();
         mRoot->cutPolygons(faceLookUp);
-        faceLookUp.printTimes();
+        //faceLookUp.printTimes();
         return faceLookUp;
     }
     //PlaneMesh& meshA() { return mMeshA; }

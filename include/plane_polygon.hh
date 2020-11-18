@@ -6,6 +6,7 @@
 #include <iostream>
 #include <polymesh/pm.hh>
 //only debug
+#include <ctracer/scope.hh>
 #include <glow-extras/viewer/view.hh>
 #include <glow-extras/viewer/experimental.hh>
 
@@ -52,6 +53,7 @@ public:
 
     ///Only Triangle TODO: Polygons
     PlaneMesh(const pm::Mesh& m, const pm::vertex_attribute<pos_t>& pos) : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh), mHalfEdges(mMesh) {
+        TRACE("[MESH] Init Plane Mesh");
         mID = instances;
         instances++;
 
@@ -61,6 +63,7 @@ public:
     }
 
     PlaneMesh(const pm::Mesh& m, const pm::vertex_attribute<tg::pos3>& pos, int scale) : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh), mHalfEdges(mMesh) {
+        TRACE("[MESH] Init Plane Mesh");
         mID = instances;
         instances++;
 
@@ -73,7 +76,6 @@ public:
             mPositions[vertices1[i]] = pos_t(dpos);
         }
         init_mesh();
-
     }
 
     pm::all_face_collection allFaces() {
@@ -699,8 +701,8 @@ private:
             mFaces[f] = Plane::from_points(pos1, pos2, pos3);
             generatePlanes(f);
         }
-        std::cout << "normal: " << debugNormalEdges << std::endl;
-        std::cout << "inverted: " << debugInvertedEdges << std::endl;
+        //std::cout << "normal: " << debugNormalEdges << std::endl;
+        //std::cout << "inverted: " << debugInvertedEdges << std::endl;
     }
 
 private: 

@@ -39,14 +39,13 @@ bool OctreeNode::hasParent()
 }
 
 //TODO
-bool OctreeNode::polygonInAABB(int meshIdx, pm::face_index faceIdx)
+int8_t OctreeNode::polygonInAABB(int meshIdx, pm::face_index faceIdx)
 {
+    //TRACE("[Octree] AABB Test");
     TG_ASSERT(mOctree);
     PlaneMesh* mesh = meshIdx == mOctree->mMeshA->id() ? mOctree->mMeshA : mOctree->mMeshB;
     auto intersection = ob::intersection_type<geometry128>(*mesh, faceIdx.of(mesh->mesh()), mAABB);
-    if (intersection != ob::intersection_result::non_intersecting)
-        return true;
-    return false;
+    return (int8_t)intersection;
 }
 
 void OctreeNode::setParent(SharedBranchNode node)
@@ -274,8 +273,9 @@ void BranchNode::pushDown(int meshIdx, pm::face_index faceIdx)
     for (int i = 0; i < 8; i++) {
         
         SharedOctreeNode childNode = mChildNodes[i];
+        auto iResult = ob::intersection_result(childNode->polygonInAABB(meshIdx, faceIdx));
         
-        if (childNode->polygonInAABB(meshIdx, faceIdx)) {
+        if (iResult != ob::intersection_result::non_intersecting) {
             if (childNode->nodeBase() == NodeType::LEAF) {
                 insertInLeaf(i, meshIdx, faceIdx);
             }            
@@ -285,7 +285,9 @@ void BranchNode::pushDown(int meshIdx, pm::face_index faceIdx)
             }
             else {
                 //ERROR
-            }               
+            }  
+            if (iResult == ob::intersection_result::proper_contains)
+                return;
         }
     }
     return;

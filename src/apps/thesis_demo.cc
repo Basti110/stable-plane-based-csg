@@ -4,6 +4,11 @@
 #include <octree.hh>
 #include <face_component_finder.hh>
 #include <polymesh/algorithms/deduplicate.hh>
+#include <iomanip>
+//#include <ctracer/trace-config.hh>
+#define GIGA 1000000000
+#define MEGA 1000000
+#define CLOCK 3399740
 
 APP("App::Plane_Geometry_Visu") {
     std::vector<tg::ipos3> positions;
@@ -165,7 +170,7 @@ APP("App::test_cut_mesh") {
 }
 
 APP("App::component_classification") {
-    ObjConfig conf = ObjCollection::map.at("complex_1");
+    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
  
@@ -191,10 +196,15 @@ APP("App::component_classification") {
     //auto test1 = planeMesh1->noDuplicatedVerticesInFaces(faceMask1);
     //auto test2 = planeMesh2->noDuplicatedVerticesInFaces(faceMask2);
 
-    auto view = gv::view(planeMesh1->positions(), components1.getColorAssignment());
+    /*auto view = gv::view(planeMesh1->positions(), components1.getColorAssignment());
     gv::view(gv::lines(planeMesh1->positions()).line_width_world(20000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::green);
     gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));*/
+
+    auto view = gv::view(planeMesh2->positions(), components2.getColorAssignment());
+    gv::view(gv::lines(planeMesh2->positions()).line_width_world(20000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::green);
     gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));
+    gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
 }
 
 APP("App::count_intersections") {
@@ -225,7 +235,7 @@ APP("App::count_intersections") {
 }
 
 APP("Benchmark:SubdetVsIntPos") {
-    ObjConfig conf = ObjCollection::map.at("complex_1");
+    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
     auto planeMesh = conf.getMeshA();
     
     int iterations = 30000;
@@ -260,13 +270,84 @@ APP("Benchmark:SubdetVsIntPos") {
 }
 
 APP("Benchmark:TestAvgTime") {
-    int testCount = 20;
+    int testCount = 1;   
+    ct::scope s;
     glow::timing::CpuTimer timer;
-    for (int i = 0; i < testCount; i++) {
-        ObjConfig conf = ObjCollection::map.at("complex_1");
+    for (int i = 0; i < testCount; i++) {       
+        TRACE("Test");
+        ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
         auto planeMesh1 = conf.getMeshA();
         auto planeMesh2 = conf.getMeshB();
         auto iCut = conf.getOctree()->cutPolygons();
     }
-    std::cout << "AVG Time with  " << testCount << " iterations: " << timer.elapsedMilliseconds() / testCount  << "ms" << std::endl;
+
+    auto t = s.trace().compute_location_stats();
+    for (auto te : t) {
+        std::cout << te.loc->name << ": " << te.total_cycles / (double)1000000000 <<  std::endl;
+    }
+    auto c = s.trace().elapsed_cycles();
+    auto m = timer.elapsedMillisecondsD();
+    std::cout << "approx CPU frequence = " << c / m << std::endl;
+    std::cout << "approx time = "  << c / (double)CLOCK << std::endl;
+    std::cout << "Time: " << m << "ms" << std::endl;
+    std::cout << "scope  cycles " << s.trace().elapsed_cycles() / (double)1000000000 << "G" << std::endl;
+    std::cout << "AVG Time with  " << testCount << " iterations: " << m / testCount  << "ms" << std::endl;
+}
+
+void printStats(ct::scope& s) {
+    auto trace = s.trace();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(trace.time_end() - trace.time_start()).count();
+    std::cout << std::endl << "-Timing Stats [" << s.name() << "], total: " << elapsed << "ms" << std::endl;
+    auto t = trace.compute_location_stats();
+    for (auto te : t) {
+        auto cycles = te.total_cycles;
+        size_t length = std::strlen(te.loc->name);
+        std::cout << "   |- " << te.loc->name << std::right << std::setw(50 - length);
+        std::cout << cycles / (double)GIGA << "G" << " Cycles";
+        std::cout << ", Time: " << cycles / (double)CLOCK << " ms";
+        std::cout << ", Samples: " << te.samples << std::endl;
+    }
+}
+
+APP("Benchmark:OneIteration") {
+    int testCount = 1;
+    ct::scope rootScope;
+    ObjConfig conf = ObjCollection::map.at("Buddha");
+
+    std::cout << "#############################################################" << std::endl;
+    std::cout << "#######                 Benchmark                     #######" << std::endl;
+    std::cout << "#############################################################" << std::endl;
+
+    //Load Mesh
+    {   
+        ct::scope s("Load Mesh");
+        auto planeMesh1 = conf.getMeshA();
+        auto planeMesh2 = conf.getMeshB();
+        printStats(s);
+    }
+    glow::timing::CpuTimer timer;
+    //Load Octree
+    SharedOctree octree;
+    {
+        ct::scope s("Build Octree");
+        octree = conf.getOctree();
+        printStats(s);
+    }
+    //Cut Mesh
+    {
+        ct::scope s("Cut Mesh");
+        auto iCut = octree->cutPolygons();
+        printStats(s);
+    }
+    
+    auto trace = rootScope.trace();
+    auto c = trace.elapsed_cycles();
+    auto m = std::chrono::duration_cast<std::chrono::milliseconds>(trace.time_end() - trace.time_start()).count();
+    auto t = timer.elapsedMillisecondsD() / 1000;
+    std::cout << std::endl;
+    std::cout << "----------- Total ---------- " << std::endl;
+    std::cout << "Time: " << m << "ms" << std::endl;
+    std::cout << "Time CTracer: " << c / (double)CLOCK << "ms (Maybe not exact. Dependent on constant CPU frequence)" << std::endl;
+    std::cout << "Time Without PM Load: " << t << "ms" << std::endl;
+    std::cout << "scope  cycles " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G" << std::endl;
 }
