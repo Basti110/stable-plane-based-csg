@@ -48,6 +48,16 @@ int8_t OctreeNode::polygonInAABB(int meshIdx, pm::face_index faceIdx)
     return (int8_t)intersection;
 }
 
+int8_t OctreeNode::polygonInAABBNew(int meshIdx, pm::face_index faceIdx)
+{
+    PlaneMesh* planeMesh = meshIdx == mOctree->mMeshA->id() ? mOctree->mMeshA : mOctree->mMeshB;
+    pm::face_handle face = faceIdx.of(planeMesh->mesh());
+    auto isBehindPlane = [=](const Plane& p) -> bool {
+
+    };
+    return 0;
+}
+
 void OctreeNode::setParent(SharedBranchNode node)
 {
     mParentNode = node;

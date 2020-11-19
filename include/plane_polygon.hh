@@ -66,11 +66,11 @@ public:
         TRACE("[MESH] Init Plane Mesh");
         mID = instances;
         instances++;
-
         mMesh.copy_from(m);
         auto vertices1 = mMesh.all_vertices();
         auto vertices2 = m.all_vertices();
         TG_ASSERT(vertices1.size() == vertices2.size());
+        //TRACE("[MESH] Init Plane Mesh 2");
         for (int i = 0; i < vertices1.size(); ++i) {
             auto dpos = pos[vertices2[i]] * scale;
             mPositions[vertices1[i]] = pos_t(dpos);
@@ -146,11 +146,9 @@ public:
     }
 
     void generatePlanes(pm::face_handle& face) {
-        if (face.idx.value == 3)
-            int i = 4;
         pm::face_edge_ring edgeRing = face.edges();
         TG_ASSERT(edgeRing.count() >= 3);
-
+        //TRACE("[MESH] Compute Plane 1");
         auto randomEdge = face.any_halfedge();
         auto t1 = randomEdge.vertex_from();
         auto t2 = randomEdge.vertex_to();
@@ -171,7 +169,26 @@ public:
             auto to = mPositions[it.handle.vertex_to()];
             auto anotherPos = from + approxNormalDir;
             if (mEdges[edgeHandle] == mEdges.get_default_value()) {
-                mEdges[edgeHandle] = Plane::from_points(from, to, anotherPos);
+                //TRACE("[MESH] Compute Plane 2");
+                /*pm::face_handle oF = it.handle.opposite().face();
+                Plane t1 = mFaces.get_default_value();
+                Plane t2 = mFaces[oF];
+                if (!(mFaces[oF] == mFaces.get_default_value())) {
+                    int i = 3;
+                }
+                if (oF.is_valid() && !(mFaces[oF] == mFaces.get_default_value())) {
+                    TRACE("TEST");
+                    if (!ob::are_parallel(mFaces[face], mFaces[oF])) {
+                        mEdges[edgeHandle] = mFaces[oF];
+                        if (ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0)
+                            mHalfEdges[it.handle] = 1;
+                        else
+                            mHalfEdges[it.handle] = -1;
+                        continue;
+                    }                       
+                }*/
+
+                mEdges[edgeHandle] = Plane::from_points_no_gcd(from, to, anotherPos);
                 //TG_ASSERT(!ob::are_parallel(mFaces[face], mEdges[edgeHandle]));
                 //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], posInFace) < 0); //TODO 
                 //TG_ASSERT(ob::signed_distance(mEdges[edgeHandle], mPositions[it.handle.next().vertex_to()]) < 0); //TODO: Remove
@@ -180,6 +197,7 @@ public:
                 mHalfEdges[it.handle] = 1;
             }
             else {
+                //TRACE("[MESH] Compute Plane 3");
                 if (ob::are_parallel(mFaces[face], mEdges[edgeHandle]))
                     findNewEdgePlane(it.handle, face);
 
@@ -697,8 +715,9 @@ private:
             auto pos1 = mPositions[vh0];
             auto pos2 = mPositions[vh1];
             auto pos3 = mPositions[vh2];
-
-            mFaces[f] = Plane::from_points(pos1, pos2, pos3);
+            //TRACE("Generate Face 1");
+            mFaces[f] = Plane::from_points_no_gcd(pos1, pos2, pos3);
+            //TRACE("Generate Face 2");
             generatePlanes(f);
         }
         //std::cout << "normal: " << debugNormalEdges << std::endl;

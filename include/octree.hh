@@ -109,6 +109,7 @@ public:
     bool isInTree();
     bool hasParent();
     int8_t polygonInAABB(int meshIdx, pm::face_index faceIdx);
+    int8_t polygonInAABBNew(int meshIdx, pm::face_index faceIdx);
     bool isValid() { return mIsValid; }
     void setParent(SharedBranchNode node);
     void setChildIndex(uint8_t i) { mChildIndex = i; }

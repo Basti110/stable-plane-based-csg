@@ -143,6 +143,10 @@ public:
         gv::view(gv::lines(mesh->positions()).line_width_world(100000));
         gv::view(boundaryLines, gv::masked(boundaryEdges), tg::color3::color(0.0));
     }
+
+    double initMeshTime() {
+        return mInitMeshTime;
+    }
       
 private:
     void fillOctreeIfNotFilled() {  
@@ -176,34 +180,36 @@ private:
         if (mPlaneMeshA && mPlaneMeshB)
             return;
 
-        long long pmLoadTime = 0;       
+        long long meshInitTime = 0;       
         glow::timing::CpuTimer timer;
         if (!mPlaneMeshA) {
             pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            
             {
                 TRACE("[ObjConfig] PM Load Mesh 1");
                 pm::load(mPathObj1, *mMeshA, pos1);
             }          
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            pmLoadTime += std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count();
             transformation(pos1, mTransformation1);
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             mPlaneMeshA = std::make_shared<PlaneMesh>(*mMeshA, pos1, mScale);
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            meshInitTime += std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count();
         }
 
         if (!mPlaneMeshB && mNumObjects == 2) {
             pm::vertex_attribute<tg::pos3> pos2(*mMeshB);
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             {
                 TRACE("[ObjConfig] PM Load Mesh 2");
                 pm::load(mPathObj2, *mMeshB, pos2);
             }           
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            pmLoadTime += std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count();
             transformation(pos2, mTransformation2);
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, pos2, mScale);
-            TG_ASSERT(mPlaneMeshB->allFacesAreValid());
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            meshInitTime += std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count();
+            //TG_ASSERT(mPlaneMeshB->allFacesAreValid());
         }      
+        mInitMeshTime = meshInitTime / (double)1000;
         //std::cout << "Load Meshes in " << timer.elapsedMilliseconds() << "ms" << std::endl;
         //std::cout << " -- PM load in " << pmLoadTime / 1000.0 << "ms" << std::endl;
     }
@@ -212,6 +218,7 @@ private:
 
 private:
     int mNumObjects = 1;
+    double mInitMeshTime = 0;
     std::shared_ptr<pm::Mesh> mMeshA = std::make_shared<pm::Mesh>();
     std::shared_ptr<pm::Mesh> mMeshB = std::make_shared<pm::Mesh>();
     SharedPlaneMesh mPlaneMeshA;
