@@ -50,12 +50,45 @@ int8_t OctreeNode::polygonInAABB(int meshIdx, pm::face_index faceIdx)
 
 int8_t OctreeNode::polygonInAABBNew(int meshIdx, pm::face_index faceIdx)
 {
+    int8_t childBits = 0xFF;
     PlaneMesh* planeMesh = meshIdx == mOctree->mMeshA->id() ? mOctree->mMeshA : mOctree->mMeshB;
     pm::face_handle face = faceIdx.of(planeMesh->mesh());
-    auto isBehindPlane = [=](const Plane& p) -> bool {
-
+    auto signToPlane = [=](const Plane& p) -> int8_t {
+        int signCount = 0;
+        int counter = 0;
+        for (auto& v : face.vertices()) {
+            signCount += planeMesh->getSign(v, p);
+            counter++;
+        }
+        if (signCount == counter)
+            return 1;
+        else if (signCount * -1 == counter)
+            return -1;
+        return 0;
     };
-    return 0;
+    auto dVec = mAABB.max - ((mAABB.max - mAABB.min) / 2);
+
+    Plane xPlane = Plane{ 1, 0, 0, Plane::distance_t(dVec.x) };
+    auto sign = signToPlane(xPlane);
+    if (sign == 1)
+        childBits &= 0b10101010;
+    else if(sign == -1)
+        childBits &= 0b01010101;
+    Plane yPlane = Plane{ 0, 1, 0, Plane::distance_t(dVec.y) };
+    sign = signToPlane(xPlane);
+    if (sign == 1)
+        childBits &= 0b11001100;
+    else if (sign == -1)
+        childBits &= 0b00110011;
+    Plane zPlane = Plane{ 0, 0, 1, Plane::distance_t(dVec.z) };
+    sign = signToPlane(xPlane);
+    if (sign == 1)
+        childBits &= 011110000;
+    else if (sign == -1)
+        childBits &= 0b00001111;
+    
+    TG_ASSERT(childBits != 0);
+    return childBits;
 }
 
 void OctreeNode::setParent(SharedBranchNode node)
