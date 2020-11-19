@@ -313,7 +313,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("Buddha");
+    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -366,5 +366,7 @@ APP("Benchmark:OneIteration") {
     std::cout << "Time CTracer: " << c / (double)CLOCK << "ms (Maybe not exact. Dependent on constant CPU frequence)" << std::endl;
     std::cout << "Time Without PM Load: " << t + conf.initMeshTime() << "ms" << std::endl;
     std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
-    //components->renderFinalResult(iCut);
+    conf.getOctree()->printOctreeStats();
+    conf.viewMesh(true);
+    components->renderFinalResult(iCut);
 }

@@ -86,6 +86,8 @@ public:
 
     void viewMesh(bool showOctree = false) {
         loadMeshIfNotLoaded();
+        mPlaneMeshA->checkAndComputePositions();
+        mPlaneMeshB->checkAndComputePositions();
         int sizeV = mPlaneMeshA->positions().count();
         int sizeF = mPlaneMeshA->faces().count();
         auto view = gv::view(mPlaneMeshA->positions());

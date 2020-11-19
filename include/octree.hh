@@ -1201,7 +1201,16 @@ public:
         return *mMeshB;
     }
 
-private:    
+    void increaseSplitcount() {
+        mSplits++;
+    }
+
+    void printOctreeStats() {
+        std::cout << "Splits: " << mSplits << std::endl;
+        std::cout << "Smallest Cell Len: " << (double)mSmallestCellLen << std::endl;
+    }
+
+private:     
     bool mSplitOnlyOneMesh = false;
     friend class OctreeNode;
     friend class BranchNode;
@@ -1211,6 +1220,7 @@ private:
     PlaneMesh* mMeshB;
     int intersectionCounterTMP = 0;
     scalar_t mSmallestCellLen = 0;
+    int mSplits = 0;
     pm::face_attribute<std::vector<SharedLeafNode>> mFaceMeshAToNode;
     pm::face_attribute<std::vector<SharedLeafNode>> mFaceMeshBToNode;
 };

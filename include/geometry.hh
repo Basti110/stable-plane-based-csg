@@ -106,9 +106,9 @@ struct plane
         auto n = cross(p1 - p0, p2 - p0);
 
         // these assertions only work as long as the normal is less than 64 bit (for now)
-        TG_ASSERT(tg::abs(n.x) <= (i64(1) << geometry_t::bits_normal));
-        TG_ASSERT(tg::abs(n.y) <= (i64(1) << geometry_t::bits_normal));
-        TG_ASSERT(tg::abs(n.z) <= (i64(1) << geometry_t::bits_normal));
+        //TG_ASSERT(tg::abs(n.x) <= (i64(1) << geometry_t::bits_normal));
+        //TG_ASSERT(tg::abs(n.y) <= (i64(1) << geometry_t::bits_normal));
+        //TG_ASSERT(tg::abs(n.z) <= (i64(1) << geometry_t::bits_normal));
 
         //        auto const d = -dot(n, p0);
         auto const d = mul<8 * sizeof(distance_t)>(-n.x, p0.x) + //

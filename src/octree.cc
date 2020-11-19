@@ -68,26 +68,28 @@ int8_t OctreeNode::polygonInAABBNew(int meshIdx, pm::face_index faceIdx)
     };
     auto dVec = mAABB.max - ((mAABB.max - mAABB.min) / 2);
 
-    Plane xPlane = Plane{ 1, 0, 0, Plane::distance_t(dVec.x) };
+    Plane xPlane = Plane{ 1, 0, 0, Plane::distance_t(-dVec.x) };
     auto sign = signToPlane(xPlane);
     if (sign == 1)
         childBits &= 0b10101010;
     else if(sign == -1)
         childBits &= 0b01010101;
-    Plane yPlane = Plane{ 0, 1, 0, Plane::distance_t(dVec.y) };
-    sign = signToPlane(xPlane);
+    Plane yPlane = Plane{ 0, 1, 0, Plane::distance_t(-dVec.y) };
+    sign = signToPlane(yPlane);
     if (sign == 1)
         childBits &= 0b11001100;
     else if (sign == -1)
         childBits &= 0b00110011;
-    Plane zPlane = Plane{ 0, 0, 1, Plane::distance_t(dVec.z) };
-    sign = signToPlane(xPlane);
+    Plane zPlane = Plane{ 0, 0, 1, Plane::distance_t(-dVec.z) };
+    sign = signToPlane(zPlane);
     if (sign == 1)
-        childBits &= 011110000;
+        childBits &= 0b011110000;
     else if (sign == -1)
         childBits &= 0b00001111;
     
     TG_ASSERT(childBits != 0);
+    if (childBits == 0xFF)
+        int i = 5;
     return childBits;
 }
 
@@ -165,6 +167,7 @@ SharedBranchNode LeafNode::split()
     mFacesMeshA.clear();
     mFacesMeshB.clear();
     mIsValid = false;
+    mOctree->increaseSplitcount();
     return branchNode;
 }
 
@@ -313,7 +316,8 @@ SharedBranchNode BranchNode::parent()
 
 void BranchNode::pushDown(int meshIdx, pm::face_index faceIdx)
 {
-    for (int i = 0; i < 8; i++) {
+    //Old
+    /*for (int i = 0; i < 8; i++) {
         
         SharedOctreeNode childNode = mChildNodes[i];
         auto iResult = ob::intersection_result(childNode->polygonInAABB(meshIdx, faceIdx));
@@ -331,6 +335,19 @@ void BranchNode::pushDown(int meshIdx, pm::face_index faceIdx)
             }  
             if (iResult == ob::intersection_result::proper_contains)
                 return;
+        }
+    }*/
+    int8_t childCells = polygonInAABBNew(meshIdx, faceIdx);
+    for (int8_t i = 0; i < 8; ++i) {
+        if ((childCells >> i) & 1 == 1) {
+            SharedOctreeNode childNode = mChildNodes[i];
+            if (childNode->nodeBase() == NodeType::LEAF) {
+                insertInLeaf(i, meshIdx, faceIdx);
+            }
+            else if (childNode->nodeBase() == NodeType::BRANCH) {
+                auto branchChild = std::dynamic_pointer_cast<BranchNode>(childNode);
+                branchChild->pushDown(meshIdx, faceIdx);
+            }
         }
     }
     return;
