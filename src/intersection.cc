@@ -197,7 +197,7 @@ void IntersectionObject::setStateOnIntersection(TrianlgeIntersectionPlanar::Plan
     else
         TG_ASSERT(false && "A line can not intersect more than 2 edges in a convex polygon");
 }
-
+//marked only for the case:  --|--->|
 SharedTriIntersect IntersectionObject::getClassifiedEdgesFromSignChange(std::vector<int8_t>& signsFirstPoint,
     const std::vector<pm::halfedge_handle>& edges1,
     const std::vector<pm::halfedge_handle>& edges2)
