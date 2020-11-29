@@ -53,35 +53,41 @@ int8_t OctreeNode::polygonInAABBNew(int meshIdx, pm::face_index faceIdx)
     int8_t childBits = 0xFF;
     PlaneMesh* planeMesh = meshIdx == mOctree->mMeshA->id() ? mOctree->mMeshA : mOctree->mMeshB;
     pm::face_handle face = faceIdx.of(planeMesh->mesh());
-    auto signToPlane = [=](const Plane& p) -> int8_t {
+    auto h = face.any_halfedge();
+    auto p0 = planeMesh->posInt(h.vertex_from());
+    auto p1 = planeMesh->posInt(h.vertex_to());
+    auto p2 = planeMesh->posInt(h.next().vertex_to());
+
+    auto signToPlane = [=](const scalar_t& planePos, int index) -> int8_t {
         int signCount = 0;
-        int counter = 0;
-        for (auto& v : face.vertices()) {
-            signCount += planeMesh->getSign(v, p);
-            counter++;
-        }
-        if (signCount == counter)
+        auto t1 = p0[index];
+        auto t2 = p1[index];
+        auto t3 = p2[index];
+        signCount += planePos < p0[index] ? 1 : planePos > p0[index] ? -1 : 0;
+        signCount += planePos < p1[index] ? 1 : planePos > p1[index] ? -1 : 0;
+        signCount += planePos < p2[index] ? 1 : planePos > p2[index] ? -1 : 0;
+        if (signCount == 3)
             return 1;
-        else if (signCount * -1 == counter)
+        else if (signCount * -1 == 3)
             return -1;
         return 0;
     };
-    auto dVec = mAABB.max - ((mAABB.max - mAABB.min) / 2);
 
-    Plane xPlane = Plane{ 1, 0, 0, Plane::distance_t(-dVec.x) };
-    auto sign = signToPlane(xPlane);
+    auto dVec = (vec_t(mAABB.max) + vec_t(mAABB.min)) / 2;
+    //Plane xPlane = Plane{ 1, 0, 0, Plane::distance_t(-dVec.x) };
+    auto sign = signToPlane(dVec.x, 0);
     if (sign == 1)
         childBits &= 0b10101010;
     else if(sign == -1)
         childBits &= 0b01010101;
-    Plane yPlane = Plane{ 0, 1, 0, Plane::distance_t(-dVec.y) };
-    sign = signToPlane(yPlane);
+    //Plane yPlane = Plane{ 0, 1, 0, Plane::distance_t(-dVec.y) };
+    sign = signToPlane(dVec.y, 1);
     if (sign == 1)
         childBits &= 0b11001100;
     else if (sign == -1)
         childBits &= 0b00110011;
-    Plane zPlane = Plane{ 0, 0, 1, Plane::distance_t(-dVec.z) };
-    sign = signToPlane(zPlane);
+    //Plane zPlane = Plane{ 0, 0, 1, Plane::distance_t(-dVec.z) };
+    sign = signToPlane(dVec.z, 2);
     if (sign == 1)
         childBits &= 0b011110000;
     else if (sign == -1)
@@ -321,6 +327,15 @@ void BranchNode::pushDown(int meshIdx, pm::face_index faceIdx)
         
         SharedOctreeNode childNode = mChildNodes[i];
         auto iResult = ob::intersection_result(childNode->polygonInAABB(meshIdx, faceIdx));
+
+        if (iResult == ob::intersection_result::non_intersecting)
+            mOctree->mNonIntersecting++;
+        if (iResult == ob::intersection_result::proper_contains)
+            mOctree->mProperContains++;
+        if (iResult == ob::intersection_result::proper_intersection)
+            mOctree->mProperIntersection++;
+        if (iResult == ob::intersection_result::touching)
+            mOctree->mTouching++;
         
         if (iResult != ob::intersection_result::non_intersecting) {
             if (childNode->nodeBase() == NodeType::LEAF) {
@@ -339,8 +354,20 @@ void BranchNode::pushDown(int meshIdx, pm::face_index faceIdx)
     }*/
     int8_t childCells = polygonInAABBNew(meshIdx, faceIdx);
     for (int8_t i = 0; i < 8; ++i) {
-        if ((childCells >> i) & 1 == 1) {
+        if ((childCells >> i) & 1 == 1) {            
             SharedOctreeNode childNode = mChildNodes[i];
+            auto iResult = ob::intersection_result(childNode->polygonInAABB(meshIdx, faceIdx));
+            if (iResult == ob::intersection_result::non_intersecting)
+                mOctree->mNonIntersecting++;
+            if (iResult == ob::intersection_result::proper_contains)
+                mOctree->mProperContains++;
+            if (iResult == ob::intersection_result::proper_intersection)
+                mOctree->mProperIntersection++;
+            if (iResult == ob::intersection_result::touching)
+                mOctree->mTouching++;
+            if (iResult == ob::intersection_result::non_intersecting)
+                continue;
+
             if (childNode->nodeBase() == NodeType::LEAF) {
                 insertInLeaf(i, meshIdx, faceIdx);
             }

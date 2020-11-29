@@ -1208,6 +1208,10 @@ public:
     void printOctreeStats() {
         std::cout << "Splits: " << mSplits << std::endl;
         std::cout << "Smallest Cell Len: " << (double)mSmallestCellLen << std::endl;
+        std::cout << "Proper Contains: " << mProperContains << std::endl;
+        std::cout << "Proper Intersection: " << mProperIntersection << std::endl;
+        std::cout << "Non Intersecting: " << mNonIntersecting << std::endl;       
+        std::cout << "Touching: " << mTouching << std::endl;
     }
 
 private:     
@@ -1218,6 +1222,10 @@ private:
     SharedBranchNode mRoot;
     PlaneMesh* mMeshA;
     PlaneMesh* mMeshB;
+    int mTouching = 0;
+    int mProperContains = 0;
+    int mNonIntersecting = 0;
+    int mProperIntersection = 0;
     int intersectionCounterTMP = 0;
     scalar_t mSmallestCellLen = 0;
     int mSplits = 0;
