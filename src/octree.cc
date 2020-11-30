@@ -54,18 +54,30 @@ int8_t OctreeNode::polygonInAABBNew(int meshIdx, pm::face_index faceIdx)
     PlaneMesh* planeMesh = meshIdx == mOctree->mMeshA->id() ? mOctree->mMeshA : mOctree->mMeshB;
     pm::face_handle face = faceIdx.of(planeMesh->mesh());
     auto h = face.any_halfedge();
-    auto p0 = planeMesh->posInt(h.vertex_from());
-    auto p1 = planeMesh->posInt(h.vertex_to());
-    auto p2 = planeMesh->posInt(h.next().vertex_to());
+    auto center = vec_t(mAABB.max) + vec_t(mAABB.min); 
+    auto const p0 = pos_t(scalar_t(planeMesh->posInt(h.vertex_from()).x) << 1, //
+        scalar_t(planeMesh->posInt(h.vertex_from()).y) << 1, //
+        scalar_t(planeMesh->posInt(h.vertex_from()).z) << 1)
+        - center;
 
-    auto signToPlane = [=](const scalar_t& planePos, int index) -> int8_t {
+    auto const p1 = pos_t(scalar_t(planeMesh->posInt(h.vertex_to()).x) << 1, //
+        scalar_t(planeMesh->posInt(h.vertex_to()).y) << 1, //
+        scalar_t(planeMesh->posInt(h.vertex_to()).z) << 1)
+        - center;
+
+    auto const p2 = pos_t(scalar_t(planeMesh->posInt(h.next().vertex_to()).x) << 1, //
+        scalar_t(planeMesh->posInt(h.next().vertex_to()).y) << 1, //
+        scalar_t(planeMesh->posInt(h.next().vertex_to()).z) << 1)
+        - center;
+
+    auto signToPlane = [=](int index) -> int8_t {
         int signCount = 0;
         auto t1 = p0[index];
         auto t2 = p1[index];
         auto t3 = p2[index];
-        signCount += planePos < p0[index] ? 1 : planePos > p0[index] ? -1 : 0;
-        signCount += planePos < p1[index] ? 1 : planePos > p1[index] ? -1 : 0;
-        signCount += planePos < p2[index] ? 1 : planePos > p2[index] ? -1 : 0;
+        signCount += p0[index] > 0 ? 1 : p0[index] < 0 ? -1 : 0;
+        signCount += p1[index] > 0 ? 1 : p1[index] < 0 ? -1 : 0;
+        signCount += p2[index] > 0 ? 1 : p2[index] < 0 ? -1 : 0;
         if (signCount == 3)
             return 1;
         else if (signCount * -1 == 3)
@@ -73,21 +85,21 @@ int8_t OctreeNode::polygonInAABBNew(int meshIdx, pm::face_index faceIdx)
         return 0;
     };
 
-    auto dVec = (vec_t(mAABB.max) + vec_t(mAABB.min)) / 2;
+    
     //Plane xPlane = Plane{ 1, 0, 0, Plane::distance_t(-dVec.x) };
-    auto sign = signToPlane(dVec.x, 0);
+    auto sign = signToPlane(0);
     if (sign == 1)
         childBits &= 0b10101010;
     else if(sign == -1)
         childBits &= 0b01010101;
     //Plane yPlane = Plane{ 0, 1, 0, Plane::distance_t(-dVec.y) };
-    sign = signToPlane(dVec.y, 1);
+    sign = signToPlane(1);
     if (sign == 1)
         childBits &= 0b11001100;
     else if (sign == -1)
         childBits &= 0b00110011;
     //Plane zPlane = Plane{ 0, 0, 1, Plane::distance_t(-dVec.z) };
-    sign = signToPlane(dVec.z, 2);
+    sign = signToPlane(2);
     if (sign == 1)
         childBits &= 0b011110000;
     else if (sign == -1)
