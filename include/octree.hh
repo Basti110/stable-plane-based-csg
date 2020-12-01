@@ -100,6 +100,7 @@ public:
     virtual NodeType nodeBase() = 0;
     virtual SharedBranchNode parent() { return mParentNode.lock(); }
     virtual void cutPolygons(IntersectionCut& lookup) {};
+    virtual void repairCell(const IntersectionCut& cut) {}
     virtual void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {}
     virtual int countIntersections(SharedIntersectionList intersectionList) { return 0; }
     virtual BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) { return { AABB(), -1 }; }
@@ -321,6 +322,8 @@ public:
         }
     }
 
+    void repairCell(const IntersectionCut& cut) override; 
+
     /*void splitAccordingToIntersection() {
         std::vector<pm::face_index> Triangles = mFacesMeshA;
         //std::set<pm::face_index> checkedTriangles;
@@ -376,6 +379,11 @@ public:
     void cutPolygons(IntersectionCut& lookup) override {
         for (auto child : mChildNodes)
             child->cutPolygons(lookup);
+    }
+
+    void repairCell(const IntersectionCut& cut) override {
+        for (auto child : mChildNodes)
+            child->repairCell(cut);
     }
 
     BoxAndDistance getNearestBoundingBox(tg::vec3 ray, pos_t origin) override {
@@ -1212,6 +1220,30 @@ public:
         std::cout << "Proper Intersection: " << mProperIntersection << std::endl;
         std::cout << "Non Intersecting: " << mNonIntersecting << std::endl;       
         std::cout << "Touching: " << mTouching << std::endl;
+    }
+
+    using FaceLookUpType = std::unordered_map<int, std::vector<pm::face_handle>>;
+    void fillFacesFromLookupInVec(std::vector<pm::face_index>& vec, const pm::face_handle& index, const FaceLookUpType& lookup, bool isMeshA) {
+        if (lookup.count(index.idx.value) == 0) {
+            TG_ASSERT(index.is_valid());
+            TG_ASSERT(!index.is_removed());
+            vec.push_back(index);
+            return;
+        }
+
+        const std::vector<pm::face_handle>& faceVec = lookup.at(index.idx.value);
+      
+        for (const pm::face_handle& face : faceVec) {
+            fillFacesFromLookupInVec(vec, face, lookup, isMeshA);
+            if (isMeshA)
+                mFaceMeshAToNode[face] = mFaceMeshAToNode[index];
+            else
+                mFaceMeshBToNode[face] = mFaceMeshBToNode[index];
+        }
+    }
+
+    void repairOctree(const IntersectionCut& cut) {
+        mRoot->repairCell(cut);
     }
 
 private:     

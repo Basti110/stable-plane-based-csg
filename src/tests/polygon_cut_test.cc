@@ -316,60 +316,48 @@ TEST("Test::Cut_Triangle_Normal_Marker_Case4") {
 }
 
 TEST("Test::Co_Planar_Cut") {
-
     scalar_t scale = 100;
-    std::vector<pos_t> polygon1_1(3);
-    polygon1_1[0] = pos_t{ -10, 0, -15 } * scale;
-    polygon1_1[1] = pos_t{ 0, 0, 0 } * scale;
-    polygon1_1[2] = pos_t{ 10, 0, -15 } * scale;
+    auto meshA = pm::Mesh();
+    pm::vertex_attribute<tg::pos3> mPosA(meshA);
+    pm::vertex_handle v1_1 = meshA.vertices().add();
+    pm::vertex_handle v1_2 = meshA.vertices().add();
+    pm::vertex_handle v1_3 = meshA.vertices().add();
+    pm::vertex_handle v1_4 = meshA.vertices().add();
+    mPosA[v1_1] = tg::pos3{ -10, 0, -15 };
+    mPosA[v1_2] = tg::pos3{ 0, 0, 0 };
+    mPosA[v1_3] = tg::pos3{ 10, 0, -15 };
+    mPosA[v1_4] = tg::pos3{ 0, -5, -7 };
+    meshA.faces().add(v1_1, v1_2, v1_3);
+    meshA.faces().add(v1_1, v1_4, v1_2);
+    meshA.faces().add(v1_2, v1_4, v1_3);
+    meshA.faces().add(v1_3, v1_4, v1_1);
 
-    std::vector<pos_t> polygon1_2(3);
-    polygon1_2[0] = pos_t{ -10, 0, -15 } *scale;
-    polygon1_2[1] = pos_t{ 0, -5, -7 } *scale;
-    polygon1_2[2] = pos_t{ 10, 0, -15 } *scale;
+    auto meshB = pm::Mesh();
+    pm::vertex_attribute<tg::pos3> mPosB(meshB);
+    v1_1 = meshB.vertices().add();
+    v1_2 = meshB.vertices().add();
+    v1_3 = meshB.vertices().add();
+    v1_4 = meshB.vertices().add();
+    pm::vertex_handle v1_5 = meshB.vertices().add();
+    pm::vertex_handle v1_6 = meshB.vertices().add();
+    mPosB[v1_1] = tg::pos3{ -3, 0, -10 };
+    mPosB[v1_2] = tg::pos3{ 3, 0, -10 };
+    mPosB[v1_3] = tg::pos3{ 0, 0, -4 };
+    mPosB[v1_4] = tg::pos3{ 0, 3, -10 };
+    mPosB[v1_5] = tg::pos3{ -4, -1, -12 };
+    mPosB[v1_6] = tg::pos3{ 4, -1, -12 };
+    meshB.faces().add(v1_1, v1_2, v1_3);
+    meshB.faces().add(v1_2, v1_4, v1_3);
+    meshB.faces().add(v1_3, v1_4, v1_1);
+    //New Faces
+    meshB.faces().add(v1_1, v1_5, v1_2);
+    meshB.faces().add(v1_5, v1_6, v1_2);
+    meshB.faces().add(v1_4, v1_2, v1_6);
+    meshB.faces().add(v1_4, v1_5, v1_1);
+    meshB.faces().add(v1_4, v1_6, v1_5);
 
-    std::vector<pos_t> polygon1_3(3);
-    polygon1_3[0] = pos_t{ -10, 0, -15 } *scale;
-    polygon1_3[1] = pos_t{ 0, 0, 0 } *scale;
-    polygon1_3[2] = pos_t{ 0, -5, -7 } *scale;
-
-    std::vector<pos_t> polygon1_4(3);
-    polygon1_4[0] = pos_t{ 0, -5, -7 } *scale;
-    polygon1_4[1] = pos_t{ 0, 0, 0 } *scale;
-    polygon1_4[2] = pos_t{ 10, 0, -15 } *scale;
-
-    std::vector<pos_t> polygon2_1(3);
-    polygon2_1[0] = pos_t{ -3, 0, -10 } * scale;
-    polygon2_1[1] = pos_t{ 0, 0, -5 } * scale;
-    polygon2_1[2] = pos_t{ 3, 0, -10 } * scale;
-
-    std::vector<pos_t> polygon2_2(3);
-    polygon2_2[0] = pos_t{ -3, 0, -10 } *scale;
-    polygon2_2[1] = pos_t{ 0, 3, -7 } *scale;
-    polygon2_2[2] = pos_t{ 3, 0, -10 } *scale;
-
-    std::vector<pos_t> polygon2_3(3);
-    polygon2_3[0] = pos_t{ -3, 0, -10 } *scale;
-    polygon2_3[1] = pos_t{ 0, 0, -5 } *scale;
-    polygon2_3[2] = pos_t{ 0, 3, -7 } *scale;
-
-    std::vector<pos_t> polygon2_4(3);
-    polygon2_4[0] = pos_t{ 0, 3, -7 } *scale;
-    polygon2_4[1] = pos_t{ 0, 0, -5 } *scale;
-    polygon2_4[2] = pos_t{ 3, 0, -10 } *scale;
-
-    PlaneMesh planeMesh1;
-    PlaneMesh planeMesh2;
-
-    planeMesh1.insertPolygon(polygon1_1);
-    planeMesh1.insertPolygon(polygon1_2);
-    planeMesh1.insertPolygon(polygon1_3);
-    planeMesh1.insertPolygon(polygon1_4);
-    planeMesh2.insertPolygon(polygon2_1);
-    planeMesh2.insertPolygon(polygon2_2);
-    planeMesh2.insertPolygon(polygon2_3);
-    planeMesh2.insertPolygon(polygon2_4);
-
+    PlaneMesh planeMesh1(meshA, mPosA, scale);
+    PlaneMesh planeMesh2(meshB, mPosB, scale);
 
     auto octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, AABB{ {-3200, -3200, -3200}, {3200, 3200, 3200} });
 
@@ -382,7 +370,8 @@ TEST("Test::Co_Planar_Cut") {
     }
 
     auto iCut = octree->cutPolygons();
-
+    planeMesh1.checkAndComputePositions();
+    planeMesh2.checkAndComputePositions();
     std::vector<AABB> boxes;
     octree->insertAABB(boxes);
 
@@ -393,22 +382,27 @@ TEST("Test::Co_Planar_Cut") {
         returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
     }
 
+    std::vector<gv::label> labels;
+    for (auto v : planeMesh1.mesh().all_vertices())
+        if(v.idx.value == 2)
+            labels.push_back(gv::label{ std::string("Mesh1 V") + std::to_string(v.idx.value), {}, tg::pos3(planeMesh1.posInt(v)) });
+
     {
         auto view = gv::view(planeMesh1.positions());
-        gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(5));
         gv::view(planeMesh2.positions());
-        gv::view(gv::lines(planeMesh2.positions()).line_width_world(10));
+        gv::view(gv::lines(planeMesh2.positions()).line_width_world(5));
         gv::view(gv::lines(returnBoxes).line_width_world(10), tg::color3::blue, "gv::lines(pos)");
+        gv::view(labels);
     }
-
+    octree->repairOctree(iCut);
     std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(planeMesh1, iCut.getIntersectionEdgesMarkerA());
     std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(planeMesh2, iCut.getIntersectionEdgesMarkerB());
     auto components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
-    components->renderFinalResult(iCut);
+    components->renderFinalResult(iCut, 1);
 
-    //planeMesh1.checkAndComputePositions();
-    //planeMesh2.checkAndComputePositions();
 
+    
     auto view = gv::view(planeMesh1.positions());
     gv::view(gv::lines(planeMesh1.positions()).line_width_world(10));
     //gv::view(gv::lines(planeMesh1.positions()).line_width_world(20), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));

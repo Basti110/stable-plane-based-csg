@@ -136,7 +136,7 @@ public:
 		return faceColors;
 	}
 
-    void renderFinalResult(const IntersectionCut& iCut) {
+    void renderFinalResult(const IntersectionCut& iCut, int scale = 1000) {
         auto colorsA = getColorToStateA();
         auto colorsB = getColorToStateB();
 
@@ -149,18 +149,18 @@ public:
         auto const positions1MaskedIn = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
         auto const positions1MaskedOut = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
         auto const positions1 = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
-        auto const positionLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(200000));
-        auto const positionLines1Small = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(40000));
+        auto const positionLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(20 * scale));
+        auto const positionLines1Small = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(4 * scale));
         
         
         
         auto const positions2MaskedIn = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
         auto const positions2MaskedOut = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
         auto const positions2 = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
-        auto const positionLines2 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(200000));
-        auto const positionLines2Small = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(40000));
+        auto const positionLines2 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(20 * scale));
+        auto const positionLines2Small = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(4 * scale));
 
-        auto const isectLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(300000));
+        auto const isectLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(30 * scale));
         int tooglePolygons = 0;
         bool toogleLines = true;
         bool showIntersection = true;

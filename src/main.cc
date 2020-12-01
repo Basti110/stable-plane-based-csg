@@ -54,7 +54,7 @@ int main() {
     //tests.run();
     //test_octree();
     
-    char* argv[] = { "main", "Image::Intersection" };
+    //char* argv[] = { "main", "Image::Intersection" };
     //char* argv[] = { "main", "Image::Touching_Face" };
     //char* argv[] = { "main", "App::Plane_Geometry_Visu"};
     //char* argv[] = { "main", "App::Picker" };
@@ -62,7 +62,7 @@ int main() {
     //char* argv[] = { "main", "App::component_classification" };
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
     //char* argv[] = { "main", "Benchmark:OneIteration" };
-    //char* argv[] = { "main", "Test::Co_Planar_Cut" };
+    char* argv[] = { "main", "Test::Co_Planar_Cut" };
     //char* argv[] = { "main", "Test::Cut_Triangle_Normal_Marker_Case4" };
     //char* argv[] = { "main", "App::Show_Mesh" };
     //char* argv[] = { "main", "App::count_intersections" };

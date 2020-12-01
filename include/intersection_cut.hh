@@ -58,6 +58,14 @@ public:
         return mIntersectionEdgesMarkerB;
     }
 
+    const std::unordered_map<int, std::vector<pm::face_handle>>& getLookUpA() const {
+        return mLookupFacesA;
+    }
+
+    const std::unordered_map<int, std::vector<pm::face_handle>>& getLookUpB() const{
+        return mLookupFacesB;
+    }
+
 private:
     pm::vertex_handle splitHalfEdgeLowAPI(pm::Mesh& mesh, pm::halfedge_handle& h);
     pm::face_handle addFaceFromCycleAndStopPoint(pm::Mesh& mesh, pm::halfedge_handle& startEdge, pm::vertex_handle stopVertex);

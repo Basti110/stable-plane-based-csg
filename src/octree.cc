@@ -241,6 +241,26 @@ int LeafNode::countIntersections(SharedIntersectionList intersectionList)
     return intersectionCount;
 }
 
+void LeafNode::repairCell(const IntersectionCut& cut)
+{
+    std::vector<pm::face_index> faces1;
+    std::vector<pm::face_index> faces2;
+    faces1.reserve(mFacesMeshA.size());
+    faces2.reserve(mFacesMeshB.size());
+
+
+    //TODO: Cann remove first IF
+    for (pm::face_index& faceIndex : mFacesMeshA) {
+        mOctree->fillFacesFromLookupInVec(faces1, faceIndex.of(mOctree->mMeshA->mesh()), cut.getLookUpA(), true);
+    }
+
+    for (pm::face_index& faceIndex : mFacesMeshB) {
+        mOctree->fillFacesFromLookupInVec(faces2, faceIndex.of(mOctree->mMeshB->mesh()), cut.getLookUpB(), false);
+    }
+    mFacesMeshA = faces1;
+    mFacesMeshB = faces2;   
+}
+
 NearestFace LeafNode::getNearestFace(tg::vec3 ray, pos_t origin) {
     NearestFace currentNearest = { -1, pm::face_index(), -1 };
     
