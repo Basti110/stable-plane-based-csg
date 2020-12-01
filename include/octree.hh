@@ -1231,6 +1231,9 @@ public:
             return;
         }
 
+        //if (index.idx.value == 5)
+         //   int i = 1;
+
         const std::vector<pm::face_handle>& faceVec = lookup.at(index.idx.value);
       
         for (const pm::face_handle& face : faceVec) {

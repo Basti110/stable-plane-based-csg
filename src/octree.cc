@@ -250,6 +250,11 @@ void LeafNode::repairCell(const IntersectionCut& cut)
 
 
     //TODO: Cann remove first IF
+
+    //
+    // ######### Direkt eintragen lookups. Faces sind doch schon gesplitet.
+    //
+    // Optimierung: Schauen ob die wirklich noch in der Zelle sind. => Spart einsotieren
     for (pm::face_index& faceIndex : mFacesMeshA) {
         mOctree->fillFacesFromLookupInVec(faces1, faceIndex.of(mOctree->mMeshA->mesh()), cut.getLookUpA(), true);
     }

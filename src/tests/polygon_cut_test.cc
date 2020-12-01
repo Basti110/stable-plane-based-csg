@@ -382,10 +382,15 @@ TEST("Test::Co_Planar_Cut") {
         returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
     }
 
+    
     std::vector<gv::label> labels;
     for (auto v : planeMesh1.mesh().all_vertices())
         if(v.idx.value == 2)
             labels.push_back(gv::label{ std::string("Mesh1 V") + std::to_string(v.idx.value), {}, tg::pos3(planeMesh1.posInt(v)) });
+
+    for (auto v : planeMesh2.mesh().all_vertices())
+        if (v.idx.value == 3)
+            labels.push_back(gv::label{ std::string("Mesh2 V") + std::to_string(v.idx.value), {}, tg::pos3(planeMesh2.posInt(v)) });
 
     {
         auto view = gv::view(planeMesh1.positions());

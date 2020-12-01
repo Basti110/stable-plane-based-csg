@@ -61,8 +61,8 @@ int main() {
     //char* argv[] = { "main", "App::Picker_Cut" };
     //char* argv[] = { "main", "App::component_classification" };
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
-    //char* argv[] = { "main", "Benchmark:OneIteration" };
-    char* argv[] = { "main", "Test::Co_Planar_Cut" };
+    char* argv[] = { "main", "Benchmark:OneIteration" };
+    //char* argv[] = { "main", "Test::Co_Planar_Cut" };
     //char* argv[] = { "main", "Test::Cut_Triangle_Normal_Marker_Case4" };
     //char* argv[] = { "main", "App::Show_Mesh" };
     //char* argv[] = { "main", "App::count_intersections" };

@@ -526,8 +526,11 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
         }
     }
     else if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
-        SharedTriIntersectPlanar isectPlanar = std::static_pointer_cast<TrianlgeIntersectionPlanar>(intersection);
-        splitFaces = splitPlanar(isectPlanar, planeMeshInfo1, planeMeshInfo2);
+        //SharedTriIntersectPlanar isectPlanar = std::static_pointer_cast<TrianlgeIntersectionPlanar>(intersection);
+        //splitFaces = splitPlanar(isectPlanar, planeMeshInfo1, planeMeshInfo2);
+        splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
+        splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
+
     }
     /*TG_ASSERT(planeMeshInfo1.planeMesh.allHalfEdgesAreValid());
     TG_ASSERT(planeMeshInfo2.planeMesh.allHalfEdgesAreValid());
