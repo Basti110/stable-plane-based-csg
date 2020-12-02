@@ -710,7 +710,7 @@ public:
         });
     }
 
-    SharedLeafNode findLeafNodeMeshA(const pm::face_handle& face) {
+    /*SharedLeafNode findLeafNodeMeshA(const pm::face_handle& face) {
         if(mFaceMeshAToNode[face].size() > 0)
             return mFaceMeshAToNode[face][0];
         return SharedLeafNode();
@@ -720,7 +720,7 @@ public:
         if (mFaceMeshBToNode[face].size() > 0)
             return mFaceMeshBToNode[face][0];
         return SharedLeafNode();
-    }
+    }*/
 
     bool checkIfPointInPolygon(pm::face_handle face, PlaneMesh* mesh, SubDet& subDet) {
         for (auto halfEdge : face.halfedges()) {
@@ -870,19 +870,25 @@ public:
     }
 
     SharedLeafNode getRightCell(const pm::vertex_handle& origin, const PlaneMesh& planeMesh) {
-        bool isA = planeMesh.id() == mMeshA->id();
-        auto& faceToNode = isA ? mFaceMeshAToNode : mFaceMeshBToNode;
-        auto subDet = isA ? mMeshA->pos(origin) : mMeshB->pos(origin);
-        auto test = origin.any_incoming_halfedge().face();
-        for (auto node : faceToNode[test]) {
-            if (!node->isValid())
-                continue;
-
-            auto planes = node->getPlanes();
-            if(subDetInCell(subDet, planes))
-                return node;
+        SharedOctreeNode node = mRoot;       
+        while(node->nodeBase() != OctreeNode::NodeType::LEAF) {
+            int8_t child = 0;
+            auto aabb = node->aabb();
+            auto dVec = aabb.max - ((aabb.max - aabb.min) / 2);
+            Plane xPlane = Plane{ 1, 0, 0, Plane::distance_t(-dVec.x) };
+            Plane yPlane = Plane{ 0, 1, 0, Plane::distance_t(-dVec.y) };
+            Plane zPlane = Plane{ 0, 0, 1, Plane::distance_t(-dVec.z) };
+            if (planeMesh.getSign(origin, xPlane) > 0)
+                child |= 0x1;
+            if (planeMesh.getSign(origin, yPlane) > 0)
+                child |= 0x2;
+            if (planeMesh.getSign(origin, zPlane) > 0)
+                child |= 0x4;        
+            TG_ASSERT(node->nodeBase() == OctreeNode::NodeType::BRANCH);
+            auto branchNode = std::dynamic_pointer_cast<BranchNode>(node);
+            node = branchNode->childNode(child);
         }
-        return SharedLeafNode();
+        return std::dynamic_pointer_cast<LeafNode>(node);
     }
 
     static pos_t getPointFromPlaneIndex(int i1, int i2, SharedLeafNode node) {

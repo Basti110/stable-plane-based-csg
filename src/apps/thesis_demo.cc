@@ -367,6 +367,6 @@ APP("Benchmark:OneIteration") {
     std::cout << "Time Without PM Load: " << t + conf.initMeshTime() << "ms" << std::endl;
     std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
     conf.getOctree()->printOctreeStats();
-    conf.viewMesh(true);
-    components->renderFinalResult(iCut);
+    //conf.viewMesh(true);
+    //components->renderFinalResult(iCut);
 }
