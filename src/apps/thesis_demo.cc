@@ -313,7 +313,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
+    ObjConfig conf = ObjCollection::map.at("Buddha");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;

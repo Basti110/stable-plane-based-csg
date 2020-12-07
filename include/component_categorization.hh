@@ -136,7 +136,7 @@ public:
 		return faceColors;
 	}
 
-    void renderFinalResult(const IntersectionCut& iCut, int scale = 1000) {
+    void renderFinalResult(const IntersectionCut& iCut, float scale = 1000.f) {
         auto colorsA = getColorToStateA();
         auto colorsB = getColorToStateB();
         mSharedOctree->getPlaneMeshA().checkAndComputePositions();
@@ -151,101 +151,43 @@ public:
         auto colorAtrMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::black; }));
 
         //Maskes
-        auto maskFaceATrue = gv::masked(planeMeshA.allFaces().make_attribute_with_default(true));
-        auto maskFaceBTrue = gv::masked(planeMeshB.allFaces().make_attribute_with_default(true));
-        auto maskFaceAFalse = gv::masked(planeMeshA.allFaces().make_attribute_with_default(false));
-        auto maskFaceBFalse = gv::masked(planeMeshB.allFaces().make_attribute_with_default(false));
         auto maskFaceAIn = gv::masked(colorAtrMaskAIn);
         auto maskFaceBIn = gv::masked(colorAtrMaskBIn);
         auto maskFaceAOut = gv::masked(colorAtrMaskAOut);
         auto maskFaceBOut = gv::masked(colorAtrMaskBOut);
 
-
-
-
-        //auto const octreeCells = gv::lines(boxes).line_width_world(200000);
-
-        //auto const positions1MaskedIn = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
-        //auto const positions1MaskedOut = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
-        auto const positionsA = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
-        auto const positionLinesA = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(20 * scale));
+        auto positionsA = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
         auto const positionLinesASmall = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(4 * scale));
-        
-        
-        
-        //auto const positions2MaskedIn = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
-        //auto const positions2MaskedOut = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
-        auto const positionsB = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
-        auto const positionLinesB = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(20 * scale));
+                   
+        auto positionsB = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
         auto const positionLinesBSmall = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(4 * scale));
 
-
-
-        /*{
-            auto view = gv::view();
-            gv::view(positionsA, maskFaceAOut);
-            gv::view(positionsB, maskFaceBOut);
-        }*/
 
         auto const isectLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(30 * scale));
         isectLines1->addAttribute(gv::detail::make_mesh_attribute("aColor", glow::colors::color(0, 0, 0)));
 
-        int tooglePolygons = 1;
+        int tooglePolygons = 0;
+        int colorMode = 0;
         bool toogleLines = true;
         bool showIntersection = true;
 
 
-
         gv::interactive([&](auto dt) {
             auto view = gv::view();
-            if (tooglePolygons == 0) {
-                positionsA->setMasking(maskFaceATrue);
-                positionsA->clearHash();
-                positionsA->init();
-                positionsB->setMasking(maskFaceBTrue);
-                positionsB->clearHash();
-                positionsB->init();
-                gv::view(positionsA, gv::masked(planeMeshA.allFaces().make_attribute_with_default(true)));
-                gv::view(positionsB);
-
-            }
-            else if (tooglePolygons == 1) {
-                //positionsA->setMasking(maskFaceAOut);
-                //positionsB->setMasking(maskFaceBOut);
-                gv::view(positionsA, maskFaceAOut);
-                gv::view(positionsB, maskFaceBOut);
-                //gv::view(positions1MaskedOut, gv::masked(colorMaskAOut));
-                //gv::view(positions2MaskedOut, gv::masked(colorMaskBOut));
-            }
-            /*else if (tooglePolygons == 2) {
-                gv::view(positionsA, maskFaceAIn);
-                gv::view(positionsB, maskFaceBIn);
-            }
-            else if (tooglePolygons == 3) {
-                gv::view(positionsA, maskFaceAOut);
-                gv::view(positionsB, maskFaceBIn);
-            }
-            else if (tooglePolygons == 4) {
-                gv::view(positionsA, maskFaceAIn);
-                gv::view(positionsB, maskFaceBOut);
-            }
-            else if (tooglePolygons == 5) {
+            if (tooglePolygons != 6)
                 gv::view(positionsA);
-                if(!toogleLines)
-                    gv::view(positionLinesA);
-            }
-            else if (tooglePolygons == 6) {
+            if (tooglePolygons != 5)
                 gv::view(positionsB);
-                if (!toogleLines)
-                    gv::view(positionLinesB);
-            }*/
 
-            gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()));
+
+            if (showIntersection)
+                gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()));
 
             if (toogleLines) {
                 gv::view(positionLinesBSmall);
                 gv::view(positionLinesASmall);
             }
+
             ImGui::Begin("Move");
             bool toogled = ImGui::RadioButton("Mesh 1 + Mesh 2", &tooglePolygons, 0);
             toogled |= ImGui::RadioButton("Mesh 2 AND Mesh 1", &tooglePolygons, 1);
@@ -254,31 +196,51 @@ public:
             toogled |= ImGui::RadioButton("Mesh 2 - Mesh 1", &tooglePolygons, 4);
             toogled |= ImGui::RadioButton("Mesh 1", &tooglePolygons, 5);
             toogled |= ImGui::RadioButton("Mesh 2", &tooglePolygons, 6);
+            toogled |= ImGui::RadioButton("Color: White", &colorMode, 0);
+            toogled |= ImGui::RadioButton("Color: Components", &colorMode, 1);
+            toogled |= ImGui::RadioButton("Color: In/Out", &colorMode, 2);
             toogled |= ImGui::Checkbox("Show Lines", &toogleLines);
             toogled |= ImGui::Checkbox("Show Intersection", &showIntersection);
             if (ImGui::IsKeyPressed('L')) {
                 toogleLines = !toogleLines;
                 toogled = true;
             }
-
-            if (showIntersection && toogled) {               
-                auto c = tg::color3::black;
-                auto atr = isectLines1->getAttribute("aColor");    
-                auto constMeshAtr = std::dynamic_pointer_cast<gv::detail::ConstantMeshAttribute<glow::colors::color>>(atr);
-                constMeshAtr->mConstant = glow::colors::color(c.r, c.g, c.b);
-                isectLines1->clearHash();
-            }
-            else if (!showIntersection && toogled) {
-                auto c = tg::color3::red;
-                auto atr = isectLines1->getAttribute("aColor");
-                auto constMeshAtr = std::dynamic_pointer_cast<gv::detail::ConstantMeshAttribute<glow::colors::color>>(atr);
-                constMeshAtr->mConstant = glow::colors::color(c.r, c.g, c.b);
-                isectLines1->clearHash();
-                //atr = gv::detail::make_mesh_attribute("aColor", glow::colors::color(c.r, c.g, c.b));
-            }
               
-            if(toogled)
+            if (toogled) {
+                positionsA = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
+                positionsB = gv::make_renderable(mSharedOctree->getPlaneMeshB().positions());
+                if (tooglePolygons == 1) {
+                    positionsA->setMasking(maskFaceAOut);
+                    positionsB->setMasking(maskFaceBOut);
+                }
+                else if (tooglePolygons == 2) {
+                    positionsA->setMasking(maskFaceAIn);
+                    positionsB->setMasking(maskFaceBIn);
+                }
+                else if (tooglePolygons == 3) {
+                    positionsA->setMasking(maskFaceAOut);
+                    positionsB->setMasking(maskFaceBIn);
+                }
+                else if (tooglePolygons == 4) {
+                    positionsA->setMasking(maskFaceAIn);
+                    positionsB->setMasking(maskFaceBOut);
+                }
+                if (colorMode == 0) {
+                    gv::configure(*positionsA, tg::color3::white);
+                    gv::configure(*positionsB, tg::color3::white);
+                }
+                else if (colorMode == 1) {
+                    gv::configure(*positionsA, mFaceComponentsA->getColorAssignment());
+                    gv::configure(*positionsB, mFaceComponentsB->getColorAssignment());
+                }
+                else if (colorMode == 2) {
+                    gv::configure(*positionsA, colorsA);
+                    gv::configure(*positionsB, colorsB);
+                }
+                    
                 gv::view_clear_accumulation();
+            }
+                
             ImGui::End();
             });
     }
