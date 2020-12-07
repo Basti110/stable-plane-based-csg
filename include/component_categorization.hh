@@ -139,74 +139,112 @@ public:
     void renderFinalResult(const IntersectionCut& iCut, int scale = 1000) {
         auto colorsA = getColorToStateA();
         auto colorsB = getColorToStateB();
-
-
         mSharedOctree->getPlaneMeshA().checkAndComputePositions();
         mSharedOctree->getPlaneMeshB().checkAndComputePositions();
+        auto& planeMeshA = mSharedOctree->getPlaneMeshA();
+        auto& planeMeshB = mSharedOctree->getPlaneMeshB();
+
+        // Attributes
+        auto colorAtrMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white; }));
+        auto colorAtrMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white; }));
+        auto colorAtrMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::black; }));
+        auto colorAtrMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::black; }));
+
+        //Maskes
+        auto maskFaceATrue = gv::masked(planeMeshA.allFaces().make_attribute_with_default(true));
+        auto maskFaceBTrue = gv::masked(planeMeshB.allFaces().make_attribute_with_default(true));
+        auto maskFaceAFalse = gv::masked(planeMeshA.allFaces().make_attribute_with_default(false));
+        auto maskFaceBFalse = gv::masked(planeMeshB.allFaces().make_attribute_with_default(false));
+        auto maskFaceAIn = gv::masked(colorAtrMaskAIn);
+        auto maskFaceBIn = gv::masked(colorAtrMaskBIn);
+        auto maskFaceAOut = gv::masked(colorAtrMaskAOut);
+        auto maskFaceBOut = gv::masked(colorAtrMaskBOut);
+
+
+
 
         //auto const octreeCells = gv::lines(boxes).line_width_world(200000);
 
-        auto const positions1MaskedIn = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
-        auto const positions1MaskedOut = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
-        auto const positions1 = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
-        auto const positionLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(20 * scale));
-        auto const positionLines1Small = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(4 * scale));
+        //auto const positions1MaskedIn = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
+        //auto const positions1MaskedOut = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
+        auto const positionsA = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
+        auto const positionLinesA = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(20 * scale));
+        auto const positionLinesASmall = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(4 * scale));
         
         
         
-        auto const positions2MaskedIn = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
-        auto const positions2MaskedOut = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
-        auto const positions2 = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
-        auto const positionLines2 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(20 * scale));
-        auto const positionLines2Small = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(4 * scale));
+        //auto const positions2MaskedIn = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
+        //auto const positions2MaskedOut = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
+        auto const positionsB = gv::make_renderable(gv::make_renderable(mSharedOctree->getPlaneMeshB().positions()));
+        auto const positionLinesB = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(20 * scale));
+        auto const positionLinesBSmall = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(4 * scale));
+
+
+
+        /*{
+            auto view = gv::view();
+            gv::view(positionsA, maskFaceAOut);
+            gv::view(positionsB, maskFaceBOut);
+        }*/
 
         auto const isectLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(30 * scale));
-        int tooglePolygons = 0;
+        isectLines1->addAttribute(gv::detail::make_mesh_attribute("aColor", glow::colors::color(0, 0, 0)));
+
+        int tooglePolygons = 1;
         bool toogleLines = true;
         bool showIntersection = true;
 
-        auto colorMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white; }));
-        auto colorMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white; }));
-        auto colorMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::black; }));
-        auto colorMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::black; }));
+
 
         gv::interactive([&](auto dt) {
             auto view = gv::view();
             if (tooglePolygons == 0) {
-                gv::view(positions1);
-                gv::view(positions2);
+                positionsA->setMasking(maskFaceATrue);
+                positionsA->clearHash();
+                positionsA->init();
+                positionsB->setMasking(maskFaceBTrue);
+                positionsB->clearHash();
+                positionsB->init();
+                gv::view(positionsA, gv::masked(planeMeshA.allFaces().make_attribute_with_default(true)));
+                gv::view(positionsB);
+
             }
             else if (tooglePolygons == 1) {
-                gv::view(positions1MaskedOut, gv::masked(colorMaskAOut));
-                gv::view(positions2MaskedOut, gv::masked(colorMaskBOut));
+                //positionsA->setMasking(maskFaceAOut);
+                //positionsB->setMasking(maskFaceBOut);
+                gv::view(positionsA, maskFaceAOut);
+                gv::view(positionsB, maskFaceBOut);
+                //gv::view(positions1MaskedOut, gv::masked(colorMaskAOut));
+                //gv::view(positions2MaskedOut, gv::masked(colorMaskBOut));
             }
-            else if (tooglePolygons == 2) {
-                gv::view(positions1MaskedIn, gv::masked(colorMaskAIn));
-                gv::view(positions2MaskedIn, gv::masked(colorMaskBIn));
+            /*else if (tooglePolygons == 2) {
+                gv::view(positionsA, maskFaceAIn);
+                gv::view(positionsB, maskFaceBIn);
             }
             else if (tooglePolygons == 3) {
-                gv::view(positions1MaskedOut, gv::masked(colorMaskAOut));
-                gv::view(positions2MaskedIn, gv::masked(colorMaskBIn));
+                gv::view(positionsA, maskFaceAOut);
+                gv::view(positionsB, maskFaceBIn);
             }
             else if (tooglePolygons == 4) {
-                gv::view(positions1MaskedIn, gv::masked(colorMaskAIn));
-                gv::view(positions2MaskedOut, gv::masked(colorMaskBOut));
+                gv::view(positionsA, maskFaceAIn);
+                gv::view(positionsB, maskFaceBOut);
             }
             else if (tooglePolygons == 5) {
-                gv::view(positions1);
+                gv::view(positionsA);
                 if(!toogleLines)
-                    gv::view(positionLines1);
+                    gv::view(positionLinesA);
             }
             else if (tooglePolygons == 6) {
-                gv::view(positions2);
+                gv::view(positionsB);
                 if (!toogleLines)
-                    gv::view(positionLines2);
-            }
-            if(showIntersection)
-                gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+                    gv::view(positionLinesB);
+            }*/
+
+            gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()));
+
             if (toogleLines) {
-                gv::view(positionLines2Small);
-                gv::view(positionLines1Small);
+                gv::view(positionLinesBSmall);
+                gv::view(positionLinesASmall);
             }
             ImGui::Begin("Move");
             bool toogled = ImGui::RadioButton("Mesh 1 + Mesh 2", &tooglePolygons, 0);
@@ -222,6 +260,23 @@ public:
                 toogleLines = !toogleLines;
                 toogled = true;
             }
+
+            if (showIntersection && toogled) {               
+                auto c = tg::color3::black;
+                auto atr = isectLines1->getAttribute("aColor");    
+                auto constMeshAtr = std::dynamic_pointer_cast<gv::detail::ConstantMeshAttribute<glow::colors::color>>(atr);
+                constMeshAtr->mConstant = glow::colors::color(c.r, c.g, c.b);
+                isectLines1->clearHash();
+            }
+            else if (!showIntersection && toogled) {
+                auto c = tg::color3::red;
+                auto atr = isectLines1->getAttribute("aColor");
+                auto constMeshAtr = std::dynamic_pointer_cast<gv::detail::ConstantMeshAttribute<glow::colors::color>>(atr);
+                constMeshAtr->mConstant = glow::colors::color(c.r, c.g, c.b);
+                isectLines1->clearHash();
+                //atr = gv::detail::make_mesh_attribute("aColor", glow::colors::color(c.r, c.g, c.b));
+            }
+              
             if(toogled)
                 gv::view_clear_accumulation();
             ImGui::End();
