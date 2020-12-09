@@ -34,7 +34,7 @@ public:
     void cutPolygons(std::vector<pm::face_index>& facesMeshA, std::vector<pm::face_index>& facesMeshB);
     std::vector<pm::face_handle> splitAccordingToIntersection(pm::face_handle triangle, std::vector<pm::face_handle>& triangles);
     SharedTriIntersect getIntersectionStateWithTimer(pm::face_handle& t1, pm::face_handle& t2);
-
+    void repairCoPlanarMarkedPolygons();
     void printTimes() {
         std::cout << "total time intersection: " << (double)intersectionTimeCount / 1000000 << "ms" << std::endl;
         mISectObject->printTimes();
@@ -66,6 +66,9 @@ public:
         return mLookupFacesB;
     }
 
+    const std::vector<pm::face_index> getCoplanarFacesMeshA() const { return mCoplanarFacesMeshA; }
+    const std::vector<pm::face_index> getCoplanarFacesMeshB() const { return mCoplanarFacesMeshB; }
+
 private:
     pm::vertex_handle splitHalfEdgeLowAPI(pm::Mesh& mesh, pm::halfedge_handle& h);
     pm::face_handle addFaceFromCycleAndStopPoint(pm::Mesh& mesh, pm::halfedge_handle& startEdge, pm::vertex_handle stopVertex);
@@ -92,6 +95,10 @@ private:
     void showFaces(pm::face_handle t1, pm::face_handle t2);
     void checkLookupAndSplit(std::vector<pm::face_handle>& faces1, std::vector<pm::face_handle>& faces2, pm::face_handle& index);
     void fillFacesFromLookupBInVec(std::vector<pm::face_handle>& vec, pm::face_handle& index);
+    void fillFacesFromLookupAInVec(std::vector<pm::face_handle>& vec, pm::face_handle& index);
+
+    
+
     
 private:
     //Todo: Only debug
@@ -115,6 +122,8 @@ private:
     PlaneMesh* mMeshA = nullptr;
     PlaneMesh* mMeshB = nullptr;
 
+    std::vector<pm::face_index> mCoplanarFacesMeshA;
+    std::vector<pm::face_index> mCoplanarFacesMeshB;
     std::unordered_map<int, std::vector<pm::face_handle>> mLookupFacesA;
     std::unordered_map<int, std::vector<pm::face_handle>> mLookupFacesB;
     std::unordered_map<int, std::vector<IntersectionEdgesIndices>> mIntersectionEdgesOnIntersectionLineA;

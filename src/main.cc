@@ -44,7 +44,7 @@ int main() {
     }
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
-
+    
     //convert();
     //return 0;
 
@@ -92,6 +92,14 @@ int main() {
     //test_cut_mesh();
     //test_color_lines();
     //test_trianle_classification();
+}
+
+int testMesh(std::string file) {
+    ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -8, -8, -8 }, { 8, 8, 8 }),
+        "../data/mesh/cubes1.obj", tg::mat4::identity, tg::mat4::identity,
+        "../data/mesh/cubes2.obj", tg::mat4::identity, tg::mat4::identity);
+
+    return 0;
 }
 
 void test_octree() {

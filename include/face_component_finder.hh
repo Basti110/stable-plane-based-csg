@@ -93,20 +93,24 @@ public:
         return std::nullopt;
     }
 
-    int getComponentOfFace(pm::face_index face) {
+    int getComponentOfFace(pm::face_index face) const {
         return mfaceToComponent[face];
     }
 
-    int getComponentOfFace(pm::face_handle face) {
+    int getComponentOfFace(pm::face_handle face) const {
         return mfaceToComponent[face];
     }
 
-    int getNumberOfComponents() {
+    int getNumberOfComponents() const {
         return mCountComponents;
     }
 
-    const pm::face_attribute<int> getFaceToComponent() {
+    const pm::face_attribute<int> getFaceToComponent() const {
         return mfaceToComponent;
+    }
+
+    const std::vector<pm::face_index> getComponentToFace(int component) const {
+        return mComponentToFace[component];
     }
 
 private: 

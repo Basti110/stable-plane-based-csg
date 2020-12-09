@@ -291,6 +291,10 @@ public:
                 ObjConfig(1e8, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/Buddha.obj", tg::translation(tg::vec{ 0.0f, -10.5f, 0.0f }), tg::mat4::identity,
                 "../data/mesh/Buddha.obj", tg::translation(tg::vec{ -1.0f, -10.0f, 2.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
+            { "cubes", //
+                ObjConfig(1e6, 1e6, AABB({ -8, -8, -8 }, { 8, 8, 8 }),
+                "../data/mesh/cubes1.obj", tg::mat4::identity, tg::mat4::identity,
+                "../data/mesh/cubes2.obj", tg::mat4::identity, tg::mat4::identity)},
         };
     }
 };

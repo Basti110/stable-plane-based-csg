@@ -10,7 +10,8 @@ class ComponentCategorization {
 	enum class InOutState : int8_t {
 		UNDEFINED = -1,
 		OUTSIDE = 0,
-		INSIDE = 1,		
+		INSIDE = 1,	
+        COPLANAR = 2,
 	};
 public:
 	ComponentCategorization(SharedOctree octree, SharedFaceComponents faceComponentsA, SharedFaceComponents faceComponentsB, const IntersectionCut& iCut)
@@ -39,39 +40,71 @@ public:
 				mComponentNeighborsB[componentB].insert(componentA);
 			}
 		}
+
+        auto& coPlanarFacesA = iCut.getCoplanarFacesMeshA();
+        auto& coPlanarFacesB = iCut.getCoplanarFacesMeshB();
+
+        for (auto face : coPlanarFacesA)
+            mComponentIsOutsideA[faceComponentsA->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;
+
+        for (auto face : coPlanarFacesB)
+            mComponentIsOutsideB[faceComponentsB->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;
+        
 		assignInOut(iCut);
 	}
 
 	void assignInOut(const IntersectionCut& iCut) {
-		pm::vertex_handle vertexA = pm::vertex_handle::invalid;
-		auto iSectA = iCut.getIntersectionEdgesMarkerA();
-		for (pm::edge_handle& e : iSectA.mesh().all_edges()) {
-			if (!iSectA[e]) {
-				vertexA = e.halfedgeA().vertex_from();
-				break;
-			}
-		}
-		TG_ASSERT(vertexA != pm::vertex_handle::invalid);
-		SharedDebugRayInfo rayInfoA = std::make_shared<DebugRayInfo>();
-		auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexA, mSharedOctree->getPlaneMeshA(), rayInfoA);
-		auto component = mFaceComponentsA->getComponentOfFace(vertexA.any_face());
-		mComponentIsOutsideA[component] = intersections % 2;
-		propagateComponentStateRecursiveA(mComponentIsOutsideA, component);
+		
+        for (int i = 0; i < mFaceComponentsA->getNumberOfComponents(); ++i) {
+            pm::vertex_handle vertexA = pm::vertex_handle::invalid;
+            if (mComponentIsOutsideA[i] != (int8_t)InOutState::UNDEFINED)
+                continue;
 
-		pm::vertex_handle vertexB = pm::vertex_handle::invalid;
-		auto iSectB = iCut.getIntersectionEdgesMarkerB();
-		for (pm::edge_handle& e : iSectB.mesh().all_edges()) {
-			if (!iSectB[e]) {
-				vertexB = e.halfedgeB().vertex_from();
-				break;
-			}
-		}
-		TG_ASSERT(vertexB != pm::vertex_handle::invalid);
-		SharedDebugRayInfo rayInfoB = std::make_shared<DebugRayInfo>();
-		intersections = mSharedOctree->countIntersectionsToOutside2(vertexB, mSharedOctree->getPlaneMeshB(), rayInfoB);
-		component = mFaceComponentsB->getComponentOfFace(vertexB.any_face());
-		mComponentIsOutsideB[component] = intersections % 2;
-		propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
+            auto iSectA = iCut.getIntersectionEdgesMarkerA();
+            auto componentToFace = mFaceComponentsA->getComponentToFace(i);
+            for (auto faceIndex : componentToFace) {
+                for (pm::edge_handle& e : faceIndex.of(iSectA.mesh()).edges()) {
+                    if (!iSectA[e]) {
+                        vertexA = e.halfedgeA().vertex_from();
+                        break;
+                    }
+                }
+                if (vertexA != pm::vertex_handle::invalid)
+                    break;
+            }
+
+            TG_ASSERT(vertexA != pm::vertex_handle::invalid);
+            SharedDebugRayInfo rayInfoA = std::make_shared<DebugRayInfo>();
+            auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexA, mSharedOctree->getPlaneMeshA(), rayInfoA);
+            auto component = mFaceComponentsA->getComponentOfFace(vertexA.any_face());
+            mComponentIsOutsideA[component] = intersections % 2;
+            propagateComponentStateRecursiveA(mComponentIsOutsideA, component);
+        }
+
+        for (int i = 0; i < mFaceComponentsB->getNumberOfComponents(); ++i) {
+            pm::vertex_handle vertexB = pm::vertex_handle::invalid;
+            if (mComponentIsOutsideB[i] != (int8_t)InOutState::UNDEFINED)
+                continue;
+
+            auto iSectB = iCut.getIntersectionEdgesMarkerB();
+            auto componentToFace = mFaceComponentsB->getComponentToFace(i);
+            for (auto faceIndex : componentToFace) {
+                for (pm::edge_handle& e : faceIndex.of(iSectB.mesh()).edges()) {
+                    if (!iSectB[e]) {
+                        vertexB = e.halfedgeA().vertex_from();
+                        break;
+                    }
+                }
+                if (vertexB != pm::vertex_handle::invalid)
+                    break;
+            }
+            TG_ASSERT(vertexB != pm::vertex_handle::invalid);
+            SharedDebugRayInfo rayInfoB = std::make_shared<DebugRayInfo>();
+            auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexB, mSharedOctree->getPlaneMeshB(), rayInfoB);
+            auto component = mFaceComponentsB->getComponentOfFace(vertexB.any_face());
+            mComponentIsOutsideB[component] = intersections % 2;
+            propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
+        }
         /*
         #define RAYINFO rayInfoA
         std::vector<tg::dsegment3> lines;
@@ -131,7 +164,7 @@ public:
 		
 		pm::face_attribute<tg::color3> faceColors = mesh.faces().map([&](pm::face_handle& face) {
 				int component = faceComponentsA->getComponentOfFace(face);
-				return componentIsOutsideA[component] == 1 ? tg::color3::black : tg::color3::white;
+				return componentIsOutsideA[component] == 0 ? tg::color3::white : tg::color3::black;
 			});
 		return faceColors;
 	}
@@ -252,12 +285,14 @@ public:
 
 		pm::face_attribute<tg::color3> faceColors = mesh.faces().map([&](pm::face_handle& face) {
 				int component = faceComponents->getComponentOfFace(face);
-				return componentIsOutside[component] == 1 ? tg::color3::black : tg::color3::white;
+				return componentIsOutside[component] == 0 ? tg::color3::white : tg::color3::black;
 			});
 		return faceColors;
 	}
 
 private:
+    //std::unordered_set<int> mCoplanarComponentsA;
+    //std::unordered_set<int> mCoplanarComponentsB;
 	SharedOctree mSharedOctree;
 	SharedFaceComponents mFaceComponentsA;
 	SharedFaceComponents mFaceComponentsB;

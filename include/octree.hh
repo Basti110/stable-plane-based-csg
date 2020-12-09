@@ -306,21 +306,7 @@ public:
         boxes.push_back(mAABB);
     }
 
-    void getAllFaces(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshA, std::set<pm::face_index>& fMeshB) override {
-        if (mFacesMeshA.size() > 0) {
-            for (pm::face_index& i : mFacesMeshA) {
-                if (fMeshA.count(i) == 0)
-                    fMeshA.insert(i);
-            }
-        }
-
-        if (mFacesMeshB.size() > 0) {
-            for (pm::face_index& i : mFacesMeshB) {
-                if (fMeshB.count(i) == 0)
-                    fMeshB.insert(i);
-            }
-        }
-    }
+    void getAllFaces(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshA, std::set<pm::face_index>& fMeshB) override;
 
     void repairCell(const IntersectionCut& cut) override; 
 
@@ -573,6 +559,7 @@ public:
         bool test1 = mMeshA->allFacesAreValidAndNotRemoved();
         bool test2 = mMeshB->allFacesAreValidAndNotRemoved();
         mRoot->cutPolygons(faceLookUp);
+        faceLookUp.repairCoPlanarMarkedPolygons();
         //faceLookUp.printTimes();
         return faceLookUp;
     }
@@ -774,6 +761,9 @@ public:
         size_t intersectionCount = 0;
         //Mesh A
         for (int i = 0; i < node->mFacesMeshA.size(); ++i) {
+            auto face = node->mFacesMeshA[i].of(mMeshA->mesh());
+            if (face.is_removed())
+                continue;
             const Plane& facePlane = mMeshA->face(node->mFacesMeshA[i]);
             auto sign = ob::classify_vertex(subDet, facePlane);
             if (singsMeshA[i] == 2)
@@ -784,12 +774,15 @@ public:
 
             singsMeshA[i] = sign;
             auto subDetFacePlane = mMeshA->pos(p1, p2, facePlane);
-            if (checkIfPointInPolygon(node->mFacesMeshA[i].of(mMeshA->mesh()), mMeshA, subDetFacePlane))
+            if (checkIfPointInPolygon(face, mMeshA, subDetFacePlane))
                 intersectionCount++;
         }
 
         //Mesh B
         for (int i = 0; i < node->mFacesMeshB.size(); ++i) {
+            auto face = node->mFacesMeshB[i].of(mMeshB->mesh());
+            if (face.is_removed())
+                continue;
             const Plane& facePlane = mMeshB->face(node->mFacesMeshB[i]);
             auto sign = ob::classify_vertex(subDet, facePlane);
             if (singsMeshB[i] == 2)
@@ -800,7 +793,7 @@ public:
 
             singsMeshB[i] = sign;
             auto subDetFacePlane = mMeshA->pos(p1, p2, facePlane);
-            if (checkIfPointInPolygon(node->mFacesMeshB[i].of(mMeshB->mesh()), mMeshB, subDetFacePlane))
+            if (checkIfPointInPolygon(face, mMeshB, subDetFacePlane))
                 intersectionCount++;
         }
         return intersectionCount;

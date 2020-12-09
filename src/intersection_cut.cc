@@ -198,6 +198,7 @@ void IntersectionCut::setIntersectionLineDirection(const PlaneMesh& planeMesh, c
     const Plane& plane = planeMesh.face(edge1.face());
 
     auto func = [=](std::unordered_map<int, std::vector<IntersectionEdgesIndices>>& intersectionEdgesOnIntersectionLine, pm::edge_attribute<bool>& intersectionEdgesMarker, const PlaneMesh& m) {
+        //old intersection lines
         std::vector<IntersectionEdgesIndices>& intersectionEdgesVec = intersectionEdgesOnIntersectionLine[edge2.edge().idx.value];
         size_t vSize = intersectionEdgesVec.size();
         std::vector<int> deleteIndices;
@@ -206,6 +207,7 @@ void IntersectionCut::setIntersectionLineDirection(const PlaneMesh& planeMesh, c
         bool markE2 = false;
         for (size_t i = 0; i < vSize; ++i) {
             IntersectionEdgesIndices& intersectionEdges = intersectionEdgesVec[i];
+            //aufteilung sings siehe whiteboard
             auto signCheck = computeSignToIntersectionLine(intersectionEdges, m, edge2, iSectPlane, planeH2, plane);
             if (sign * signCheck == -1 || signCheck == 0) {
                 intersectionEdgesOnIntersectionLine[edge1.edge().idx.value].push_back(intersectionEdges);
@@ -528,6 +530,8 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
     else if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
         //SharedTriIntersectPlanar isectPlanar = std::static_pointer_cast<TrianlgeIntersectionPlanar>(intersection);
         //splitFaces = splitPlanar(isectPlanar, planeMeshInfo1, planeMeshInfo2);
+        mCoplanarFacesMeshA.push_back(planeMeshInfo1.face.idx);
+        mCoplanarFacesMeshB.push_back(planeMeshInfo2.face.idx);
         splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
         splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
 
@@ -704,6 +708,59 @@ void IntersectionCut::fillFacesFromLookupBInVec(std::vector<pm::face_handle>& ve
     for (pm::face_handle& face : faceVec) {
         fillFacesFromLookupBInVec(vec, face);
     }
+}
+
+void IntersectionCut::fillFacesFromLookupAInVec(std::vector<pm::face_handle>& vec, pm::face_handle& index) {
+    if (mLookupFacesA.count(index.idx.value) == 0) {
+        TG_ASSERT(index.is_valid());
+        TG_ASSERT(!index.is_removed());
+        vec.push_back(index);
+        return;
+    }
+
+    std::vector<pm::face_handle>& faceVec = mLookupFacesA[index.idx.value];
+    for (pm::face_handle& face : faceVec) {
+        fillFacesFromLookupAInVec(vec, face);
+    }
+}
+
+void IntersectionCut::repairCoPlanarMarkedPolygons() {
+    std::vector<pm::face_index> newCoplanarFaces;
+    //Mesh A 
+    for (pm::face_index face : mCoplanarFacesMeshA) {
+        std::vector<pm::face_handle> newFaces;
+        fillFacesFromLookupAInVec(newFaces, face.of(&(mMeshA->mesh())));
+        for (auto newFace : newFaces) {
+            bool onlyIntersectionEdges = true;
+            for (auto edge : newFace.edges()) {
+                if (!mIntersectionEdgesMarkerA[edge]) {
+                    onlyIntersectionEdges = false;
+                    break;
+                }
+            }
+            if (onlyIntersectionEdges)
+                newCoplanarFaces.push_back(newFace.idx);
+        }
+    }
+    mCoplanarFacesMeshA = newCoplanarFaces;
+    newCoplanarFaces.clear();
+    //Mesh B
+    for (pm::face_index face : mCoplanarFacesMeshB) {
+        std::vector<pm::face_handle> newFaces;
+        fillFacesFromLookupBInVec(newFaces, face.of(&(mMeshB->mesh())));
+        for (auto newFace : newFaces) {
+            bool onlyIntersectionEdges = true;
+            for (auto edge : newFace.edges()) {
+                if (!mIntersectionEdgesMarkerB[edge]) {
+                    onlyIntersectionEdges = false;
+                    break;
+                }
+            }
+            if (onlyIntersectionEdges)
+                newCoplanarFaces.push_back(newFace.idx);
+        }
+    }
+    mCoplanarFacesMeshB = newCoplanarFaces;
 }
 
 void IntersectionCut::cutPolygons(std::vector<pm::face_index>& facesMeshA, std::vector<pm::face_index>& facesMeshB) {
