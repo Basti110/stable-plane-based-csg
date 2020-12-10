@@ -19,7 +19,12 @@
 #include <glow-extras/timing/CpuTimer.hh>
 #include <obj_config.hh>
 #include <polymesh/formats.hh>
-
+#include <benchmark.h>
+//---
+#include <iomanip>
+#define GIGA 1000000000
+#define MEGA 1000000
+#define CLOCK 3399740
 //std::string testObj = "../data/mesh/fox.obj";
 std::string testObj = "../data/mesh/buddha_2.obj";
 
@@ -36,7 +41,7 @@ void test_component_classification();
 void convert();
 void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
 
-int main() {
+int main(int argc, char* argv[]) {
     ObjCollection::init();
     auto testest = tg::translation(tg::vec{ -.0f, .0f, .04f });
     if (bool test = true) {
@@ -47,13 +52,20 @@ int main() {
     
     //convert();
     //return 0;
-
+    if (argc > 1) {
+        auto file = std::string(argv[1]);
+        std::cout << "Try to open " << file << std::endl;       
+        ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -100, -100, -100 }, { 100, 100, 100 }),
+            "E:/benchmark/files/" + file, tg::mat4::identity, tg::mat4::identity,
+            "E:/benchmark/files/" + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(-90)));
+        return Benchmark::testMesh(conf);
+    }
+        
     //ObjConfig conf = ObjCollection::map.at("complex_1");
     //conf.viewMesh(true);
     
     //tests.run();
-    //test_octree();
-    
+    //test_octree();    
     //char* argv[] = { "main", "Image::Intersection" };
     //char* argv[] = { "main", "Image::Touching_Face" };
     //char* argv[] = { "main", "Image::BasePlaneTest1" };
@@ -63,14 +75,14 @@ int main() {
     //char* argv[] = { "main", "App::component_classification" };
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
     
-    char* argv[] = { "main", "Benchmark:OneIteration" };
-    //char* argv[] = { "main", "Test::Co_Planar_Cut" };
+    char* arg[] = { "main", "Benchmark:OneIteration" };
+    //char* arg[] = { "main", "Test::Co_Planar_Cut" };
     //char* argv[] = { "main", "Test::Cut_Triangle_Normal_Marker_Case4" };
     //char* argv[] = { "main", "App::Show_Mesh" };
     //char* argv[] = { "main", "App::count_intersections" };
     //char* argv[] = { "main", "Benchmark:SubdetVsIntPos" };
 
-    tests.applyCmdArgs(2, argv);
+    tests.applyCmdArgs(2, arg);
     tests.run();
 
     //test_transpose();  
@@ -92,14 +104,6 @@ int main() {
     //test_cut_mesh();
     //test_color_lines();
     //test_trianle_classification();
-}
-
-int testMesh(std::string file) {
-    ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -8, -8, -8 }, { 8, 8, 8 }),
-        "../data/mesh/cubes1.obj", tg::mat4::identity, tg::mat4::identity,
-        "../data/mesh/cubes2.obj", tg::mat4::identity, tg::mat4::identity);
-
-    return 0;
 }
 
 void test_octree() {
