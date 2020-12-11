@@ -52,13 +52,29 @@ int main(int argc, char* argv[]) {
     
     //convert();
     //return 0;
-    if (argc > 1) {
-        auto file = std::string(argv[1]);
+    if (argc > 1 || true) {
+        //std::string file = std::string(argv[1]);
+        std::string file = "36372.stl"; 
+        {
+            pm::Mesh mesh;
+            pm::vertex_attribute<tg::pos3> pos(mesh);   
+            pm::load("E:/benchmark/files/" + file, mesh, pos);
+            pm::deduplicate(mesh, pos);
+            mesh.compactify();
+            for (auto h : mesh.halfedges()) {
+                if (h.is_invalid())
+                    return 2;
+                if (h.face().is_invalid())
+                    return 2;
+            }
+        }
+               
         std::cout << "Try to open " << file << std::endl;       
         ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -100, -100, -100 }, { 100, 100, 100 }),
             "E:/benchmark/files/" + file, tg::mat4::identity, tg::mat4::identity,
             "E:/benchmark/files/" + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(-90)));
-        return Benchmark::testMesh(conf);
+        conf.setMeshRepairBefore(true);
+        return Benchmark::testMesh(conf, "E:/benchmark/benchmark/" + file.substr(0, file.size() - 3) + "txt");
     }
         
     //ObjConfig conf = ObjCollection::map.at("complex_1");

@@ -328,9 +328,11 @@ public:
 
 private: 
     friend class Octree;
+    friend class BranchNode;
     std::vector<uint32_t> mValueIndices;
     std::vector<pm::face_index> mFacesMeshA;
     std::vector<pm::face_index> mFacesMeshB;
+    int mDepth = 0;
     int mMaxValues = 15;
 };
 
@@ -347,7 +349,7 @@ public:
     SharedBranchNode parent() override;
 
     void pushDown(int meshIdx, pm::face_index faceIdx);
-    void initLeafNodes();
+    void initLeafNodes(int depth);
     //void initEmptyNodes();
 
     void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override {
@@ -502,7 +504,7 @@ public:
         AABB powerOf2AABB = getAABBWithNextPowerLen(aabb);
         mRoot = std::make_shared<BranchNode>(powerOf2AABB, this);
         //mRoot->setOctree(shared_from_this());
-        mRoot->initLeafNodes();
+        mRoot->initLeafNodes(1);
         mFaceMeshAToNode = a->mesh().faces().make_attribute<std::vector<SharedLeafNode>>();
         mFaceMeshBToNode = b->mesh().faces().make_attribute<std::vector<SharedLeafNode>>();
     }
@@ -513,7 +515,7 @@ public:
         AABB powerOf2AABB = getAABBWithNextPowerLen(aabb);
         mRoot = std::make_shared<BranchNode>(powerOf2AABB, this);
         //mRoot->setOctree(shared_from_this());
-        mRoot->initLeafNodes();
+        mRoot->initLeafNodes(1);
         mFaceMeshAToNode = a->mesh().faces().make_attribute<std::vector<SharedLeafNode>>();
     }
 
@@ -1015,6 +1017,10 @@ public:
         size_t intersectionCount = 0;
         auto setIt = faces.begin();
         for (int i = 0; i < faces.size(); ++i) {
+            auto face = (*setIt).of(mesh->mesh());
+            if (face.is_removed())
+                continue;
+
             const Plane& facePlane = mesh->face(*setIt);
             auto distance = ob::signed_distance<geometry128>(facePlane, endPoint);
             int8_t sign = distance >= 0 ? (distance == 0 ? 0 : 1) : -1;
@@ -1028,7 +1034,7 @@ public:
 
             startSigns[i] = sign;
             auto subDetFacePlane = mesh->pos(planeRay.plane1, planeRay.plane2, facePlane);
-            if (checkIfPointInPolygon((*setIt).of(mesh->mesh()), mesh, subDetFacePlane))
+            if (checkIfPointInPolygon(face, mesh, subDetFacePlane))
                 intersectionCount++;
             ++setIt;
         }
@@ -1263,6 +1269,7 @@ private:
     int intersectionCounterTMP = 0;
     scalar_t mSmallestCellLen = 0;
     int mSplits = 0;
+    int mMaxDepth = 10;
     pm::face_attribute<std::vector<SharedLeafNode>> mFaceMeshAToNode;
     pm::face_attribute<std::vector<SharedLeafNode>> mFaceMeshBToNode;
 };

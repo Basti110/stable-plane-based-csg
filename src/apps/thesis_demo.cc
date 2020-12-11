@@ -313,7 +313,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("bunny_mesh_2");
+    ObjConfig conf = ObjCollection::map.at("complex_1");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -328,7 +328,7 @@ APP("Benchmark:OneIteration") {
         planeMesh2 = conf.getMeshB();
         printStats(s);
     }
-
+    bool test = planeMesh1->allHalfEdgesAreValid();
     glow::timing::CpuTimer timer;
     //Load Octree
     SharedOctree octree;
@@ -345,7 +345,7 @@ APP("Benchmark:OneIteration") {
         iCut = octree->cutPolygons();
         printStats(s);
     }
-
+    
     //Categorization
     std::shared_ptr<ComponentCategorization> components;
     {

@@ -21,7 +21,7 @@ public:
 
 		auto iSectA = iCut.getIntersectionEdgesMarkerA();
 		mComponentNeighborsA.resize(mFaceComponentsA->getNumberOfComponents());
-		for (pm::edge_handle& e : iSectA.mesh().all_edges()) {
+		for (pm::edge_handle& e : iSectA.mesh().edges()) {
 			if (iSectA[e]) {
 				int componentA = mFaceComponentsA->getComponentOfFace(e.halfedgeA().face());
 				int componentB = mFaceComponentsA->getComponentOfFace(e.halfedgeB().face());
@@ -32,7 +32,7 @@ public:
 
 		auto iSectB = iCut.getIntersectionEdgesMarkerB();
 		mComponentNeighborsB.resize(mFaceComponentsB->getNumberOfComponents());
-		for (pm::edge_handle& e : iSectB.mesh().all_edges()) {
+		for (pm::edge_handle& e : iSectB.mesh().edges()) {
 			if (iSectB[e]) {
 				int componentA = mFaceComponentsB->getComponentOfFace(e.halfedgeA().face());
 				int componentB = mFaceComponentsB->getComponentOfFace(e.halfedgeB().face());
@@ -180,8 +180,8 @@ public:
         // Attributes
         auto colorAtrMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white; }));
         auto colorAtrMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white; }));
-        auto colorAtrMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::black; }));
-        auto colorAtrMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::black; }));
+        auto colorAtrMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c != tg::color3::white; }));
+        auto colorAtrMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c != tg::color3::white; }));
 
         //Maskes
         auto maskFaceAIn = gv::masked(colorAtrMaskAIn);

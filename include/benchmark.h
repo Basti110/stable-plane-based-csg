@@ -5,6 +5,7 @@
 #include <face_component_finder.hh>
 #include <polymesh/algorithms/deduplicate.hh>
 #include <component_categorization.hh>
+#include <benchmark_writer.h>
 #include <iomanip>
 //#include <ctracer/trace-config.hh>
 #define GIGA 1000000000
@@ -27,9 +28,16 @@ namespace Benchmark {
         }
     }
 
-    int testMesh(ObjConfig& conf) {
+    void setValueStat(float& v, ct::scope& s) {
+        auto trace = s.trace();
+        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(trace.time_end() - trace.time_start()).count();
+        v = elapsed / 1000.f;
+    }
+
+    int testMesh(ObjConfig& conf, std::string outputPath) {
         int testCount = 1;
         ct::scope rootScope;
+        BenchMarkWriter benchmarkWriter(outputPath);
         std::cout << "#############################################################" << std::endl;
         std::cout << "#######                 Benchmark                     #######" << std::endl;
         std::cout << "#############################################################" << std::endl;
@@ -41,40 +49,53 @@ namespace Benchmark {
             ct::scope s("Load Mesh");
             planeMesh1 = conf.getMeshA();
             planeMesh2 = conf.getMeshB();
-            printStats(s);
+            setValueStat(benchmarkWriter.mTimeLoadMesh, s);
+            printStats(s);            
         }
+        //conf.viewMesh(true);
+        if (!planeMesh1->allHalfEdgesAreValid())
+            return 2;
+
+        if (!planeMesh2->allHalfEdgesAreValid())
+            return 2;
+        //TG_ASSERT(!planeMesh1->allHalfEdgesAreValid());
 
         glow::timing::CpuTimer timer;
         //Load Octree
+
         SharedOctree octree;
         {
             ct::scope s("Build Octree");
             octree = conf.getOctree();
-            printStats(s);
+            setValueStat(benchmarkWriter.mTimeBuildOctree, s);
+            printStats(s);            
         }
-
+        //conf.viewMesh(true);
         //Cut Mesh
         IntersectionCut iCut;
         {
             ct::scope s("Cut Mesh");
             iCut = octree->cutPolygons();
-            printStats(s);
+            setValueStat(benchmarkWriter.mTimeCutMesh, s);
+            printStats(s);           
         }
-
+        //test = planeMesh1->allHalfEdgesAreValid();
         //Categorization
-        /*std::shared_ptr<ComponentCategorization> components;
+        std::shared_ptr<ComponentCategorization> components;
         {
             ct::scope s("Categorization");
             std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
             std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
             components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
-            printStats2(s);
-        }*/
+            setValueStat(benchmarkWriter.mTimeCategorization, s);
+            printStats(s);           
+        }
 
         auto trace = rootScope.trace();
         auto c = trace.elapsed_cycles();
         auto m = std::chrono::duration_cast<std::chrono::milliseconds>(trace.time_end() - trace.time_start()).count();
         auto t = timer.elapsedMillisecondsD();
+        benchmarkWriter.mTimeComplete = t + conf.initMeshTime();
         std::cout << std::endl;
         std::cout << "----------- Total ---------- " << std::endl;
         std::cout << "Time: " << m << "ms" << std::endl;
@@ -82,8 +103,9 @@ namespace Benchmark {
         std::cout << "Time Without PM Load: " << t + conf.initMeshTime() << "ms" << std::endl;
         std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
         conf.getOctree()->printOctreeStats();
+        benchmarkWriter.writeToFile();
         //conf.viewMesh(true);
-        //components->renderFinalResult(iCut);
+        components->renderFinalResult(iCut);
         return 0;
     }
 }

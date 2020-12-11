@@ -177,7 +177,7 @@ SharedBranchNode LeafNode::split()
     TG_ASSERT(mOctree);
     auto branchNode = std::make_shared<BranchNode>(mAABB, mParentNode.lock());
     branchNode->setChildIndex(mChildIndex);
-    branchNode->initLeafNodes();
+    branchNode->initLeafNodes(mDepth + 1);
     for (auto& face : mFacesMeshA)
         branchNode->pushDown(mOctree->mMeshA->id(), face);
     for (auto& face : mFacesMeshB)
@@ -341,7 +341,7 @@ BranchNode::BranchNode(const AABB& aabb, SharedBranchNode parent) : OctreeNode(a
 {
 }
 
-void BranchNode::initLeafNodes()
+void BranchNode::initLeafNodes(int depth)
 {
     scalar_t aabbLen = mAABB.max.x - mAABB.min.x;
     TG_ASSERT(mAABB.max.y - mAABB.min.y == aabbLen);
@@ -359,6 +359,7 @@ void BranchNode::initLeafNodes()
         aabb.max = aabb.min + (aabbLen / 2);
         auto leaf = std::make_shared<LeafNode>(aabb, thisPtr);
         leaf->setChildIndex(i);
+        leaf->mDepth = depth;
         mChildNodes[i] = std::dynamic_pointer_cast<OctreeNode>(leaf);
     }
     return;
@@ -442,8 +443,8 @@ void BranchNode::insertInLeaf(int child, int meshIdx, pm::face_index faceIdx)
     auto leafChild = std::dynamic_pointer_cast<LeafNode>(mChildNodes[child]);
     leafChild->insertPolygon(meshIdx, faceIdx);
 
-    int test = leafChild->childCount();
-    if (leafChild->childCount() > leafChild->maxValues()) {
+    //int test = leafChild->childCount();
+    if (leafChild->childCount() > leafChild->maxValues() && leafChild->mDepth < mOctree->mMaxDepth) {
         if (leafChild->mustSplitIfFull()) {
             auto new_child = leafChild->split();
             mChildNodes[child] = std::dynamic_pointer_cast<OctreeNode>(new_child);

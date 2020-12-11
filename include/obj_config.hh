@@ -9,6 +9,7 @@
 #include <glow-extras/viewer/view.hh>
 #include <glow-extras/viewer/experimental.hh>
 #include <glow-extras/timing/CpuTimer.hh>
+#include <polymesh/algorithms/deduplicate.hh>
 
 //data class
 class ObjConfig {
@@ -149,6 +150,10 @@ public:
     double initMeshTime() {
         return mInitMeshTime;
     }
+
+    void setMeshRepairBefore(bool v) {
+        mRepairBefore = v;
+    }
       
 private:
     void fillOctreeIfNotFilled() {  
@@ -186,11 +191,14 @@ private:
         glow::timing::CpuTimer timer;
         if (!mPlaneMeshA) {
             pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
-            
             {
                 TRACE("[ObjConfig] PM Load Mesh 1");
                 pm::load(mPathObj1, *mMeshA, pos1);
-            }          
+            }   
+            if (mRepairBefore) {
+                pm::deduplicate(*mMeshA, pos1);
+                mMeshA->compactify();
+            }
             transformation(pos1, mTransformation1);
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             mPlaneMeshA = std::make_shared<PlaneMesh>(*mMeshA, pos1, mScale);
@@ -203,7 +211,11 @@ private:
             {
                 TRACE("[ObjConfig] PM Load Mesh 2");
                 pm::load(mPathObj2, *mMeshB, pos2);
-            }           
+            }   
+            if (mRepairBefore) {
+                pm::deduplicate(*mMeshB, pos2);
+                mMeshB->compactify();
+            }
             transformation(pos2, mTransformation2);
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, pos2, mScale);
@@ -219,6 +231,7 @@ private:
 
 
 private:
+    bool mRepairBefore = false;
     int mNumObjects = 1;
     double mInitMeshTime = 0;
     std::shared_ptr<pm::Mesh> mMeshA = std::make_shared<pm::Mesh>();
@@ -261,7 +274,7 @@ public:
                 ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/bunny.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90))) },
             { "bunny_mesh_2",
-                ObjConfig(1e6, 1e6, AABB({ -1, -1, -1 }, { 1, 1, 1 }),
+                ObjConfig(1e6, 1e6, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/bunny.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90)),
                 "../data/mesh/bunny.obj", tg::translation(tg::vec{ 0.0f, -.08f, 0.0f }), tg::mat4::identity) },
             { "gyroid_mesh_1",

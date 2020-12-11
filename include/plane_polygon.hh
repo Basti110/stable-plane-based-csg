@@ -64,6 +64,7 @@ public:
 
     PlaneMesh(const pm::Mesh& m, const pm::vertex_attribute<tg::pos3>& pos, int scale) : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh), mHalfEdges(mMesh) {
         TRACE("[MESH] Init Plane Mesh");
+
         mID = instances;
         instances++;
         mMesh.copy_from(m);
@@ -124,22 +125,25 @@ public:
         auto firstPoint = mPositions[halfEdge.vertex_from()];
         auto secondPoint = mPositions[halfEdge.vertex_to()];
 
-        normal_t normal1 = { planeEdge.a, planeEdge.b, planeEdge.c };
-        normal_t normal2 = { planeFace.a, planeFace.b, planeFace.c };
-        normal_t normal = normal1 + normal2;
-        auto thirdPoint = (firstPoint + normal) * 0.5;
-        Plane potentialPlane = Plane::from_points(firstPoint, secondPoint, thirdPoint);  
+        //normal_t normal1 = { planeEdge.a, planeEdge.b, planeEdge.c };
+        //normal_t normal2 = { planeFace.a, planeFace.b, planeFace.c };
+        //normal_t normal = normal1 + normal2;
+        //auto thirdPoint = (firstPoint + normal) * 0.5;
+        //Plane potentialPlane = Plane::from_points(firstPoint, secondPoint, thirdPoint);  
 
         auto oppositeFace = halfEdge.opposite().face();
-        if (oppositeFace.is_valid()) {
-            if (ob::are_parallel(mFaces[oppositeFace], potentialPlane)) {
-                const Plane& planeOppositeFace = mFaces[oppositeFace];
-                normal_t normal3 = { planeOppositeFace.a, planeOppositeFace.b, planeOppositeFace.c };
-                normal = normal + normal3;
-                auto thirdPoint = (firstPoint + normal) * 0.5;
-                potentialPlane = Plane::from_points(firstPoint, secondPoint, thirdPoint);
-            }
-        }
+        TG_ASSERT(oppositeFace.is_valid());
+
+        const Plane& planeOppositeFace = mFaces[oppositeFace];
+        normal_t normal1 = { planeEdge.a, planeEdge.b, planeEdge.c };
+        normal_t normal2 = { planeOppositeFace.a, planeOppositeFace.b, planeOppositeFace.c };
+        auto newVec = tg::normalize(tg::f64vec3(normal1)) + tg::normalize(tg::f64vec3(normal2));
+        //vec_t testVec2 = vec_t(tg::normalize(tg::f64vec3(normal1 + normal2)));
+        vec_t dir = vec_t(newVec * 100);
+        auto thirdPoint = firstPoint + dir;
+        Plane potentialPlane = Plane::from_points(firstPoint, secondPoint, thirdPoint);
+
+        TG_ASSERT(!ob::are_parallel(mFaces[oppositeFace], potentialPlane));
         TG_ASSERT(!ob::are_parallel(mFaces[face], potentialPlane));
         mEdges[halfEdge.edge()] = potentialPlane;
         return;
@@ -234,8 +238,10 @@ public:
     //#############################################################################
 
     bool allHalfEdgesAreValid() {
-        for (auto h : mMesh.all_halfedges()) {
+        for (auto h : mMesh.halfedges()) {
             if (h.is_invalid())
+                return false;
+            if (h.face().is_invalid())
                 return false;
         }
         return true;
