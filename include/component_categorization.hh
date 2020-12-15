@@ -157,17 +157,7 @@ public:
         }
     }
 
-	pm::face_attribute<tg::color3> getColorToStateA() {
-		const pm::Mesh& mesh = mSharedOctree->getPlaneMeshA().mesh();
-		SharedFaceComponents faceComponentsA = mFaceComponentsA;
-		std::vector<int8_t>& componentIsOutsideA = mComponentIsOutsideA;
-		
-		pm::face_attribute<tg::color3> faceColors = mesh.faces().map([&](pm::face_handle& face) {
-				int component = faceComponentsA->getComponentOfFace(face);
-				return componentIsOutsideA[component] == 0 ? tg::color3::white : tg::color3::black;
-			});
-		return faceColors;
-	}
+
 
     void renderFinalResult(const IntersectionCut& iCut, float scale = 1000.f) {
         auto colorsA = getColorToStateA();
@@ -198,6 +188,8 @@ public:
 
         auto const isectLines1 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(30 * scale));
         isectLines1->addAttribute(gv::detail::make_mesh_attribute("aColor", glow::colors::color(0, 0, 0)));
+        auto const isectLines2 = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(30 * scale));
+        isectLines2->addAttribute(gv::detail::make_mesh_attribute("aColor", glow::colors::color(0, 0, 0)));
 
         int tooglePolygons = 0;
         int colorMode = 0;
@@ -213,8 +205,10 @@ public:
                 gv::view(positionsB);
 
 
-            if (showIntersection)
+            if (showIntersection == 1)
                 gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()));
+            else
+                gv::view(isectLines2, gv::masked(iCut.getIntersectionEdgesMarkerB()));
 
             if (toogleLines) {
                 gv::view(positionLinesBSmall);
@@ -278,6 +272,20 @@ public:
             });
     }
 
+    pm::face_attribute<tg::color3> getColorToStateA() {
+        const pm::Mesh& mesh = mSharedOctree->getPlaneMeshA().mesh();
+        SharedFaceComponents faceComponents = mFaceComponentsA;
+        std::vector<int8_t>& componentIsOutside = mComponentIsOutsideA;
+
+        pm::face_attribute<tg::color3> faceColors = mesh.faces().map([&](pm::face_handle& face) {
+            int component = faceComponents->getComponentOfFace(face);
+            if (componentIsOutside[component] == 2)
+                return tg::color3::red;
+            return componentIsOutside[component] == 0 ? tg::color3::white : tg::color3::black;
+            });
+        return faceColors;
+    }
+
 	pm::face_attribute<tg::color3> getColorToStateB() {
 		const pm::Mesh& mesh = mSharedOctree->getPlaneMeshB().mesh();
 		SharedFaceComponents faceComponents = mFaceComponentsB;
@@ -285,7 +293,9 @@ public:
 
 		pm::face_attribute<tg::color3> faceColors = mesh.faces().map([&](pm::face_handle& face) {
 				int component = faceComponents->getComponentOfFace(face);
-				return componentIsOutside[component] == 0 ? tg::color3::white : tg::color3::black;
+                if (componentIsOutside[component] == 2)
+                    return tg::color3::red;
+				return componentIsOutside[component] == 0 ? tg::color3::white :  tg::color3::black;
 			});
 		return faceColors;
 	}

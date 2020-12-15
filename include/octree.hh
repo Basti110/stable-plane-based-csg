@@ -469,7 +469,9 @@ class Octree : public std::enable_shared_from_this<Octree> {
 public:
     enum class Options {
         SPLIT_ONE_MESH = 1,
-        SPLIT_TWO_MESHES = 2
+        SPLIT_TWO_MESHES = 2,
+        MAX_OBJ_IN_CELL = 3,
+        MAX_TREE_DEPTH = 4,
     };
 
     scalar_t getNextPower(scalar_t value) {
@@ -536,11 +538,15 @@ public:
         mRoot->insertAABB(insertVec);
     }
 
-    void setOption(Options option) {
-        if (uint32_t(option) && uint32_t(Options::SPLIT_ONE_MESH))
+    void setOption(Options option, int v = -1) {
+        if (option == Options::SPLIT_ONE_MESH)
             mSplitOnlyOneMesh = true;
-        else if(uint32_t(option) && uint32_t(Options::SPLIT_TWO_MESHES))
+        else if(option == Options::SPLIT_TWO_MESHES)
             mSplitOnlyOneMesh = false;
+        else if (option == Options::MAX_OBJ_IN_CELL && v > 0)
+            mMaxObjectsInCell = v;
+        else if (option == Options::MAX_TREE_DEPTH && v > 0)
+            mMaxDepth = v;
     }
 
     int markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) {
@@ -561,7 +567,7 @@ public:
         bool test1 = mMeshA->allFacesAreValidAndNotRemoved();
         bool test2 = mMeshB->allFacesAreValidAndNotRemoved();
         mRoot->cutPolygons(faceLookUp);
-        faceLookUp.repairCoPlanarMarkedPolygons();
+        //faceLookUp.repairCoPlanarMarkedPolygons();
         //faceLookUp.printTimes();
         return faceLookUp;
     }
@@ -1270,6 +1276,7 @@ private:
     scalar_t mSmallestCellLen = 0;
     int mSplits = 0;
     int mMaxDepth = 10;
+    int mMaxObjectsInCell = 15;
     pm::face_attribute<std::vector<SharedLeafNode>> mFaceMeshAToNode;
     pm::face_attribute<std::vector<SharedLeafNode>> mFaceMeshBToNode;
 };

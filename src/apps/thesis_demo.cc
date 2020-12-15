@@ -313,7 +313,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("complex_1");
+    ObjConfig conf = ObjCollection::map.at("cubes");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -369,4 +369,24 @@ APP("Benchmark:OneIteration") {
     conf.getOctree()->printOctreeStats();
     //conf.viewMesh(true);
     components->renderFinalResult(iCut);
+}
+
+
+APP("App:ShowMeshOrOctree") {
+    ObjConfig conf = ObjCollection::map.at("cubes");
+    conf.setMaxObjInCell(200);
+    auto octree = conf.getOctree();
+    auto boxes = conf.getOctreeBoxes();
+    SharedPlaneMesh planeMesh1 = conf.getMeshA();
+    SharedPlaneMesh planeMesh2 = conf.getMeshB();
+    planeMesh1->checkAndComputePositions();
+    {
+        auto view = gv::view(planeMesh1->positions(), gv::print_mode);
+        gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
+        gv::view(planeMesh2->positions(), gv::camera_transform(tg::pos3(-704690.f, 1220410.f, 4364950.f), tg::pos3(848812.f, 735278.f, 2153600.f)));
+        gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));
+    }
+    glow::info() << gv::get_last_close_info().cam_pos;
+    glow::info() << gv::get_last_close_info().cam_target;
+    //gv::view(gv::lines(boxes).line_width_world(500000), tg::color3::blue);
 }

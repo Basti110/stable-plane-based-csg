@@ -140,7 +140,7 @@ public:
         auto newVec = tg::normalize(tg::f64vec3(normal1)) + tg::normalize(tg::f64vec3(normal2));
         //vec_t testVec2 = vec_t(tg::normalize(tg::f64vec3(normal1 + normal2)));
         vec_t dir = vec_t(newVec * 100);
-        auto thirdPoint = firstPoint + dir;
+        auto thirdPoint = firstPoint - dir;
         Plane potentialPlane = Plane::from_points(firstPoint, secondPoint, thirdPoint);
 
         TG_ASSERT(!ob::are_parallel(mFaces[oppositeFace], potentialPlane));

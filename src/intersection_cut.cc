@@ -321,6 +321,26 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
     //int countEdges5 = mesh.halfedges().count();
     auto newFace2 = addFaceFromCycleAndStopPoint(mesh, h2Next, v1New);
     //int countEdges6 = mesh.halfedges().count();
+    if (planeMesh.planeMesh.id() == mMeshA->id()) {
+        for (int i = 0; i < mCoplanarFacesMeshA.size(); ++i) {
+            if (mCoplanarFacesMeshA[i].value == planeMesh.face.idx.value) {
+                if (sign == 1)
+                    mCoplanarFacesMeshA[i] = newFace1.idx;
+                else
+                    mCoplanarFacesMeshA[i] = newFace2.idx;
+            }
+        }
+    }
+    else {
+        for (int i = 0; i < mCoplanarFacesMeshB.size(); ++i) {
+            if (mCoplanarFacesMeshB[i].value == planeMesh.face.idx.value) {
+                if (sign == 1)
+                    mCoplanarFacesMeshB[i] = newFace1.idx;
+                else
+                    mCoplanarFacesMeshB[i] = newFace2.idx;
+            }
+        }
+    }
 
     end = std::chrono::steady_clock::now();
     nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();

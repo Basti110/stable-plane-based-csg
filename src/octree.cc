@@ -125,10 +125,12 @@ void OctreeNode::setParent(SharedBranchNode node)
 
 LeafNode::LeafNode(const AABB& aabb, Octree* octree) : OctreeNode(aabb, octree)
 {
+    mMaxValues = mOctree->mMaxObjectsInCell;
 }
 
 LeafNode::LeafNode(const AABB& aabb, SharedBranchNode parent) : OctreeNode(aabb, parent)
 {
+    mMaxValues = mOctree->mMaxObjectsInCell;
 }
 
 SharedOctreeNode LeafNode::childNode(int idx)

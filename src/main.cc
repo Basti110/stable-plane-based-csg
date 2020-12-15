@@ -52,9 +52,9 @@ int main(int argc, char* argv[]) {
     
     //convert();
     //return 0;
-    if (argc > 1 || true) {
-        //std::string file = std::string(argv[1]);
-        std::string file = "36372.stl"; 
+    if (argc > 1) {
+        std::string file = std::string(argv[1]);
+        //std::string file = "36372.stl"; 
         {
             pm::Mesh mesh;
             pm::vertex_attribute<tg::pos3> pos(mesh);   
@@ -89,9 +89,12 @@ int main(int argc, char* argv[]) {
     //char* argv[] = { "main", "App::Picker" };
     //char* argv[] = { "main", "App::Picker_Cut" };
     //char* argv[] = { "main", "App::component_classification" };
+    char* arg[] = { "main", "App:ShowMeshOrOctree" };
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
     
-    char* arg[] = { "main", "Benchmark:OneIteration" };
+    //char* arg[] = { "main", "Benchmark:OneIteration" };
+
+    //char* arg[] = { "main", "Test::Co_Planar_Cut2" };
     //char* arg[] = { "main", "Test::Co_Planar_Cut" };
     //char* argv[] = { "main", "Test::Cut_Triangle_Normal_Marker_Case4" };
     //char* argv[] = { "main", "App::Show_Mesh" };

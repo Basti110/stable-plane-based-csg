@@ -120,3 +120,32 @@ APP("Image::BasePlaneTest3") {
     c.add_label(tg::pos3{ -10, 5, 0 }, "Base Plane", style);
     c.add_arrow(tg::pos3{ 0, 2, 0.1 }, tg::pos3{ 0, 2, 8 }, 0.5f, tg::color3::red);
 }
+
+APP("App:ShowMeshOrOctree") {
+    ObjConfig conf = ObjCollection::map.at("cubes");
+    conf.setMaxObjInCell(200);
+    auto octree = conf.getOctree();
+    auto boxes = conf.getOctreeBoxes();
+    SharedPlaneMesh planeMesh1 = conf.getMeshA();
+    SharedPlaneMesh planeMesh2 = conf.getMeshB();
+    auto transform = tg::pos3(-704690.f, 1220410.f, 4364950.f);
+    auto target = tg::pos3(848812.f, 735278.f, 2153600.f);
+    {
+        auto view = gv::view(planeMesh1->positions(), gv::print_mode);
+        gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
+        gv::view(planeMesh2->positions(), gv::camera_transform(transform, target));
+        gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));
+    }
+    glow::info() << gv::get_last_close_info().cam_pos;
+    glow::info() << gv::get_last_close_info().cam_target;
+    IntersectionCut iCut = octree->cutPolygons();
+    planeMesh1->checkAndComputePositions();
+    planeMesh2->checkAndComputePositions();
+    {
+        auto view = gv::view(planeMesh1->positions(), gv::print_mode);
+        gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
+        gv::view(planeMesh2->positions(), gv::camera_transform(transform, target));
+        gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));
+    }
+    //gv::view(gv::lines(boxes).line_width_world(500000), tg::color3::blue);
+}

@@ -459,6 +459,110 @@ TEST("Test::Cut_Triangle_Normal") {
     gv::view(gv::points(planeMesh2.positions()).point_size_world(15));*/
 }
 
+TEST("Test::Co_Planar_Cut2") {
+    scalar_t scale = 100;
+    auto meshA = pm::Mesh();
+    pm::vertex_attribute<tg::pos3> mPosA(meshA);
+    pm::vertex_handle v1_1 = meshA.vertices().add();
+    pm::vertex_handle v1_2 = meshA.vertices().add();
+    pm::vertex_handle v1_3 = meshA.vertices().add();
+    pm::vertex_handle v1_4 = meshA.vertices().add();
+    pm::vertex_handle v1_5 = meshA.vertices().add();
+    pm::vertex_handle v1_6 = meshA.vertices().add();
+    pm::vertex_handle v1_7 = meshA.vertices().add();
+    pm::vertex_handle v1_8 = meshA.vertices().add();
+    mPosA[v1_1] = tg::pos3{ 10, -5, -10 };
+    mPosA[v1_2] = tg::pos3{ 10, -5, 10 };
+    mPosA[v1_3] = tg::pos3{ -10, -5, 10 };
+    mPosA[v1_4] = tg::pos3{ -10, -5, -10 };
+    mPosA[v1_5] = tg::pos3{ 10, 0, -10 };
+    mPosA[v1_6] = tg::pos3{ 10, 0, 10 };
+    mPosA[v1_8] = tg::pos3{ -10, 0, 10 };
+    mPosA[v1_7] = tg::pos3{ -10, 0, -10 };
+    meshA.faces().add(v1_2, v1_1, v1_3);
+    meshA.faces().add(v1_1, v1_4, v1_3);
+    meshA.faces().add(v1_1, v1_2, v1_6);
+    meshA.faces().add(v1_6, v1_5, v1_1);
+    meshA.faces().add(v1_2, v1_3, v1_8);
+    meshA.faces().add(v1_8, v1_6, v1_2);
+    meshA.faces().add(v1_3, v1_4, v1_7);
+    meshA.faces().add(v1_7, v1_8, v1_3);
+    meshA.faces().add(v1_4, v1_1, v1_5);
+    meshA.faces().add(v1_5, v1_7, v1_4);
+    meshA.faces().add(v1_5, v1_6, v1_8);
+    meshA.faces().add(v1_8, v1_7, v1_5);
+
+    auto meshB = pm::Mesh();
+    pm::vertex_attribute<tg::pos3> mPosB(meshB);
+    v1_1 = meshB.vertices().add();
+    v1_2 = meshB.vertices().add();
+    v1_3 = meshB.vertices().add();
+    v1_4 = meshB.vertices().add();
+    mPosB[v1_1] = tg::pos3{ 5, 0, -5 };
+    mPosB[v1_2] = tg::pos3{ 5, 0, 5 };
+    mPosB[v1_3] = tg::pos3{ -5, 0, 5 };
+    mPosB[v1_4] = tg::pos3{ -5, 0, -5 };
+    v1_5 = meshB.vertices().add();
+    v1_6 = meshB.vertices().add();
+    v1_7 = meshB.vertices().add();
+    v1_8 = meshB.vertices().add();
+    mPosB[v1_5] = tg::pos3{ 5, 5, -5 };
+    mPosB[v1_6] = tg::pos3{ 5, 5, 5 };
+    mPosB[v1_8] = tg::pos3{ -5, 5, 5 };
+    mPosB[v1_7] = tg::pos3{ -5, 5, -5 };
+    meshB.faces().add(v1_2, v1_1, v1_3);
+    meshB.faces().add(v1_1, v1_4, v1_3);
+    meshB.faces().add(v1_1, v1_2, v1_6);
+    meshB.faces().add(v1_6, v1_5, v1_1);
+    meshB.faces().add(v1_2, v1_3, v1_8);
+    meshB.faces().add(v1_8, v1_6, v1_2);
+    meshB.faces().add(v1_3, v1_4, v1_7);
+    meshB.faces().add(v1_7, v1_8, v1_3);
+    meshB.faces().add(v1_4, v1_1, v1_5);
+    meshB.faces().add(v1_5, v1_7, v1_4);
+    meshB.faces().add(v1_5, v1_6, v1_8);
+    meshB.faces().add(v1_8, v1_7, v1_5);
+
+    PlaneMesh planeMesh1(meshA, mPosA, scale);
+    PlaneMesh planeMesh2(meshB, mPosB, scale);
+
+    auto octree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, AABB{ {-3200, -3200, -3200}, {3200, 3200, 3200} });
+
+    for (auto f : planeMesh1.allFaces()) {
+        octree->insert_polygon(planeMesh1.id(), f);
+    }
+
+    for (auto f : planeMesh2.allFaces()) {
+        octree->insert_polygon(planeMesh2.id(), f);
+    }
+
+    auto iCut = octree->cutPolygons();
+    planeMesh1.checkAndComputePositions();
+    planeMesh2.checkAndComputePositions();
+    std::vector<AABB> boxes;
+    octree->insertAABB(boxes);
+
+    std::vector<tg::aabb3> returnBoxes;
+    returnBoxes.reserve(boxes.size());
+
+    for (auto box : boxes) {
+        returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+    }
+
+    {
+        auto view = gv::view(planeMesh1.positions());
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(5));
+        gv::view(planeMesh2.positions());
+        gv::view(gv::lines(planeMesh2.positions()).line_width_world(5));
+        gv::view(gv::lines(returnBoxes).line_width_world(10), tg::color3::blue, "gv::lines(pos)");
+    }
+
+    std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(planeMesh1, iCut.getIntersectionEdgesMarkerA());
+    std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(planeMesh2, iCut.getIntersectionEdgesMarkerB());
+    auto components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
+    components->renderFinalResult(iCut, 1);
+}
+
 TEST("Test::Cut_Triangle_Planar_1") {
     PlaneMesh planeMesh1;
     PlaneMesh planeMesh2;

@@ -87,6 +87,8 @@ public:
 
     void viewMesh(bool showOctree = false) {
         loadMeshIfNotLoaded();
+        if (showOctree)
+            fillOctreeIfNotFilled();
         mPlaneMeshA->checkAndComputePositions();
         mPlaneMeshB->checkAndComputePositions();
         int sizeV = mPlaneMeshA->positions().count();
@@ -154,6 +156,10 @@ public:
     void setMeshRepairBefore(bool v) {
         mRepairBefore = v;
     }
+
+    void setMaxObjInCell(int v) {
+        mMaxObjInCell = v;
+    }
       
 private:
     void fillOctreeIfNotFilled() {  
@@ -168,7 +174,7 @@ private:
                 mOctree = std::make_shared<Octree>(&(*mPlaneMeshA), mOctreeBox);
                 mOctree->setOption(Octree::Options::SPLIT_ONE_MESH);
             }               
-            
+            mOctree->setOption(Octree::Options::MAX_OBJ_IN_CELL, mMaxObjInCell);
             for (auto f : mPlaneMeshA->allFaces()) {
                 mOctree->insert_polygon(mPlaneMeshA->id(), f);
             }
@@ -239,6 +245,7 @@ private:
     SharedPlaneMesh mPlaneMeshA;
     SharedPlaneMesh mPlaneMeshB;
     SharedOctree mOctree;
+    int mMaxObjInCell = 15;
     scalar_t mScale = 1;
     scalar_t mScaleOctree = 1;    
 
