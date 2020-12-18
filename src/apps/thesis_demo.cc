@@ -313,7 +313,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("cubes");
+    ObjConfig conf = ObjCollection::map.at("Buddha");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -367,7 +367,7 @@ APP("Benchmark:OneIteration") {
     std::cout << "Time Without PM Load: " << t + conf.initMeshTime() << "ms" << std::endl;
     std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
     conf.getOctree()->printOctreeStats();
-    //conf.viewMesh(true);
+    conf.viewMesh(true);
     components->renderFinalResult(iCut);
 }
 

@@ -200,9 +200,9 @@ public:
         gv::interactive([&](auto dt) {
             auto view = gv::view();
             if (tooglePolygons != 6)
-                gv::view(positionsA);
+                gv::view(positionsA, gv::print_mode);
             if (tooglePolygons != 5)
-                gv::view(positionsB);
+                gv::view(positionsB, gv::print_mode);
 
 
             if (showIntersection == 1)
@@ -253,8 +253,8 @@ public:
                     positionsB->setMasking(maskFaceBOut);
                 }
                 if (colorMode == 0) {
-                    gv::configure(*positionsA, tg::color3::white);
-                    gv::configure(*positionsB, tg::color3::white);
+                    gv::configure(*positionsA, tg::color3(0.95));
+                    gv::configure(*positionsB, tg::color3(0.5));
                 }
                 else if (colorMode == 1) {
                     gv::configure(*positionsA, mFaceComponentsA->getColorAssignment());

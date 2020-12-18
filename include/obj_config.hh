@@ -93,11 +93,11 @@ public:
         mPlaneMeshB->checkAndComputePositions();
         int sizeV = mPlaneMeshA->positions().count();
         int sizeF = mPlaneMeshA->faces().count();
-        auto view = gv::view(mPlaneMeshA->positions());
-        gv::view(gv::lines(mPlaneMeshA->positions()).line_width_world((double)mScaleOctree / 20), tg::color3::color(0.0));
+        auto view = gv::view(mPlaneMeshA->positions(), gv::print_mode, tg::color3::color(0.5));
+        //gv::view(gv::lines(mPlaneMeshA->positions()).line_width_world((double)mScaleOctree / 20), tg::color3::color(0.0));
         if (mNumObjects == 2) {
-            gv::view(mPlaneMeshB->positions());
-            gv::view(gv::lines(mPlaneMeshB->positions()).line_width_world((double)mScaleOctree / 20), tg::color3::color(0.0));
+            gv::view(mPlaneMeshB->positions(), tg::color3::color(0.98));
+            //gv::view(gv::lines(mPlaneMeshB->positions()).line_width_world((double)mScaleOctree / 20), tg::color3::color(0.0));
         }
         if (showOctree) {
             auto boxes = getOctreeBoxes();

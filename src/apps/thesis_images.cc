@@ -121,15 +121,15 @@ APP("Image::BasePlaneTest3") {
     c.add_arrow(tg::pos3{ 0, 2, 0.1 }, tg::pos3{ 0, 2, 8 }, 0.5f, tg::color3::red);
 }
 
-APP("App:ShowMeshOrOctree") {
+APP("Image::Cubes") {
     ObjConfig conf = ObjCollection::map.at("cubes");
     conf.setMaxObjInCell(200);
     auto octree = conf.getOctree();
     auto boxes = conf.getOctreeBoxes();
     SharedPlaneMesh planeMesh1 = conf.getMeshA();
     SharedPlaneMesh planeMesh2 = conf.getMeshB();
-    auto transform = tg::pos3(-704690.f, 1220410.f, 4364950.f);
-    auto target = tg::pos3(848812.f, 735278.f, 2153600.f);
+    auto transform = tg::pos3(-372483.f, 2378080.f, 3359840.f);
+    auto target = tg::pos3(897424., 1094300., 1291490.);
     {
         auto view = gv::view(planeMesh1->positions(), gv::print_mode);
         gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
@@ -138,14 +138,19 @@ APP("App:ShowMeshOrOctree") {
     }
     glow::info() << gv::get_last_close_info().cam_pos;
     glow::info() << gv::get_last_close_info().cam_target;
+    {
+        auto view = gv::view(planeMesh1->positions(), gv::camera_transform(transform, target), gv::print_mode);
+        gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
+    }
+
     IntersectionCut iCut = octree->cutPolygons();
     planeMesh1->checkAndComputePositions();
     planeMesh2->checkAndComputePositions();
     {
-        auto view = gv::view(planeMesh1->positions(), gv::print_mode);
+        auto view = gv::view(planeMesh1->positions(), gv::camera_transform(transform, target), gv::print_mode);
         gv::view(gv::lines(planeMesh1->positions()).line_width_world(10000), tg::color3::color(0.0));
-        gv::view(planeMesh2->positions(), gv::camera_transform(transform, target));
-        gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));
+        //gv::view(planeMesh2->positions(), gv::camera_transform(transform, target));
+        //gv::view(gv::lines(planeMesh2->positions()).line_width_world(10000), tg::color3::color(0.0));
     }
     //gv::view(gv::lines(boxes).line_width_world(500000), tg::color3::blue);
 }
