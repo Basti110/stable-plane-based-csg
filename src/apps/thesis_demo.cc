@@ -313,7 +313,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("Buddha");
+    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -368,7 +368,7 @@ APP("Benchmark:OneIteration") {
     std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
     conf.getOctree()->printOctreeStats();
     conf.viewMesh(true);
-    components->renderFinalResult(iCut);
+    components->renderFinalResult(iCut, 5000);
 }
 
 

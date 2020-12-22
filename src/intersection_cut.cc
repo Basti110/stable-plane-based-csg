@@ -171,6 +171,7 @@ std::tuple<pm::face_handle, pm::face_handle> IntersectionCut::splitFace(PlaneMes
         return std::tuple<pm::face_handle, pm::face_handle>(face2, face1);
 }
 
+//iE kann raus
 int8_t computeSignToIntersectionLine(const IntersectionEdgesIndices& intersectionEdges, const PlaneMesh& m, pm::halfedge_handle iE, const Plane& iP, const Plane& eP, const Plane& bP) {
     //auto test = iE.edge().idx.value;
     auto iEdge = intersectionEdges.intersectionEdge1.of(m.mesh());
