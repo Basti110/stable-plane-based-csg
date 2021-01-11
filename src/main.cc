@@ -22,9 +22,9 @@
 #include <benchmark.h>
 //---
 #include <iomanip>
-#define GIGA 1000000000
-#define MEGA 1000000
-#define CLOCK 3399740
+//#define GIGA 1000000000
+//#define MEGA 1000000
+//#define CLOCK 3399740
 //std::string testObj = "../data/mesh/fox.obj";
 std::string testObj = "../data/mesh/buddha_2.obj";
 
@@ -49,16 +49,18 @@ int main(int argc, char* argv[]) {
     }
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
-    
+    //test_octree_cell_ray_cast();
     //convert();
     //return 0;
-    if (argc > 1) {
-        std::string file = std::string(argv[1]);
-        //std::string file = "36372.stl"; 
+    if (argc > 1 || true) {
+        //std::string file = std::string(argv[1]);
+        std::string file = "37012.stl"; 
         {
             pm::Mesh mesh;
             pm::vertex_attribute<tg::pos3> pos(mesh);   
-            pm::load("E:/benchmark/files/" + file, mesh, pos);
+            bool meshIsValid = pm::load("E:/benchmark/files/" + file, mesh, pos);
+            if (!meshIsValid)
+                return 2;
             pm::deduplicate(mesh, pos);
             mesh.compactify();
             for (auto h : mesh.halfedges()) {
@@ -441,10 +443,10 @@ void test_octree_cell_ray_cast() {
         auto view = gv::view(octreeCells, tg::color3::blue);
         gv::view(rayCells, tg::color3::green);
         gv::view(rayPath, tg::color3::red);
-        //gv::view(positions1);
-        //gv::view(positionLines1);
-        //gv::view(positions2);
-        //gv::view(positionLines2);
+        gv::view(positions1);
+        gv::view(positionLines1);
+        gv::view(positions2);
+        gv::view(positionLines2);
     }
 
     /*gv::interactive([&](auto) {

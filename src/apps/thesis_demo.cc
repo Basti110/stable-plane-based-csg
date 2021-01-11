@@ -9,7 +9,7 @@
 //#include <ctracer/trace-config.hh>
 #define GIGA 1000000000
 #define MEGA 1000000
-#define CLOCK 3399740
+#define CLOCK 3799999
 
 APP("App::Plane_Geometry_Visu") {
     std::vector<tg::ipos3> positions;
@@ -271,7 +271,7 @@ APP("Benchmark:SubdetVsIntPos") {
 }
 
 APP("Benchmark:TestAvgTime") {
-    int testCount = 1;   
+    int testCount = 100;   
     ct::scope s;
     glow::timing::CpuTimer timer;
     for (int i = 0; i < testCount; i++) {       

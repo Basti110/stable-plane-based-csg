@@ -54,6 +54,8 @@ public:
 	}
 
 	void assignInOut(const IntersectionCut& iCut) {
+        std::vector<SharedDebugRayInfo> rayInfosA;
+        std::vector<SharedDebugRayInfo> rayInfosB;
 		
         for (int i = 0; i < mFaceComponentsA->getNumberOfComponents(); ++i) {
             pm::vertex_handle vertexA = pm::vertex_handle::invalid;
@@ -76,6 +78,7 @@ public:
             TG_ASSERT(vertexA != pm::vertex_handle::invalid);
             SharedDebugRayInfo rayInfoA = std::make_shared<DebugRayInfo>();
             auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexA, mSharedOctree->getPlaneMeshA(), rayInfoA);
+            rayInfosA.push_back(rayInfoA);
             auto component = mFaceComponentsA->getComponentOfFace(vertexA.any_face());
             mComponentIsOutsideA[component] = intersections % 2;
             propagateComponentStateRecursiveA(mComponentIsOutsideA, component);
@@ -101,40 +104,64 @@ public:
             TG_ASSERT(vertexB != pm::vertex_handle::invalid);
             SharedDebugRayInfo rayInfoB = std::make_shared<DebugRayInfo>();
             auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexB, mSharedOctree->getPlaneMeshB(), rayInfoB);
+            rayInfosB.push_back(rayInfoB);
             auto component = mFaceComponentsB->getComponentOfFace(vertexB.any_face());
             mComponentIsOutsideB[component] = intersections % 2;
             propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
         }
-        /*
-        #define RAYINFO rayInfoA
+        
+        #define RAYINFO rayInfosA
         std::vector<tg::dsegment3> lines;
-        for (int i = 0; i < (int)RAYINFO->rayPath.size() - 1; ++i) {
-            lines.push_back(tg::dsegment3{ ob::to_position(RAYINFO->rayPath[i]), ob::to_position(RAYINFO->rayPath[i + 1]) });
-        }
+        auto info = rayInfosA[1];
+        //for (auto info : RAYINFO) {
+            for (int i = 0; i < (int)info->rayPath.size() - 1; ++i) {
+                lines.push_back(tg::dsegment3{ob::to_position(info->rayPath[i]), ob::to_position(info->rayPath[i + 1]) });
+            }
+        //}
+
+        //for (auto info : RAYINFO) {
+            for (int i = 0; i < (int)info->nexPointsCell.size() - 1; ++i) {
+                lines.push_back(tg::dsegment3{ tg::dpos3(info->nexPointsCell[i]), tg::dpos3(info->nexPointsCell[i + 1]) });
+            }
+        //}
+
         //lines.push_back(tg::dsegment3{ tg::dpos3(rayInfo->rayStartDirect), tg::dpos3(rayInfo->rayEndDirect) });
 
-        for (int i = 0; i < (int)RAYINFO->nexPointsCell.size() - 1; ++i) {
+        /*for (int i = 0; i < (int)RAYINFO->nexPointsCell.size() - 1; ++i) {
             lines.push_back(tg::dsegment3{ tg::dpos3(RAYINFO->nexPointsCell[i]), tg::dpos3(RAYINFO->nexPointsCell[i + 1]) });
         }
 
         std::vector<tg::aabb3> returnBoxes;
         for (auto box : RAYINFO->rayBoxesDirect) {
             returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+        }*/
+
+        std::vector<AABB> boxes;
+        mSharedOctree->insertAABB(boxes);
+        std::vector<tg::aabb3> returnBoxes;
+        returnBoxes.reserve(boxes.size());
+        for (auto box : boxes) {
+            returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
         }
 
-        auto const rayCells = gv::lines(returnBoxes).line_width_world(250000);
-        auto const rayPath = gv::lines(lines).line_width_world(300000);
+        mSharedOctree->getPlaneMeshA().checkAndComputePositions();
+        mSharedOctree->getPlaneMeshB().checkAndComputePositions();
+        auto const octreeCells = gv::lines(returnBoxes).line_width_world(25000);
+        auto const rayPath = gv::lines(lines).line_width_world(30000);
+        auto const lines1 = gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(1000);
+        auto const lines2 = gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(1000);
 
-        if (tooglePolygons) {
-            //auto view = gv::view(octreeCells, tg::color3::blue);
+        {
+            auto view = gv::view(octreeCells, tg::color3::blue);
             //auto view = gv::view(rayCells, tg::color3::green);
-            //gv::view(rayPath, tg::color3::red);
-            //auto view = gv::view(positions1, gv::masked(colorMaskA));
-            //gv::view(positionLines1);
-            //gv::view(positions2, gv::masked(colorMaskB));
+            gv::view(rayPath, tg::color3::red);
+            gv::view(mSharedOctree->getPlaneMeshA().positions());
+            gv::view(mSharedOctree->getPlaneMeshB().positions());
+            gv::view(lines1);
+            gv::view(lines2);
             //auto view = gv::view(positions2, colorsB); // mFaceComponentsB->getColorAssignment());
             //gv::view(positionLines2);
-        }*/
+        }
 	}
 
 	void propagateComponentStateRecursiveA(std::vector<int8_t>& componentIsOutside, int component) {
@@ -159,7 +186,7 @@ public:
 
 
 
-    void renderFinalResult(const IntersectionCut& iCut, float scale = 1000.f) {
+    void renderFinalResult(const IntersectionCut& iCut, float scale = 300.f) {
         auto colorsA = getColorToStateA();
         auto colorsB = getColorToStateB();
         mSharedOctree->getPlaneMeshA().checkAndComputePositions();
@@ -193,7 +220,8 @@ public:
 
         int tooglePolygons = 0;
         int colorMode = 0;
-        bool toogleLines = true;
+        bool toogleLinesA = true;
+        bool toogleLinesB = true;
         bool showIntersection = true;
 
 
@@ -205,15 +233,17 @@ public:
                 gv::view(positionsB, gv::print_mode);
 
 
-            if (showIntersection == 1)
+            if (showIntersection)
                 gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()));
             else
                 gv::view(isectLines2, gv::masked(iCut.getIntersectionEdgesMarkerB()));
 
-            if (toogleLines) {
-                gv::view(positionLinesBSmall);
+            if (toogleLinesA)
                 gv::view(positionLinesASmall);
-            }
+
+            if (toogleLinesB)
+                gv::view(positionLinesBSmall);
+
 
             ImGui::Begin("Move");
             bool toogled = ImGui::RadioButton("Mesh 1 + Mesh 2", &tooglePolygons, 0);
@@ -226,12 +256,13 @@ public:
             toogled |= ImGui::RadioButton("Color: White", &colorMode, 0);
             toogled |= ImGui::RadioButton("Color: Components", &colorMode, 1);
             toogled |= ImGui::RadioButton("Color: In/Out", &colorMode, 2);
-            toogled |= ImGui::Checkbox("Show Lines", &toogleLines);
+            toogled |= ImGui::Checkbox("Show Lines A", &toogleLinesA);
+            toogled |= ImGui::Checkbox("Show Lines B", &toogleLinesB);
             toogled |= ImGui::Checkbox("Show Intersection", &showIntersection);
-            if (ImGui::IsKeyPressed('L')) {
+            /*if (ImGui::IsKeyPressed('L')) {
                 toogleLines = !toogleLines;
                 toogled = true;
-            }
+            }*/
               
             if (toogled) {
                 positionsA = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());

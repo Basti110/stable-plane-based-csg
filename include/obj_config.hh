@@ -305,8 +305,8 @@ public:
                 "../data/mesh/soma_gyroid_Z.obj", tg::translation(tg::vec{-25.0f, -.5f, 10.0f }), tg::scaling(1.3f, 1.3f, 1.3f))},
             { "Armadillo", //
                 ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
-                "../data/mesh/Armadillo.obj", tg::mat4::identity, tg::mat4::identity,
-                "../data/mesh/Armadillo.obj", tg::translation(tg::vec{ -20.0f, 0.0f, 20.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
+                "../data/mesh/Armadillo_2.obj", tg::mat4::identity, tg::mat4::identity,
+                "../data/mesh/Armadillo_2.obj", tg::translation(tg::vec{ -20.0f, 0.0f, 20.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
             { "Buddha", //
                 ObjConfig(1e8, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/Buddha.obj", tg::translation(tg::vec{ 0.0f, -10.5f, 0.0f }), tg::mat4::identity,

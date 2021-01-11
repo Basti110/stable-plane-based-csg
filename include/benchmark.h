@@ -10,7 +10,7 @@
 //#include <ctracer/trace-config.hh>
 #define GIGA 1000000000
 #define MEGA 1000000
-#define CLOCK 3399740
+#define CLOCK 3799999
 
 namespace Benchmark {
     void printStats(ct::scope& s) {
@@ -105,7 +105,7 @@ namespace Benchmark {
         conf.getOctree()->printOctreeStats();
         benchmarkWriter.writeToFile();
         //conf.viewMesh(true);
-        //components->renderFinalResult(iCut);
+        components->renderFinalResult(iCut);
         return 0;
     }
 }

@@ -452,6 +452,8 @@ class DebugRayInfo {
 public:
     std::vector<SubDet> rayPath;
     pos_t octreeVerex;
+    std::vector<tg::pos3> intersections;
+    std::vector<bool> intersectionToInside;
 
     //Debug direct approach
     std::vector<AABB> rayBoxesDirect;
@@ -782,8 +784,11 @@ public:
 
             singsMeshA[i] = sign;
             auto subDetFacePlane = mMeshA->pos(p1, p2, facePlane);
-            if (checkIfPointInPolygon(face, mMeshA, subDetFacePlane))
+            if (checkIfPointInPolygon(face, mMeshA, subDetFacePlane)) {
                 intersectionCount++;
+
+            }
+                
         }
 
         //Mesh B
@@ -801,8 +806,9 @@ public:
 
             singsMeshB[i] = sign;
             auto subDetFacePlane = mMeshA->pos(p1, p2, facePlane);
-            if (checkIfPointInPolygon(face, mMeshB, subDetFacePlane))
+            if (checkIfPointInPolygon(face, mMeshB, subDetFacePlane)) {
                 intersectionCount++;
+            }             
         }
         return intersectionCount;
     }
@@ -825,11 +831,13 @@ public:
             singsMeshB[i] = sign == 0 ? 2 : sign;
         }
 
+        Plane edgePlane = !ob::are_parallel(origin.edgePlane1, second) ? origin.edgePlane1 : origin.edgePlane2;
+
         det = mMeshA->pos(first, origin.edgePlane1, origin.edgePlane2);
         intersectionCount += intersectionToNextPoint(origin.edgePlane1, origin.edgePlane2, det, node, singsMeshA, singsMeshB);
 
-        det = mMeshA->pos(first, second, origin.edgePlane1);
-        intersectionCount += intersectionToNextPoint(first, origin.edgePlane1, det, node, singsMeshA, singsMeshB);
+        det = mMeshA->pos(first, second, edgePlane);
+        intersectionCount += intersectionToNextPoint(first, edgePlane, det, node, singsMeshA, singsMeshB);
 
         det = mMeshA->pos(first, second, third);
         intersectionCount += intersectionToNextPoint(first, second, det, node, singsMeshA, singsMeshB);
@@ -838,11 +846,21 @@ public:
     }
 
     void fillRayInfo(const PlanePoint& origin, const Plane& first, const Plane& second, const Plane& third, SharedDebugRayInfo rayInfo) {
+        TG_ASSERT(!ob::are_parallel(origin.basePlane, origin.edgePlane1));
+        TG_ASSERT(!ob::are_parallel(origin.basePlane, origin.edgePlane2));
+        TG_ASSERT(!ob::are_parallel(origin.edgePlane1, origin.edgePlane2));
+        TG_ASSERT(!ob::are_parallel(origin.edgePlane1, first));
+        TG_ASSERT(!ob::are_parallel(first, second));
+        TG_ASSERT(!ob::are_parallel(first, third));
+        TG_ASSERT(!ob::are_parallel(second, third));
+        Plane edgePlane = !ob::are_parallel(origin.edgePlane1, second) ? origin.edgePlane1 : origin.edgePlane2;
+        TG_ASSERT(!ob::are_parallel(edgePlane, second));
+
         SubDet subDet = mMeshA->pos(origin.basePlane, origin.edgePlane1, origin.edgePlane2);
         rayInfo->rayPath.push_back(subDet);
         subDet = mMeshA->pos(origin.edgePlane1, origin.edgePlane2, first);
         rayInfo->rayPath.push_back(subDet);
-        subDet = mMeshA->pos(origin.edgePlane1, first, second);
+        subDet = mMeshA->pos(edgePlane, first, second);
         rayInfo->rayPath.push_back(subDet);
         subDet = mMeshA->pos(first, second, third);
         rayInfo->rayPath.push_back(subDet);
