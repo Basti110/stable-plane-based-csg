@@ -262,6 +262,28 @@ void LeafNode::getAllFaces(tg::vec3 ray, pos_t origin, std::set<pm::face_index>&
     }
 }
 
+void LeafNode::getAllFacesA(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshA)
+{
+    if (mFacesMeshA.size() > 0) {
+        for (pm::face_index& i : mFacesMeshA) {
+            if (!i.of(mOctree->getPlaneMeshA().mesh()).is_removed())
+                if (fMeshA.count(i) == 0)
+                    fMeshA.insert(i);
+        }
+    }
+}
+
+void LeafNode::getAllFacesB(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshB)
+{
+    if (mFacesMeshB.size() > 0) {
+        for (pm::face_index& i : mFacesMeshB) {
+            if (!i.of(mOctree->getPlaneMeshB().mesh()).is_removed())
+                if (fMeshB.count(i) == 0)
+                    fMeshB.insert(i);
+        }
+    }
+}
+
 void LeafNode::repairCell(const IntersectionCut& cut)
 {
     std::vector<pm::face_index> faces1;

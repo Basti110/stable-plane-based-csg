@@ -20,6 +20,7 @@
 #include <obj_config.hh>
 #include <polymesh/formats.hh>
 #include <benchmark.h>
+#include <ray_cast.hh>
 //---
 #include <iomanip>
 //#define GIGA 1000000000
@@ -49,6 +50,8 @@ int main(int argc, char* argv[]) {
     }
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
+
+    //test_cut_testAB_meshes();
     //test_octree_cell_ray_cast();
     //convert();
     //return 0;
@@ -75,6 +78,12 @@ int main(int argc, char* argv[]) {
         ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -100, -100, -100 }, { 100, 100, 100 }),
             "E:/benchmark/files/" + file, tg::mat4::identity, tg::mat4::identity,
             "E:/benchmark/files/" + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(-90)));
+
+    /*while (true) {
+        conf.getOctree()->startDebugView();
+        test_cut_testAB_meshes();
+    }*/
+
         conf.setMeshRepairBefore(true);
         return Benchmark::testMesh(conf, "E:/benchmark/benchmark/" + file.substr(0, file.size() - 3) + "txt");
     }
@@ -413,7 +422,9 @@ void test_octree_cell_ray_cast() {
 
     pm::vertex_handle origin = planeMesh1->mesh().all_vertices().first();
     SharedDebugRayInfo rayInfo = std::make_shared<DebugRayInfo>();
-    auto intersections = octree->countIntersectionsToOutside2(origin, *planeMesh1, rayInfo);
+    RayCast rayCast(octree->getPlaneMeshA(), octree->getPlaneMeshB(), octree, rayInfo);
+    auto intersections = rayCast.countIntersectionsToOutside(origin);
+    //auto intersections = octree->countIntersectionsToOutside2(origin, *planeMesh1, rayInfo);
 
     std::vector<tg::dsegment3> lines;
     for (int i = 0; i < (int)rayInfo->rayPath.size() - 1; ++i) {
@@ -557,13 +568,13 @@ void test_cut_testAB_meshes() {
 
     {
         auto view = gv::view(planeMesh2.positions());       
-        gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::color(0.0));
-        gv::view(gv::lines(planeMesh2.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
+        gv::view(gv::lines(planeMesh2.positions()).line_width_world(100), tg::color3::color(0.0));
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(1000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
         gv::view(planeMesh1.positions());
-        gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::red);
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(100), tg::color3::red);
     }
 
-    SharedOctree newOctree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
+    /*SharedOctree newOctree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
 
     for (auto f : planeMesh1.mesh().faces()) {
         bool test1 = f.is_removed();
@@ -576,5 +587,5 @@ void test_cut_testAB_meshes() {
     for (auto f : planeMesh2.mesh().faces()) {
         newOctree->insert_polygon(planeMesh2.id(), f);
     }
-    newOctree->startDebugView();
+    newOctree->startDebugView();*/
 }

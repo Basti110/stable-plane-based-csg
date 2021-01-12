@@ -3,6 +3,7 @@
 #include <nexus/test.hh>
 #include <octree.hh>
 #include <face_component_finder.hh>
+#include <ray_cast.hh>
 #include <aabb.hh>
 #include <set>
 
@@ -77,7 +78,9 @@ public:
 
             TG_ASSERT(vertexA != pm::vertex_handle::invalid);
             SharedDebugRayInfo rayInfoA = std::make_shared<DebugRayInfo>();
-            auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexA, mSharedOctree->getPlaneMeshA(), rayInfoA);
+            RayCast rayCast(mSharedOctree->getPlaneMeshA(), mSharedOctree->getPlaneMeshB(), mSharedOctree, rayInfoA);
+            auto intersections = rayCast.countIntersectionsToOutside(vertexA);
+            //auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexA, mSharedOctree->getPlaneMeshA(), rayInfoA);
             rayInfosA.push_back(rayInfoA);
             auto component = mFaceComponentsA->getComponentOfFace(vertexA.any_face());
             mComponentIsOutsideA[component] = intersections % 2;
@@ -103,13 +106,15 @@ public:
             }
             TG_ASSERT(vertexB != pm::vertex_handle::invalid);
             SharedDebugRayInfo rayInfoB = std::make_shared<DebugRayInfo>();
-            auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexB, mSharedOctree->getPlaneMeshB(), rayInfoB);
+            RayCast rayCast(mSharedOctree->getPlaneMeshB(), mSharedOctree->getPlaneMeshA(), mSharedOctree, rayInfoB);
+            auto intersections = rayCast.countIntersectionsToOutside(vertexB);
+            //auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexB, mSharedOctree->getPlaneMeshB(), rayInfoB);
             rayInfosB.push_back(rayInfoB);
             auto component = mFaceComponentsB->getComponentOfFace(vertexB.any_face());
             mComponentIsOutsideB[component] = intersections % 2;
             propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
         }
-        
+        return;
         #define RAYINFO rayInfosA
         std::vector<tg::dsegment3> lines;
         auto info = rayInfosA[1];

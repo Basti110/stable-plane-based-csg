@@ -516,12 +516,17 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
         else if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_1_ON_2 || isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
             Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
             splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
+            auto he = isectNonPlanar->triangle1.intersectionEdge1.next();
+            TG_ASSERT(he != isectNonPlanar->triangle1.intersectionEdge2);
+            mIntersectionEdgesOnIntersectionLineA[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineA[-1][0]);
+            
+            
             if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
-                splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
-                auto he = isectNonPlanar->triangle1.intersectionEdge1.next();
-                TG_ASSERT(he != isectNonPlanar->triangle1.intersectionEdge2);
+                splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);    
                 mIntersectionEdgesMarkerA[he] = true;
-                mIntersectionEdgesOnIntersectionLineA[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineA[-1][0]);
+            }
+            else {
+                int test = 0;
             }
             /*while (he != isectNonPlanar->triangle1.intersectionEdge2) {
                 mIntersectionEdgesMarkerA[he] = true;
@@ -533,12 +538,15 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
         if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_2_ON_1 || isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
             Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
             splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
+            auto he = isectNonPlanar->triangle2.intersectionEdge1.next();
+            TG_ASSERT(he != isectNonPlanar->triangle2.intersectionEdge2);          
+            mIntersectionEdgesOnIntersectionLineB[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineB[-1][0]);
             if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
-                splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);               
-                auto he = isectNonPlanar->triangle2.intersectionEdge1.next();
-                TG_ASSERT(he != isectNonPlanar->triangle2.intersectionEdge2);
+                splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);     
                 mIntersectionEdgesMarkerB[he] = true;
-                mIntersectionEdgesOnIntersectionLineB[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineB[-1][0]);
+            }
+            else {
+                int test = 0;
             }
             /*while (he != isectNonPlanar->triangle2.intersectionEdge2) {
                 mIntersectionEdgesMarkerB[he] = true;
