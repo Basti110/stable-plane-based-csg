@@ -191,7 +191,7 @@ public:
 
 
 
-    void renderFinalResult(const IntersectionCut& iCut, float scale = 300.f) {
+    void renderFinalResult(const IntersectionCut& iCut, float scale = 3000.f) {
         auto colorsA = getColorToStateA();
         auto colorsB = getColorToStateB();
         mSharedOctree->getPlaneMeshA().checkAndComputePositions();

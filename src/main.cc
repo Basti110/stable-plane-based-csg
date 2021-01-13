@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
     //return 0;
     if (argc > 1 || true) {
         //std::string file = std::string(argv[1]);
-        std::string file = "37744.stl"; 
+        std::string file = "37012.stl"; 
         {
             pm::Mesh mesh;
             pm::vertex_attribute<tg::pos3> pos(mesh);   
@@ -568,10 +568,10 @@ void test_cut_testAB_meshes() {
 
     {
         auto view = gv::view(planeMesh2.positions());       
-        gv::view(gv::lines(planeMesh2.positions()).line_width_world(100), tg::color3::color(0.0));
-        gv::view(gv::lines(planeMesh1.positions()).line_width_world(1000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+        gv::view(gv::lines(planeMesh2.positions()).line_width_world(10000), tg::color3::color(0.0));
+        gv::view(gv::lines(planeMesh2.positions()).line_width_world(100000), gv::masked(iCut.getIntersectionEdgesMarkerB()), tg::color3::color(0.0));
         gv::view(planeMesh1.positions());
-        gv::view(gv::lines(planeMesh1.positions()).line_width_world(100), tg::color3::red);
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(10000), tg::color3::red);
     }
 
     /*SharedOctree newOctree = std::make_shared<Octree>(&planeMesh1, &planeMesh2, box);
