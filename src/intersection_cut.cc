@@ -526,7 +526,7 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
             //mIntersectionEdgesOnIntersectionLineA[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineA[-1][0]);
             
             
-            if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
+            if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) 
                 splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);    
                 //Check if segment lie between intersection edges and should be marked
                 auto heIt = isectNonPlanar->triangle1.intersectionEdge1.next();
@@ -553,10 +553,7 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
                     heIt = heIt.next();
                     //break;
                 }
-            }
-            else {
-                int test = 0;
-            }
+
 
 
         }
@@ -572,7 +569,7 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
             TG_ASSERT(he != isectNonPlanar->triangle2.intersectionEdge2);          
             //mIntersectionEdgesOnIntersectionLineB[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineB[-1][0]);
 
-            if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
+            if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) 
                 splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);     
                 //Check if segment lie between intersection edges and should be marked
                 auto heIt = isectNonPlanar->triangle2.intersectionEdge1.next();
@@ -598,10 +595,8 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
                     heIt = heIt.next();
                     //break;
                 }
-            }
-            else {
-                int test = 0;
-            }
+            
+
 
             /*while (he != isectNonPlanar->triangle2.intersectionEdge2) {
                 mIntersectionEdgesMarkerB[he] = true;
