@@ -513,41 +513,96 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
             splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);
             splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
         }
-        else if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_1_ON_2 || isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
-            Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
+        else if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_1_ON_2 || isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {           
             splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
+            splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
+            //if (isectNonPlanar->triangle1.intersectionEdge1.next().next() != isectNonPlanar->triangle1.intersectionEdge2)
+                //return splitFaces;
+
+            Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
+            //splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
             auto he = isectNonPlanar->triangle1.intersectionEdge1.next();
             TG_ASSERT(he != isectNonPlanar->triangle1.intersectionEdge2);
-            mIntersectionEdgesOnIntersectionLineA[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineA[-1][0]);
+            //mIntersectionEdgesOnIntersectionLineA[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineA[-1][0]);
             
             
             if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
                 splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);    
-                mIntersectionEdgesMarkerA[he] = true;
+                //Check if segment lie between intersection edges and should be marked
+                auto heIt = isectNonPlanar->triangle1.intersectionEdge1.next();
+                PlaneMesh& planeMesh1 = planeMeshInfo1.planeMesh;
+                PlaneMesh& planeMesh2 = planeMeshInfo2.planeMesh;
+                auto vertex = heIt.vertex_from();
+                auto sign1Tmp = planeMesh1.getSign(vertex, planeMesh2.edge(isectNonPlanar->triangle2.intersectionEdge1));
+                sign1Tmp *= planeMesh2.halfedge(isectNonPlanar->triangle2.intersectionEdge1);
+                auto sign2Tmp = planeMesh1.getSign(vertex, planeMesh2.edge(isectNonPlanar->triangle2.intersectionEdge2));
+                sign2Tmp *= planeMesh2.halfedge(isectNonPlanar->triangle2.intersectionEdge2);
+                
+                while (heIt != isectNonPlanar->triangle1.intersectionEdge2) {
+                    auto vertex = heIt.vertex_to();
+                    auto sign1 = planeMesh1.getSign(vertex, planeMesh2.edge(isectNonPlanar->triangle2.intersectionEdge1));
+                    sign1 *= planeMesh2.halfedge(isectNonPlanar->triangle2.intersectionEdge1);
+                    auto sign2 = planeMesh1.getSign(vertex, planeMesh2.edge(isectNonPlanar->triangle2.intersectionEdge2));
+                    sign2 *= planeMesh2.halfedge(isectNonPlanar->triangle2.intersectionEdge2);
+                    if ((sign1 == -1 && sign2 == -1) || (sign1Tmp == -1 && sign2Tmp == -1) || (sign1 != sign1Tmp && sign2 != sign2Tmp)) {
+                        mIntersectionEdgesMarkerA[heIt] = true;
+                        mIntersectionEdgesOnIntersectionLineA[heIt.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineA[-1][0]);
+                    }
+                    sign1Tmp = sign1;
+                    sign2Tmp = sign2;
+                    heIt = heIt.next();
+                    //break;
+                }
             }
             else {
                 int test = 0;
             }
-            /*while (he != isectNonPlanar->triangle1.intersectionEdge2) {
-                mIntersectionEdgesMarkerA[he] = true;
-                mIntersectionEdgesOnIntersectionLineA[he.edge().idx.value] = mIntersectionEdgesOnIntersectionLineA[-1];
-                he = he.next();
-                //break;
-            }*/
+
+
         }
         if (isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING_2_ON_1 || isectNonPlanar->state == TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
-            Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
+            splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
             splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
+            //if (isectNonPlanar->triangle2.intersectionEdge1.next().next() != isectNonPlanar->triangle2.intersectionEdge2)
+                //return splitFaces;
+
+            Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
+            //splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
             auto he = isectNonPlanar->triangle2.intersectionEdge1.next();
             TG_ASSERT(he != isectNonPlanar->triangle2.intersectionEdge2);          
-            mIntersectionEdgesOnIntersectionLineB[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineB[-1][0]);
+            //mIntersectionEdgesOnIntersectionLineB[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineB[-1][0]);
+
             if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
                 splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);     
-                mIntersectionEdgesMarkerB[he] = true;
+                //Check if segment lie between intersection edges and should be marked
+                auto heIt = isectNonPlanar->triangle2.intersectionEdge1.next();
+                PlaneMesh& planeMesh1 = planeMeshInfo1.planeMesh;
+                PlaneMesh& planeMesh2 = planeMeshInfo2.planeMesh;
+                auto vertex = heIt.vertex_to();
+                auto sign1Tmp = planeMesh2.getSign(vertex, planeMesh1.edge(isectNonPlanar->triangle1.intersectionEdge1));
+                sign1Tmp *= planeMesh1.halfedge(isectNonPlanar->triangle1.intersectionEdge1);
+                auto sign2Tmp = planeMesh2.getSign(vertex, planeMesh1.edge(isectNonPlanar->triangle1.intersectionEdge2));
+                sign2Tmp *= planeMesh1.halfedge(isectNonPlanar->triangle1.intersectionEdge2);
+                while (heIt != isectNonPlanar->triangle2.intersectionEdge2) {
+                    auto vertex = heIt.vertex_to();
+                    auto sign1 = planeMesh2.getSign(vertex, planeMesh1.edge(isectNonPlanar->triangle1.intersectionEdge1));
+                    sign1 *= planeMesh1.halfedge(isectNonPlanar->triangle1.intersectionEdge1);
+                    auto sign2 = planeMesh2.getSign(vertex, planeMesh1.edge(isectNonPlanar->triangle1.intersectionEdge2));
+                    sign2 *= planeMesh1.halfedge(isectNonPlanar->triangle1.intersectionEdge2);
+                    if ((sign1 == -1 && sign2 == -1) || (sign1Tmp == -1 && sign2Tmp == -1) || (sign1 != sign1Tmp && sign2 != sign2Tmp)) {
+                        mIntersectionEdgesMarkerB[heIt] = true;
+                        mIntersectionEdgesOnIntersectionLineB[heIt.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineB[-1][0]);
+                    }
+                    sign1Tmp = sign1;
+                    sign2Tmp = sign2;
+                    heIt = heIt.next();
+                    //break;
+                }
             }
             else {
                 int test = 0;
             }
+
             /*while (he != isectNonPlanar->triangle2.intersectionEdge2) {
                 mIntersectionEdgesMarkerB[he] = true;
                 mIntersectionEdgesOnIntersectionLineB[he.edge().idx.value] = mIntersectionEdgesOnIntersectionLineB[-1];

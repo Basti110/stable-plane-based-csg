@@ -79,6 +79,15 @@ namespace Benchmark {
             setValueStat(benchmarkWriter.mTimeCutMesh, s);
             printStats(s);           
         }
+        {
+            planeMesh1->checkAndComputePositions();
+            planeMesh2->checkAndComputePositions();
+            auto view = gv::view(planeMesh2->positions());
+            gv::view(gv::lines(planeMesh2->positions()).line_width_world(3000), tg::color3::color(0.0));
+            gv::view(gv::lines(planeMesh1->positions()).line_width_world(30000), gv::masked(iCut.getIntersectionEdgesMarkerA()), tg::color3::color(0.0));
+            gv::view(planeMesh1->positions());
+            gv::view(gv::lines(planeMesh1->positions()).line_width_world(3000), tg::color3::red);
+        }
         //test = planeMesh1->allHalfEdgesAreValid();
         //Categorization
         std::shared_ptr<ComponentCategorization> components;
