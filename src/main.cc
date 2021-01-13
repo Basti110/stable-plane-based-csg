@@ -55,11 +55,11 @@ int main(int argc, char* argv[]) {
     //test_octree_cell_ray_cast();
     //convert();
     //return 0;
-    if (argc > 1 || true) {
-        //std::string file = std::string(argv[1]);
-        std::string file = "37012.stl"; 
-        {
-            pm::Mesh mesh;
+    if (argc > 1) {
+        std::string file = std::string(argv[1]);
+        //std::string file = "37012.stl"; 
+        /*{
+           pm::Mesh mesh;
             pm::vertex_attribute<tg::pos3> pos(mesh);   
             bool meshIsValid = pm::load("E:/benchmark/files/" + file, mesh, pos);
             if (!meshIsValid)
@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
                 if (h.face().is_invalid())
                     return 2;
             }
-        }
+        }*/
                
         std::cout << "Try to open " << file << std::endl;       
         ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -100, -100, -100 }, { 100, 100, 100 }),

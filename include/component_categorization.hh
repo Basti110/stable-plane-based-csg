@@ -45,11 +45,11 @@ public:
         auto& coPlanarFacesA = iCut.getCoplanarFacesMeshA();
         auto& coPlanarFacesB = iCut.getCoplanarFacesMeshB();
 
-        for (auto face : coPlanarFacesA)
+        /*for (auto face : coPlanarFacesA)
             mComponentIsOutsideA[faceComponentsA->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;
 
         for (auto face : coPlanarFacesB)
-            mComponentIsOutsideB[faceComponentsB->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;
+            mComponentIsOutsideB[faceComponentsB->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;*/
         
 		assignInOut(iCut);
 	}
@@ -114,7 +114,7 @@ public:
             mComponentIsOutsideB[component] = intersections % 2;
             propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
         }
-        //return;
+        return;
         #define RAYINFO rayInfosB
         std::vector<tg::dsegment3> lines;
         //auto info = rayInfosB[5];

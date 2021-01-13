@@ -68,6 +68,20 @@ public:
 
     const std::vector<pm::face_index> getCoplanarFacesMeshA() const { return mCoplanarFacesMeshA; }
     const std::vector<pm::face_index> getCoplanarFacesMeshB() const { return mCoplanarFacesMeshB; }
+    bool isCoPlanarFaceA(pm::face_index index) {
+        for (int i = 0; i < mCoplanarFacesMeshA.size(); ++i) {
+            if (mCoplanarFacesMeshA[i].value == index.value)
+                return true;
+        }
+        return false;
+    }
+    bool isCoPlanarFaceB(pm::face_index index) {
+        for (int i = 0; i < mCoplanarFacesMeshB.size(); ++i) {
+            if (mCoplanarFacesMeshB[i].value == index.value)
+                return true;
+        }
+        return false;
+    }
 
 private:
     pm::vertex_handle splitHalfEdgeLowAPI(pm::Mesh& mesh, pm::halfedge_handle& h);
@@ -85,6 +99,7 @@ private:
     std::vector<pm::face_handle> splitFacesWithAllIntersectionEdges(PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2, std::vector<TrianlgeIntersectionPlanar::EdgeData>& edgeData);
     
     NewFaces splitPlanar(SharedTriIntersectPlanar& isectPlanar, PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2);
+    void markTouchingEdge(IntersectionEdges& triangle1, IntersectionEdges& triangle2, PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2, bool isA);
     NewFaces split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2);
     NewFaces splitnWithTimer(pm::face_handle& t1, pm::face_handle& t2, SharedTriIntersect i);
 

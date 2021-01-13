@@ -47,6 +47,10 @@ namespace Benchmark {
         SharedPlaneMesh planeMesh2;
         {
             ct::scope s("Load Mesh");
+            if (!conf.loadMesh())
+                return 2;
+            if (!conf.meshIsValid())
+                return 2;
             planeMesh1 = conf.getMeshA();
             planeMesh2 = conf.getMeshB();
             setValueStat(benchmarkWriter.mTimeLoadMesh, s);
@@ -106,7 +110,7 @@ namespace Benchmark {
         conf.getOctree()->printOctreeStats();
         benchmarkWriter.writeToFile();
         //conf.viewMesh(true);
-        components->renderFinalResult(iCut);
+        //components->renderFinalResult(iCut);
         return 0;
     }
 }

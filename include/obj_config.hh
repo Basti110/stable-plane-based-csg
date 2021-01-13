@@ -160,7 +160,31 @@ public:
     void setMaxObjInCell(int v) {
         mMaxObjInCell = v;
     }
-      
+
+    bool loadMesh() {
+        return loadMeshIfNotLoaded();
+    }
+
+    bool meshIsValid() {
+        if (!loadMeshIfNotLoaded())
+            return false;
+
+        for (auto h : mMeshA->halfedges()) {
+            if (h.is_invalid())
+                return false;
+            if (h.face().is_invalid())
+                return false;
+        }
+
+        for (auto h : mMeshB->halfedges()) {
+            if (h.is_invalid())
+                return false;
+            if (h.face().is_invalid())
+                return false;
+        }
+        return true;
+    }
+       
 private:
     void fillOctreeIfNotFilled() {  
         loadMeshIfNotLoaded();
@@ -189,9 +213,9 @@ private:
         }       
     }
 
-    void loadMeshIfNotLoaded() {
+    bool loadMeshIfNotLoaded() {
         if (mPlaneMeshA && mPlaneMeshB)
-            return;
+            return true;
 
         long long meshInitTime = 0;       
         glow::timing::CpuTimer timer;
@@ -199,7 +223,8 @@ private:
             pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
             {
                 TRACE("[ObjConfig] PM Load Mesh 1");
-                pm::load(mPathObj1, *mMeshA, pos1);
+                if (!pm::load(mPathObj1, *mMeshA, pos1))
+                    return false;
             }   
             if (mRepairBefore) {
                 pm::deduplicate(*mMeshA, pos1);
@@ -216,7 +241,8 @@ private:
             pm::vertex_attribute<tg::pos3> pos2(*mMeshB);
             {
                 TRACE("[ObjConfig] PM Load Mesh 2");
-                pm::load(mPathObj2, *mMeshB, pos2);
+                if (!pm::load(mPathObj2, *mMeshB, pos2))
+                    return false;
             }   
             if (mRepairBefore) {
                 pm::deduplicate(*mMeshB, pos2);
@@ -230,6 +256,7 @@ private:
             //TG_ASSERT(mPlaneMeshB->allFacesAreValid());
         }      
         mInitMeshTime = meshInitTime / (double)1000;
+        return true;
         //std::cout << "Load Meshes in " << timer.elapsedMilliseconds() << "ms" << std::endl;
         //std::cout << " -- PM load in " << pmLoadTime / 1000.0 << "ms" << std::endl;
     }

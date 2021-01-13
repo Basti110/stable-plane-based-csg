@@ -322,26 +322,8 @@ std::vector<pm::face_handle> IntersectionCut::split(PlaneMeshInfo& planeMesh, In
     //int countEdges5 = mesh.halfedges().count();
     auto newFace2 = addFaceFromCycleAndStopPoint(mesh, h2Next, v1New);
     //int countEdges6 = mesh.halfedges().count();
-    if (planeMesh.planeMesh.id() == mMeshA->id()) {
-        for (int i = 0; i < mCoplanarFacesMeshA.size(); ++i) {
-            if (mCoplanarFacesMeshA[i].value == planeMesh.face.idx.value) {
-                if (sign == 1)
-                    mCoplanarFacesMeshA[i] = newFace1.idx;
-                else
-                    mCoplanarFacesMeshA[i] = newFace2.idx;
-            }
-        }
-    }
-    else {
-        for (int i = 0; i < mCoplanarFacesMeshB.size(); ++i) {
-            if (mCoplanarFacesMeshB[i].value == planeMesh.face.idx.value) {
-                if (sign == 1)
-                    mCoplanarFacesMeshB[i] = newFace1.idx;
-                else
-                    mCoplanarFacesMeshB[i] = newFace2.idx;
-            }
-        }
-    }
+
+
 
     end = std::chrono::steady_clock::now();
     nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
@@ -490,6 +472,39 @@ NewFaces IntersectionCut::splitPlanar(SharedTriIntersectPlanar& isectPlanar, Pla
     return splitFaces;
 }
 
+void IntersectionCut::markTouchingEdge(IntersectionEdges& triangle1, IntersectionEdges& triangle2, PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2, bool isA) {
+    auto heIt = triangle1.intersectionEdge1.next();
+    PlaneMesh& planeMesh1 = planeMeshInfo1.planeMesh;
+    PlaneMesh& planeMesh2 = planeMeshInfo2.planeMesh;
+    auto vertex = heIt.vertex_from();
+    auto sign1Tmp = planeMesh1.getSign(vertex, planeMesh2.edge(triangle2.intersectionEdge1));
+    sign1Tmp *= planeMesh2.halfedge(triangle2.intersectionEdge1);
+    auto sign2Tmp = planeMesh1.getSign(vertex, planeMesh2.edge(triangle2.intersectionEdge2));
+    sign2Tmp *= planeMesh2.halfedge(triangle2.intersectionEdge2);
+
+    while (heIt != triangle1.intersectionEdge2) {
+        auto vertex = heIt.vertex_to();
+        auto sign1 = planeMesh1.getSign(vertex, planeMesh2.edge(triangle2.intersectionEdge1));
+        sign1 *= planeMesh2.halfedge(triangle2.intersectionEdge1);
+        auto sign2 = planeMesh1.getSign(vertex, planeMesh2.edge(triangle2.intersectionEdge2));
+        sign2 *= planeMesh2.halfedge(triangle2.intersectionEdge2);
+        if ((sign1 == -1 && sign2 == -1) || (sign1Tmp == -1 && sign2Tmp == -1) || (sign1 != sign1Tmp && sign2 != sign2Tmp)) {
+            if (isA) {
+                mIntersectionEdgesMarkerA[heIt.edge()] = true;
+                mIntersectionEdgesOnIntersectionLineA[heIt.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineA[-1][0]);
+            }
+            else {
+                mIntersectionEdgesMarkerB[heIt.edge()] = true;
+                mIntersectionEdgesOnIntersectionLineB[heIt.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineB[-1][0]);
+            }
+        }
+        sign1Tmp = sign1;
+        sign2Tmp = sign2;
+        heIt = heIt.next();
+        //break;
+    }
+}
+
 NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo& planeMeshInfo1, PlaneMeshInfo& planeMeshInfo2) {
     TG_ASSERT(intersection->intersectionState != TrianlgeIntersection::IntersectionState::NON_INTERSECTING);
     NewFaces splitFaces;
@@ -519,40 +534,29 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
             //if (isectNonPlanar->triangle1.intersectionEdge1.next().next() != isectNonPlanar->triangle1.intersectionEdge2)
                 //return splitFaces;
 
-            Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
+            
             //splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
             auto he = isectNonPlanar->triangle1.intersectionEdge1.next();
             TG_ASSERT(he != isectNonPlanar->triangle1.intersectionEdge2);
             //mIntersectionEdgesOnIntersectionLineA[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineA[-1][0]);
             
             
-            if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) 
-                splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);    
-                //Check if segment lie between intersection edges and should be marked
-            auto heIt = isectNonPlanar->triangle1.intersectionEdge1.next();
-            PlaneMesh& planeMesh1 = planeMeshInfo1.planeMesh;
-            PlaneMesh& planeMesh2 = planeMeshInfo2.planeMesh;
-            auto vertex = heIt.vertex_from();
-            auto sign1Tmp = planeMesh1.getSign(vertex, planeMesh2.edge(isectNonPlanar->triangle2.intersectionEdge1));
-            sign1Tmp *= planeMesh2.halfedge(isectNonPlanar->triangle2.intersectionEdge1);
-            auto sign2Tmp = planeMesh1.getSign(vertex, planeMesh2.edge(isectNonPlanar->triangle2.intersectionEdge2));
-            sign2Tmp *= planeMesh2.halfedge(isectNonPlanar->triangle2.intersectionEdge2);
-                
-            while (heIt != isectNonPlanar->triangle1.intersectionEdge2) {
-                auto vertex = heIt.vertex_to();
-                auto sign1 = planeMesh1.getSign(vertex, planeMesh2.edge(isectNonPlanar->triangle2.intersectionEdge1));
-                sign1 *= planeMesh2.halfedge(isectNonPlanar->triangle2.intersectionEdge1);
-                auto sign2 = planeMesh1.getSign(vertex, planeMesh2.edge(isectNonPlanar->triangle2.intersectionEdge2));
-                sign2 *= planeMesh2.halfedge(isectNonPlanar->triangle2.intersectionEdge2);
-                if ((sign1 == -1 && sign2 == -1) || (sign1Tmp == -1 && sign2Tmp == -1) || (sign1 != sign1Tmp && sign2 != sign2Tmp)) {
-                    mIntersectionEdgesMarkerA[heIt.edge()] = true;
-                    mIntersectionEdgesOnIntersectionLineA[heIt.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineA[-1][0]);
+            if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
+                Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
+                splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
+                /*if (isCoPlanarFaceB(planeMeshInfo2.face)) {
+
                 }
-                sign1Tmp = sign1;
-                sign2Tmp = sign2;
-                heIt = heIt.next();
-                //break;
+
+                if (planeMesh.planeMesh.id() == mMeshA->id()) {
+                    if (isCoPlanarFaceA(planeMesh.face)) {
+
+                    }
+                }*/
             }
+                    
+                //Check if segment lie between intersection edges and should be marked
+            markTouchingEdge(isectNonPlanar->triangle1, isectNonPlanar->triangle2, planeMeshInfo1, planeMeshInfo2, true);
 
 
 
@@ -572,29 +576,7 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
             if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) 
                 splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);     
                 //Check if segment lie between intersection edges and should be marked
-            auto heIt = isectNonPlanar->triangle2.intersectionEdge1.next();
-            PlaneMesh& planeMesh1 = planeMeshInfo1.planeMesh;
-            PlaneMesh& planeMesh2 = planeMeshInfo2.planeMesh;
-            auto vertex = heIt.vertex_from();
-            auto sign1Tmp = planeMesh2.getSign(vertex, planeMesh1.edge(isectNonPlanar->triangle1.intersectionEdge1));
-            sign1Tmp *= planeMesh1.halfedge(isectNonPlanar->triangle1.intersectionEdge1);
-            auto sign2Tmp = planeMesh2.getSign(vertex, planeMesh1.edge(isectNonPlanar->triangle1.intersectionEdge2));
-            sign2Tmp *= planeMesh1.halfedge(isectNonPlanar->triangle1.intersectionEdge2);
-            while (heIt != isectNonPlanar->triangle2.intersectionEdge2) {
-                auto vertex = heIt.vertex_to();
-                auto sign1 = planeMesh2.getSign(vertex, planeMesh1.edge(isectNonPlanar->triangle1.intersectionEdge1));
-                sign1 *= planeMesh1.halfedge(isectNonPlanar->triangle1.intersectionEdge1);
-                auto sign2 = planeMesh2.getSign(vertex, planeMesh1.edge(isectNonPlanar->triangle1.intersectionEdge2));
-                sign2 *= planeMesh1.halfedge(isectNonPlanar->triangle1.intersectionEdge2);
-                if ((sign1 == -1 && sign2 == -1) || (sign1Tmp == -1 && sign2Tmp == -1) || (sign1 != sign1Tmp && sign2 != sign2Tmp)) {
-                    mIntersectionEdgesMarkerB[heIt.edge()] = true;
-                    mIntersectionEdgesOnIntersectionLineB[heIt.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineB[-1][0]);
-                }
-                sign1Tmp = sign1;
-                sign2Tmp = sign2;
-                heIt = heIt.next();
-                //break;
-            }
+            markTouchingEdge(isectNonPlanar->triangle2, isectNonPlanar->triangle1, planeMeshInfo2, planeMeshInfo1, false);
             
 
 
