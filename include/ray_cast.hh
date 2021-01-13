@@ -139,6 +139,9 @@ public:
     bool intersectInInterval(PlaneRay planeRay, const Plane& plane, PlaneInterval& interval) {
         SubDet subDet = mMainMesh.pos(planeRay.plane1, planeRay.plane2, plane);
 
+        if (!subDet.is_valid())
+            return false;
+
         int8_t sign = ob::classify_vertex(subDet, interval.plane1);
         if (ob::classify_vertex(subDet, interval.plane1) >= 1)
             return false;
@@ -169,12 +172,13 @@ public:
             singsMesh[i] = sign == 0 ? 2 : sign;
         }
 
-        Plane edgePlane = !ob::are_parallel(origin.edgePlane1, second) ? origin.edgePlane1 : origin.edgePlane2;
+        Plane edgePlane = origin.edgePlane1; // !ob::are_parallel(origin.edgePlane1, second) ? origin.edgePlane1 : origin.edgePlane2;
 
         det = mMainMesh.pos(first, origin.edgePlane1, origin.edgePlane2);
         intersectionCount += intersectionToNextPoint(origin.edgePlane1, origin.edgePlane2, det, node, singsMesh);
 
         det = mMainMesh.pos(first, second, edgePlane);
+        TG_ASSERT(det.is_valid());
         intersectionCount += intersectionToNextPoint(first, edgePlane, det, node, singsMesh);
 
         det = mMainMesh.pos(first, second, third);
@@ -201,6 +205,7 @@ public:
 
             singsMesh[i] = sign;
             auto subDetFacePlane = mOtherMesh.pos(p1, p2, facePlane);
+            
             if (checkIfPointInPolygon(face, mOtherMesh, subDetFacePlane)) {
                 intersectionCount++;
             }
@@ -243,20 +248,25 @@ public:
         TG_ASSERT(!ob::are_parallel(origin.basePlane, origin.edgePlane2));
         TG_ASSERT(!ob::are_parallel(origin.edgePlane1, origin.edgePlane2));
         TG_ASSERT(!ob::are_parallel(origin.edgePlane1, first));
+        TG_ASSERT(!ob::are_parallel(origin.edgePlane2, first));
         TG_ASSERT(!ob::are_parallel(first, second));
         TG_ASSERT(!ob::are_parallel(first, third));
         TG_ASSERT(!ob::are_parallel(second, third));
-        Plane edgePlane = !ob::are_parallel(origin.edgePlane1, second) ? origin.edgePlane1 : origin.edgePlane2;
-        TG_ASSERT(!ob::are_parallel(edgePlane, second));
+        int counter = 0;
+        Plane edgePlane = origin.edgePlane1;
 
         SubDet subDet = mMainMesh.pos(origin.basePlane, origin.edgePlane1, origin.edgePlane2);
         mRayInfo->rayPath.push_back(subDet);
+           
         subDet = mMainMesh.pos(origin.edgePlane1, origin.edgePlane2, first);
         mRayInfo->rayPath.push_back(subDet);
+
         subDet = mMainMesh.pos(edgePlane, first, second);
         mRayInfo->rayPath.push_back(subDet);
+
         subDet = mMainMesh.pos(first, second, third);
         mRayInfo->rayPath.push_back(subDet);
+
     }
 
     int castToParentRecursive(SharedBranchNode node, pos_t p, int8_t parenIndex, uint8_t childIdx) {

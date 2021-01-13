@@ -114,21 +114,21 @@ public:
             mComponentIsOutsideB[component] = intersections % 2;
             propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
         }
-        return;
-        #define RAYINFO rayInfosA
+        //return;
+        #define RAYINFO rayInfosB
         std::vector<tg::dsegment3> lines;
-        auto info = rayInfosA[1];
-        //for (auto info : RAYINFO) {
+        //auto info = rayInfosB[5];
+        for (auto info : RAYINFO) {
             for (int i = 0; i < (int)info->rayPath.size() - 1; ++i) {
                 lines.push_back(tg::dsegment3{ob::to_position(info->rayPath[i]), ob::to_position(info->rayPath[i + 1]) });
             }
-        //}
+        }
 
-        //for (auto info : RAYINFO) {
+        for (auto info : RAYINFO) {
             for (int i = 0; i < (int)info->nexPointsCell.size() - 1; ++i) {
                 lines.push_back(tg::dsegment3{ tg::dpos3(info->nexPointsCell[i]), tg::dpos3(info->nexPointsCell[i + 1]) });
             }
-        //}
+        }
 
         //lines.push_back(tg::dsegment3{ tg::dpos3(rayInfo->rayStartDirect), tg::dpos3(rayInfo->rayEndDirect) });
 
