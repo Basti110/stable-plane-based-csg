@@ -66,8 +66,27 @@ public:
         return mLookupFacesB;
     }
 
-    //const std::vector<pm::face_index> getCoplanarFacesMeshA() const { return mCoplanarFacesMeshA; }
-    //const std::vector<pm::face_index> getCoplanarFacesMeshB() const { return mCoplanarFacesMeshB; }
+    std::vector<pm::face_index> getCoplanarFacesMeshA() const { 
+        std::vector<pm::face_index> list;
+        for (auto it : mCoplanarFacesMeshA) {
+            auto index = pm::face_index(it.first);
+            if (!index.of(mMeshA->mesh()).is_removed())
+                list.push_back(index);
+            else
+                int i = 0;
+        }
+            
+        return list;
+    }
+    std::vector<pm::face_index> getCoplanarFacesMeshB() const {
+        std::vector<pm::face_index> list;
+        for (auto it : mCoplanarFacesMeshB) {
+            auto index = pm::face_index(it.first);
+            if (!index.of(mMeshB->mesh()).is_removed())
+                list.push_back(index);
+        }
+        return list;
+    }
 
 private:
     pm::vertex_handle splitHalfEdgeLowAPI(pm::Mesh& mesh, pm::halfedge_handle& h);

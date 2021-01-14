@@ -110,7 +110,7 @@ namespace Benchmark {
         conf.getOctree()->printOctreeStats();
         benchmarkWriter.writeToFile();
         //conf.viewMesh(true);
-        //components->renderFinalResult(iCut);
+        components->renderFinalResult(iCut);
         return 0;
     }
 }

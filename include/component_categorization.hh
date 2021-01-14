@@ -42,14 +42,19 @@ public:
 			}
 		}
 
-        //auto& coPlanarFacesA = iCut.getCoplanarFacesMeshA();
-        //auto& coPlanarFacesB = iCut.getCoplanarFacesMeshB();
+        auto coPlanarFacesA = iCut.getCoplanarFacesMeshA();
+        auto coPlanarFacesB = iCut.getCoplanarFacesMeshB();
 
-        /*for (auto face : coPlanarFacesA)
-            mComponentIsOutsideA[faceComponentsA->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;
+        for (auto face : coPlanarFacesA) {
+            auto faceHandle = face.of(octree->getPlaneMeshA().mesh());
+            bool t1 = faceHandle.is_removed();
+            auto t2 = faceComponentsA->getFaceToComponent()[face];
+            mComponentIsOutsideA[t2] = (int8_t)InOutState::COPLANAR;
+        }
+            
 
         for (auto face : coPlanarFacesB)
-            mComponentIsOutsideB[faceComponentsB->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;*/
+            mComponentIsOutsideB[faceComponentsB->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;
         
 		assignInOut(iCut);
 	}

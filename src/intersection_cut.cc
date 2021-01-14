@@ -565,6 +565,7 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
                             }
                         }
                     }
+                    mCoplanarFacesMeshB.erase(it);
                 }
                 /*if (isCoPlanarFaceB(planeMeshInfo2.face)) {
 
@@ -620,6 +621,7 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
                             }
                         }
                     }
+                    mCoplanarFacesMeshA.erase(it);
                 }
             }
                   
