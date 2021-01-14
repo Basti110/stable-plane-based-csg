@@ -328,7 +328,7 @@ APP("Benchmark:OneIteration") {
         planeMesh2 = conf.getMeshB();
         printStats(s);
     }
-    bool test = planeMesh1->allHalfEdgesAreValid();
+    //bool test = planeMesh1->allHalfEdgesAreValid();
     glow::timing::CpuTimer timer;
     //Load Octree
     SharedOctree octree;
@@ -389,4 +389,175 @@ APP("App:ShowMeshOrOctree") {
     glow::info() << gv::get_last_close_info().cam_pos;
     glow::info() << gv::get_last_close_info().cam_target;
     //gv::view(gv::lines(boxes).line_width_world(500000), tg::color3::blue);
+}
+
+void transformation(const pm::vertex_attribute<tg::pos3>& in, pm::vertex_attribute<tg::dpos3>& out, tg::dmat4& mat, int scale) {
+    const auto& mesh = in.mesh();
+    for (auto f : mesh.all_vertices()) {
+        auto pos4 = tg::dvec4(in[f] * scale, 1);
+        pos4 = (mat * pos4);
+        out[f] = tg::dpos3(pos4);
+    }
+}
+
+APP("App:ShowCSG") {
+    std::string path_cube1 = "../data/mesh/cubes1.obj";
+    std::string path_cube2 = "../data/mesh/cubes2.obj";
+    int scale = 1e6;
+    //std::string path_cube = "../data/mesh/cubes2";
+    //ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
+    pm::Mesh mesh1;
+    pm::vertex_attribute<tg::pos3> posf1(mesh1);
+    pm::vertex_attribute<tg::dpos3> pos1(mesh1);
+    pm::load(path_cube1, mesh1, posf1);
+    pm::Mesh mesh2;
+    pm::vertex_attribute<tg::pos3> posf2(mesh2);
+    pm::vertex_attribute<tg::dpos3> pos2(mesh2);
+    pm::load(path_cube2, mesh2, posf2);
+
+    for (auto f : mesh1.all_vertices()) 
+        pos1[f] = ((tg::dpos3)posf1[f] * scale);
+    
+    //for (auto f : mesh2.all_vertices())
+        //pos2[f] = ((tg::dpos3)posf2[f] * scale);*/
+
+    //SharedPlaneMesh planeMesh1 = conf.getMeshA();
+    //SharedPlaneMesh planeMesh2 = conf.getMeshB();
+    //SharedOctree octree = conf.getOctree();
+    //IntersectionCut iCut = octree->cutPolygons();
+    //std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
+    //std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
+    //std::shared_ptr<ComponentCategorization> components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
+    //
+    gv::SharedCameraController cam = gv::CameraController::create();
+    bool isCut = false;
+    ObjConfig config;
+
+    //Data
+    gv::SharedGeometricRenderable renderable1;
+    gv::SharedGeometricRenderable renderable2;
+    gv::Masking maskFaceAIn;
+    gv::Masking maskFaceBIn;
+    gv::Masking maskFaceAOut;
+    gv::Masking maskFaceBOut;
+    
+    pm::face_attribute<bool> colorAtrMaskAIn;
+    pm::face_attribute<bool> colorAtrMaskBIn;
+    pm::face_attribute<bool> colorAtrMaskAOut;
+    pm::face_attribute<bool> colorAtrMaskBOut;
+    gv::SharedLineRenderable octreeRenderable;
+
+
+    bool showOctree = true;
+    int tooglePolygons = 0;
+    gv::interactive([&](auto dt) {
+        
+        tg::mat4 projectionMatrix = cam->computeProjMatrix();
+        tg::mat4 viewMatrix = cam->computeViewMatrix();
+        auto const mousePos = gv::experimental::interactive_get_mouse_position();
+        auto const windowSize = gv::experimental::interactive_get_window_size();
+
+        float x = (2.0f * mousePos.x) / windowSize.width - 1.0f;
+        float y = 1.0f - (2.0f * mousePos.y) / windowSize.height;
+        tg::vec4 rayClip = tg::vec4(x, y, -1.0, 1.0);
+        tg::vec4 rayEye = tg::inverse(projectionMatrix) * rayClip;
+        rayEye = tg::vec4(rayEye.x, rayEye.y, -1, 0);
+        tg::vec4 rayWorld4 = tg::inverse(viewMatrix) * rayEye;
+        tg::vec3 rayWorld = tg::vec3(rayWorld4);
+        rayWorld = tg::normalize(rayWorld);
+
+        auto camPos = cam->getPosition();
+        tg::dmat4 transform = tg::translation(tg::dvec3(camPos) + (tg::dvec3(rayWorld) * 10 * scale));
+        transformation(posf2, pos2, transform, scale);
+
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            if (!isCut) {
+                isCut = true;
+                config = ObjConfig(1e6, AABB({ -30, -30, -25 }, { 30, 30, 35 }), pos1, pos2);
+                auto boxes = config.getOctreeBoxes();
+                SharedOctree octree = config.getOctree();
+                IntersectionCut iCut = octree->cutPolygons();
+                std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*(config.getMeshA()), iCut.getIntersectionEdgesMarkerA());
+                std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*(config.getMeshB()), iCut.getIntersectionEdgesMarkerB());
+                std::shared_ptr<ComponentCategorization> components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
+                octree->getPlaneMeshA().checkAndComputePositions();
+                octree->getPlaneMeshB().checkAndComputePositions();
+                auto colorsA = components->getColorToStateA();
+                auto colorsB = components->getColorToStateB();
+
+
+                // Attributes
+                colorAtrMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white; }));
+                colorAtrMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white; }));
+                colorAtrMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c != tg::color3::white; }));
+                colorAtrMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c != tg::color3::white; }));
+
+                //Maskes
+                maskFaceAIn = gv::masked(colorAtrMaskAIn);
+                maskFaceBIn = gv::masked(colorAtrMaskBIn);
+                maskFaceAOut = gv::masked(colorAtrMaskAOut);
+                maskFaceBOut = gv::masked(colorAtrMaskBOut);
+
+                //Renderables
+                renderable1 = gv::make_renderable(config.getMeshA()->positions());
+                renderable2 = gv::make_renderable(config.getMeshB()->positions());
+                octreeRenderable = gv::make_renderable(gv::lines(boxes).line_width_world(100000));
+            }
+        }
+        ImGui::Begin("Move");
+        if (isCut) {
+            bool toogled = ImGui::Checkbox("Show Octree", &showOctree);
+            toogled |= ImGui::RadioButton("Mesh 1 + Mesh 2", &tooglePolygons, 0);
+            toogled |= ImGui::RadioButton("Mesh 2 AND Mesh 1", &tooglePolygons, 1);
+            toogled |= ImGui::RadioButton("Mesh 2 OR Mesh 1", &tooglePolygons, 2);
+            toogled |= ImGui::RadioButton("Mesh 1 - Mesh 2", &tooglePolygons, 3);
+            toogled |= ImGui::RadioButton("Mesh 2 - Mesh 1", &tooglePolygons, 4);
+            toogled |= ImGui::RadioButton("Mesh 1", &tooglePolygons, 5);
+            toogled |= ImGui::RadioButton("Mesh 2", &tooglePolygons, 6);
+
+            if (toogled) {
+                renderable1 = gv::make_renderable(config.getMeshA()->positions());
+                renderable2 = gv::make_renderable(config.getMeshB()->positions());
+                if (tooglePolygons == 1) {
+                    renderable1->setMasking(maskFaceAOut);
+                    renderable2->setMasking(maskFaceBOut);
+                }
+                else if (tooglePolygons == 2) {
+                    renderable1->setMasking(maskFaceAIn);
+                    renderable2->setMasking(maskFaceBIn);
+                }
+                else if (tooglePolygons == 3) {
+                    renderable1->setMasking(maskFaceAOut);
+                    renderable2->setMasking(maskFaceBIn);
+                }
+                else if (tooglePolygons == 4) {
+                    renderable1->setMasking(maskFaceAIn);
+                    renderable2->setMasking(maskFaceBOut);
+                }
+                //::view_clear_accumulation();
+            }
+        }
+        
+
+        if (ImGui::IsKeyPressed('Q')) {
+            if (isCut) 
+                isCut = false;
+        }
+
+        auto view = gv::view();
+        if (!isCut) {
+            gv::view(pos1, cam);
+            gv::view(pos2, gv::no_grid);
+        }
+        else {           
+            if (tooglePolygons != 6)
+                gv::view(renderable1, cam, gv::print_mode);
+            if (tooglePolygons != 5)
+                gv::view(renderable2, cam, gv::print_mode);
+            if(showOctree)
+                gv::view(octreeRenderable, tg::color3::blue, "gv::lines(pos)");
+
+        }       
+        ImGui::End();
+    });
 }

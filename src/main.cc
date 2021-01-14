@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
     //test_octree_cell_ray_cast();
     //convert();
     //return 0;
-    if (argc > 1 ||true) {
+    if (argc > 1) {
         //std::string file = std::string(argv[1]);
         std::string file = "37991.stl"; 
         /*{
@@ -104,8 +104,9 @@ int main(int argc, char* argv[]) {
     //char* argv[] = { "main", "App::component_classification" };
     //char* arg[] = { "main", "App:ShowMeshOrOctree" };
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
-    
-    char* arg[] = { "main", "Benchmark:OneIteration" };
+
+    //char* arg[] = { "main", "Benchmark:OneIteration" };
+    char* arg[] = { "main", "App:ShowCSG" };
 
     //char* arg[] = { "main", "Test::Co_Planar_Cut2" };
     //char* arg[] = { "main", "Test::Co_Planar_Cut" };

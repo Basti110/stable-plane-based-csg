@@ -79,6 +79,23 @@ public:
         init_mesh();
     }
 
+    PlaneMesh(const pm::Mesh& m, const pm::vertex_attribute<tg::dpos3>& pos, int scale) : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh), mHalfEdges(mMesh) {
+        TRACE("[MESH] Init Plane Mesh");
+
+        mID = instances;
+        instances++;
+        mMesh.copy_from(m);
+        auto vertices1 = mMesh.all_vertices();
+        auto vertices2 = m.all_vertices();
+        TG_ASSERT(vertices1.size() == vertices2.size());
+        //TRACE("[MESH] Init Plane Mesh 2");
+        for (int i = 0; i < vertices1.size(); ++i) {
+            auto dpos = pos[vertices2[i]] * scale;
+            mPositions[vertices1[i]] = pos_t(dpos);
+        }
+        init_mesh();
+    }
+
     pm::all_face_collection allFaces() {
         return mMesh.all_faces();
     }

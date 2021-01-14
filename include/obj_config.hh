@@ -45,6 +45,17 @@ public:
         mTransformation2 = mTranslation2 * mRotation2;
     }
 
+    ObjConfig(scalar_t pScaleOctree, AABB pOctreeBox, const pm::vertex_attribute<tg::dpos3> pos1, const pm::vertex_attribute<tg::dpos3> pos2) :
+        mScaleOctree(pScaleOctree),
+        mNumObjects(2) 
+    {
+        mOctreeBox = AABB(pOctreeBox.min * pScaleOctree, pOctreeBox.max * pScaleOctree);
+        const auto& meshA = pos1.mesh();
+        const auto& meshB = pos2.mesh();
+        mPlaneMeshA = std::make_shared<PlaneMesh>(meshA, pos1, 1);
+        mPlaneMeshB = std::make_shared<PlaneMesh>(meshB, pos2, 1);
+    }
+
     void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat) {
         pos.apply([&mat](tg::pos3& pos) {
             auto pos4 = tg::vec4(pos, 1);
