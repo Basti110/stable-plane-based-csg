@@ -42,8 +42,8 @@ public:
 			}
 		}
 
-        auto& coPlanarFacesA = iCut.getCoplanarFacesMeshA();
-        auto& coPlanarFacesB = iCut.getCoplanarFacesMeshB();
+        //auto& coPlanarFacesA = iCut.getCoplanarFacesMeshA();
+        //auto& coPlanarFacesB = iCut.getCoplanarFacesMeshB();
 
         /*for (auto face : coPlanarFacesA)
             mComponentIsOutsideA[faceComponentsA->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;

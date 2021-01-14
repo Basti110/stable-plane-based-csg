@@ -544,6 +544,28 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
             if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
                 Plane intersectionPlane2 = planeMeshInfo1.planeMesh.face(planeMeshInfo1.face);
                 splitFaces.facesT2 = split(planeMeshInfo2, isectNonPlanar->triangle2, intersectionPlane2);
+                auto it = mCoplanarFacesMeshB.find(planeMeshInfo2.face.idx.value);
+                if (it != mCoplanarFacesMeshB.end()) {
+                    auto& coPlanarFaceList = it->second;
+                    for (auto faceIdx : coPlanarFaceList) {
+                        auto faceHandle = faceIdx.of(planeMeshInfo1.planeMesh.mesh());
+                        std::vector<pm::face_handle> validFaces;
+                        fillFacesFromLookupAInVec(validFaces, faceHandle);
+                        for (auto& validFace : validFaces) {
+                            auto intersection1 = getIntersectionStateWithTimer(validFace, splitFaces.facesT2[0]);
+                            auto intersection2 = getIntersectionStateWithTimer(validFace, splitFaces.facesT2[1]);
+                            if (intersection1->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
+                                mCoplanarFacesMeshB[splitFaces.facesT2[0].idx.value].push_back(validFace.idx);
+                                TG_ASSERT(intersection2->intersectionState == TrianlgeIntersection::IntersectionState::NON_INTERSECTING);
+                            }
+                            else if(intersection2->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
+                                TG_ASSERT(intersection1->intersectionState == TrianlgeIntersection::IntersectionState::NON_INTERSECTING);
+                                //TG_ASSERT(intersection2->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR);
+                                mCoplanarFacesMeshB[splitFaces.facesT2[1].idx.value].push_back(validFace.idx);
+                            }
+                        }
+                    }
+                }
                 /*if (isCoPlanarFaceB(planeMeshInfo2.face)) {
 
                 }
@@ -567,14 +589,40 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
             //if (isectNonPlanar->triangle2.intersectionEdge1.next().next() != isectNonPlanar->triangle2.intersectionEdge2)
                 //return splitFaces;
 
-            Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
+            
             //splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
             auto he = isectNonPlanar->triangle2.intersectionEdge1.next();
             TG_ASSERT(he != isectNonPlanar->triangle2.intersectionEdge2);          
             //mIntersectionEdgesOnIntersectionLineB[he.edge().idx.value].push_back(mIntersectionEdgesOnIntersectionLineB[-1][0]);
 
-            if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) 
-                splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);     
+            if (isectNonPlanar->state != TrianlgeIntersectionNonPlanar::NonPlanarState::TOUCHING) {
+                Plane intersectionPlane1 = planeMeshInfo2.planeMesh.face(planeMeshInfo2.face);
+                splitFaces.facesT1 = split(planeMeshInfo1, isectNonPlanar->triangle1, intersectionPlane1);
+                auto it = mCoplanarFacesMeshA.find(planeMeshInfo1.face.idx.value);
+                if (it != mCoplanarFacesMeshA.end()) {
+                    auto& coPlanarFaceList = it->second;
+                    for (auto faceIdx : coPlanarFaceList) {
+                        auto faceHandle = faceIdx.of(planeMeshInfo2.planeMesh.mesh());
+                        //bool isRemoved = faceHandle.is_removed();
+                        std::vector<pm::face_handle> validFaces;
+                        fillFacesFromLookupBInVec(validFaces, faceHandle);
+                        for (auto& validFace : validFaces) {
+                            auto intersection1 = getIntersectionStateWithTimer(splitFaces.facesT1[0], validFace);
+                            auto intersection2 = getIntersectionStateWithTimer(splitFaces.facesT1[1], validFace);
+                            if (intersection1->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
+                                mCoplanarFacesMeshA[splitFaces.facesT1[0].idx.value].push_back(validFace.idx);
+                                TG_ASSERT(intersection2->intersectionState == TrianlgeIntersection::IntersectionState::NON_INTERSECTING);
+                            }
+                            else if(intersection2->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR){
+                                TG_ASSERT(intersection1->intersectionState == TrianlgeIntersection::IntersectionState::NON_INTERSECTING);
+                                //TG_ASSERT(intersection2->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR);
+                                mCoplanarFacesMeshA[splitFaces.facesT1[1].idx.value].push_back(validFace.idx);
+                            }
+                        }
+                    }
+                }
+            }
+                  
                 //Check if segment lie between intersection edges and should be marked
             markTouchingEdge(isectNonPlanar->triangle2, isectNonPlanar->triangle1, planeMeshInfo2, planeMeshInfo1, false);
             
@@ -591,8 +639,8 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
     else if (intersection->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
         //SharedTriIntersectPlanar isectPlanar = std::static_pointer_cast<TrianlgeIntersectionPlanar>(intersection);
         //splitFaces = splitPlanar(isectPlanar, planeMeshInfo1, planeMeshInfo2);
-        mCoplanarFacesMeshA.push_back(planeMeshInfo1.face.idx);
-        mCoplanarFacesMeshB.push_back(planeMeshInfo2.face.idx);
+        mCoplanarFacesMeshA[planeMeshInfo1.face.idx.value].push_back(planeMeshInfo2.face.idx);
+        mCoplanarFacesMeshB[planeMeshInfo2.face.idx.value].push_back(planeMeshInfo1.face.idx);
         splitFaces.facesT1 = std::vector<pm::face_handle>{ planeMeshInfo1.face };
         splitFaces.facesT2 = std::vector<pm::face_handle>{ planeMeshInfo2.face };
 
@@ -786,7 +834,7 @@ void IntersectionCut::fillFacesFromLookupAInVec(std::vector<pm::face_handle>& ve
 }
 
 void IntersectionCut::repairCoPlanarMarkedPolygons() {
-    std::vector<pm::face_index> newCoplanarFaces;
+    /*std::vector<pm::face_index> newCoplanarFaces;
     //Mesh A 
     for (pm::face_index face : mCoplanarFacesMeshA) {
         std::vector<pm::face_handle> newFaces;
@@ -821,7 +869,7 @@ void IntersectionCut::repairCoPlanarMarkedPolygons() {
                 newCoplanarFaces.push_back(newFace.idx);
         }
     }
-    mCoplanarFacesMeshB = newCoplanarFaces;
+    mCoplanarFacesMeshB = newCoplanarFaces;*/
 }
 
 void IntersectionCut::cutPolygons(std::vector<pm::face_index>& facesMeshA, std::vector<pm::face_index>& facesMeshB) {

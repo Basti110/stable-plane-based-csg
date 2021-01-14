@@ -66,22 +66,8 @@ public:
         return mLookupFacesB;
     }
 
-    const std::vector<pm::face_index> getCoplanarFacesMeshA() const { return mCoplanarFacesMeshA; }
-    const std::vector<pm::face_index> getCoplanarFacesMeshB() const { return mCoplanarFacesMeshB; }
-    bool isCoPlanarFaceA(pm::face_index index) {
-        for (int i = 0; i < mCoplanarFacesMeshA.size(); ++i) {
-            if (mCoplanarFacesMeshA[i].value == index.value)
-                return true;
-        }
-        return false;
-    }
-    bool isCoPlanarFaceB(pm::face_index index) {
-        for (int i = 0; i < mCoplanarFacesMeshB.size(); ++i) {
-            if (mCoplanarFacesMeshB[i].value == index.value)
-                return true;
-        }
-        return false;
-    }
+    //const std::vector<pm::face_index> getCoplanarFacesMeshA() const { return mCoplanarFacesMeshA; }
+    //const std::vector<pm::face_index> getCoplanarFacesMeshB() const { return mCoplanarFacesMeshB; }
 
 private:
     pm::vertex_handle splitHalfEdgeLowAPI(pm::Mesh& mesh, pm::halfedge_handle& h);
@@ -137,8 +123,8 @@ private:
     PlaneMesh* mMeshA = nullptr;
     PlaneMesh* mMeshB = nullptr;
 
-    std::vector<pm::face_index> mCoplanarFacesMeshA;
-    std::vector<pm::face_index> mCoplanarFacesMeshB;
+    std::unordered_map<int, std::vector<pm::face_index>> mCoplanarFacesMeshA;
+    std::unordered_map<int, std::vector<pm::face_index>> mCoplanarFacesMeshB;
     std::unordered_map<int, std::vector<pm::face_handle>> mLookupFacesA;
     std::unordered_map<int, std::vector<pm::face_handle>> mLookupFacesB;
     std::unordered_map<int, std::vector<IntersectionEdgesIndices>> mIntersectionEdgesOnIntersectionLineA;

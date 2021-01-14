@@ -55,9 +55,9 @@ int main(int argc, char* argv[]) {
     //test_octree_cell_ray_cast();
     //convert();
     //return 0;
-    if (argc > 1) {
-        std::string file = std::string(argv[1]);
-        //std::string file = "37012.stl"; 
+    if (argc > 1 ||true) {
+        //std::string file = std::string(argv[1]);
+        std::string file = "37744.stl"; 
         /*{
            pm::Mesh mesh;
             pm::vertex_attribute<tg::pos3> pos(mesh);   
