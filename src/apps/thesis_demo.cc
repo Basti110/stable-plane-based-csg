@@ -367,7 +367,7 @@ APP("Benchmark:OneIteration") {
     std::cout << "Time Without PM Load: " << t + conf.initMeshTime() << "ms" << std::endl;
     std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
     conf.getOctree()->printOctreeStats();
-    //conf.viewMesh(true);
+    conf.viewMesh(true);
     components->renderFinalResult(iCut, 5000);
 }
 
@@ -401,9 +401,15 @@ void transformation(const pm::vertex_attribute<tg::pos3>& in, pm::vertex_attribu
 }
 
 APP("App:ShowCSG") {
-    std::string path_cube1 = "../data/mesh/cubes1.obj";
-    std::string path_cube2 = "../data/mesh/cubes2.obj";
-    int scale = 1e6;
+    const char* meshList[]{ "cube", "cubes1", "cubes2", "fox", "buddha", "bunny", "Armadillo" };
+    int scaleList[]{ 1e7, 1e7, 1e7, 1e6, 3e6, 1e6, 1e6 };
+    int selectedMesh1 = 1;
+    int selectedMesh2 = 2;
+    int meshDistance = 10;
+
+    std::string path_cube1 = std::string("../data/mesh/") + std::string(meshList[selectedMesh1]) + std::string(".obj");
+    std::string path_cube2 = std::string("../data/mesh/") + std::string(meshList[selectedMesh2]) + std::string(".obj");
+    //int scale = 1e6;
     //std::string path_cube = "../data/mesh/cubes2";
     //ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
     pm::Mesh mesh1;
@@ -415,8 +421,10 @@ APP("App:ShowCSG") {
     pm::vertex_attribute<tg::dpos3> pos2(mesh2);
     pm::load(path_cube2, mesh2, posf2);
 
-    for (auto f : mesh1.all_vertices()) 
-        pos1[f] = ((tg::dpos3)posf1[f] * scale);
+    for (auto f : mesh1.all_vertices())
+        pos1[f] = ((tg::dpos3)posf1[f] * scaleList[selectedMesh1]);
+
+
     
     //for (auto f : mesh2.all_vertices())
         //pos2[f] = ((tg::dpos3)posf2[f] * scale);*/
@@ -446,10 +454,14 @@ APP("App:ShowCSG") {
     pm::face_attribute<bool> colorAtrMaskAOut;
     pm::face_attribute<bool> colorAtrMaskBOut;
     gv::SharedLineRenderable octreeRenderable;
+    //std::string meshList[]{ "Mesh 1", "Mesh 2" };
 
 
-    bool showOctree = true;
+    bool showOctree = false;
     int tooglePolygons = 0;
+    renderable1 = gv::make_renderable(pos1);
+    //renderable2 = gv::make_renderable(pos2);
+
     gv::interactive([&](auto dt) {
         
         tg::mat4 projectionMatrix = cam->computeProjMatrix();
@@ -467,13 +479,16 @@ APP("App:ShowCSG") {
         rayWorld = tg::normalize(rayWorld);
 
         auto camPos = cam->getPosition();
-        tg::dmat4 transform = tg::translation(tg::dvec3(camPos) + (tg::dvec3(rayWorld) * 10 * scale));
-        transformation(posf2, pos2, transform, scale);
+        tg::dmat4 transform = tg::translation(tg::dvec3(camPos) + (tg::dvec3(rayWorld) * meshDistance * 1e6));
+        transformation(posf2, pos2, transform, scaleList[selectedMesh2]);
 
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        //if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        ImGui::Begin("Move");
+        if (ImGui::IsKeyPressed('E')) {
             if (!isCut) {
                 isCut = true;
-                config = ObjConfig(1e6, AABB({ -30, -30, -25 }, { 30, 30, 35 }), pos1, pos2);
+                config = ObjConfig(1e7, AABB({ -15, -15, -10 }, { 15, 15, 20 }), pos1, pos2);
+                glow::timing::CpuTimer timer;
                 auto boxes = config.getOctreeBoxes();
                 SharedOctree octree = config.getOctree();
                 IntersectionCut iCut = octree->cutPolygons();
@@ -484,9 +499,9 @@ APP("App:ShowCSG") {
                 octree->getPlaneMeshB().checkAndComputePositions();
                 auto colorsA = components->getColorToStateA();
                 auto colorsB = components->getColorToStateB();
+                std::cout << "CSG Operation: " << timer.elapsedMillisecondsD() << "ms" << std::endl;
 
-
-                // Attributes
+                //Attributes
                 colorAtrMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white; }));
                 colorAtrMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white; }));
                 colorAtrMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c != tg::color3::white; }));
@@ -504,16 +519,17 @@ APP("App:ShowCSG") {
                 octreeRenderable = gv::make_renderable(gv::lines(boxes).line_width_world(100000));
             }
         }
-        ImGui::Begin("Move");
+        
         if (isCut) {
-            bool toogled = ImGui::Checkbox("Show Octree", &showOctree);
-            toogled |= ImGui::RadioButton("Mesh 1 + Mesh 2", &tooglePolygons, 0);
+            //bool toogled = ImGui::Checkbox("Show Octree", &showOctree);
+            bool toogled = ImGui::RadioButton("Mesh 1 + Mesh 2", &tooglePolygons, 0);
             toogled |= ImGui::RadioButton("Mesh 2 AND Mesh 1", &tooglePolygons, 1);
             toogled |= ImGui::RadioButton("Mesh 2 OR Mesh 1", &tooglePolygons, 2);
             toogled |= ImGui::RadioButton("Mesh 1 - Mesh 2", &tooglePolygons, 3);
             toogled |= ImGui::RadioButton("Mesh 2 - Mesh 1", &tooglePolygons, 4);
             toogled |= ImGui::RadioButton("Mesh 1", &tooglePolygons, 5);
             toogled |= ImGui::RadioButton("Mesh 2", &tooglePolygons, 6);
+
 
             if (toogled) {
                 renderable1 = gv::make_renderable(config.getMeshA()->positions());
@@ -537,27 +553,53 @@ APP("App:ShowCSG") {
                 //::view_clear_accumulation();
             }
         }
-        
+        else {
+            bool newMesh1 = ImGui::Combo("Base Mesh", &selectedMesh1, meshList, IM_ARRAYSIZE(meshList));
+            bool newMesh2 = ImGui::Combo("Mouse Mesh", &selectedMesh2, meshList, IM_ARRAYSIZE(meshList));
+
+            if (newMesh1) {
+                auto meshPath = std::string("../data/mesh/") + meshList[selectedMesh1] + std::string(".obj");
+                pm::load(meshPath, mesh1, posf1);
+                for (auto f : mesh1.all_vertices())
+                    pos1[f] = ((tg::dpos3)posf1[f] * scaleList[selectedMesh1]);
+                renderable1 = gv::make_renderable(pos1);
+            }
+            else if (newMesh2) {
+                auto meshPath = std::string("../data/mesh/") + meshList[selectedMesh2] + std::string(".obj");
+                pm::load(meshPath, mesh2, posf2);
+            }
+        }
+        ImGui::Checkbox("Show Octree", &showOctree);
 
         if (ImGui::IsKeyPressed('Q')) {
-            if (isCut) 
+            if (isCut) {
                 isCut = false;
+                renderable1 = gv::make_renderable(pos1);
+                //renderable2 = gv::make_renderable(pos2);
+            }             
+        }
+
+        if (ImGui::IsKeyPressed('X')) {
+            meshDistance++;
+        } 
+        if (ImGui::IsKeyPressed('Z')) {
+            meshDistance--;
         }
 
         auto view = gv::view();
         if (!isCut) {
-            gv::view(pos1, cam);
+            gv::view(renderable1, cam);
             gv::view(pos2, gv::no_grid);
         }
         else {           
+            if (showOctree)
+                gv::view(octreeRenderable, tg::color3::blue, "gv::lines(pos)");
             if (tooglePolygons != 6)
                 gv::view(renderable1, cam, gv::print_mode);
             if (tooglePolygons != 5)
                 gv::view(renderable2, cam, gv::print_mode);
-            if(showOctree)
-                gv::view(octreeRenderable, tg::color3::blue, "gv::lines(pos)");
-
         }       
+
         ImGui::End();
     });
 }

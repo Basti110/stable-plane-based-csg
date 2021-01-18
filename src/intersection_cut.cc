@@ -612,7 +612,7 @@ NewFaces IntersectionCut::split(SharedTriIntersect& intersection, PlaneMeshInfo&
                             auto intersection2 = getIntersectionStateWithTimer(splitFaces.facesT1[1], validFace);
                             if (intersection1->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR) {
                                 mCoplanarFacesMeshA[splitFaces.facesT1[0].idx.value].push_back(validFace.idx);
-                                TG_ASSERT(intersection2->intersectionState == TrianlgeIntersection::IntersectionState::NON_INTERSECTING);
+                                //TG_ASSERT(intersection2->intersectionState == TrianlgeIntersection::IntersectionState::NON_INTERSECTING);
                             }
                             else if(intersection2->intersectionState == TrianlgeIntersection::IntersectionState::PLANAR){
                                 TG_ASSERT(intersection1->intersectionState == TrianlgeIntersection::IntersectionState::NON_INTERSECTING);

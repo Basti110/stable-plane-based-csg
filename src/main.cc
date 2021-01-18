@@ -56,8 +56,8 @@ int main(int argc, char* argv[]) {
     //convert();
     //return 0;
     if (argc > 1) {
-        //std::string file = std::string(argv[1]);
-        std::string file = "37991.stl"; 
+        std::string file = std::string(argv[1]);
+        //std::string file = "44901.stl"; 
         /*{
            pm::Mesh mesh;
             pm::vertex_attribute<tg::pos3> pos(mesh);   

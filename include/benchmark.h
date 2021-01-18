@@ -53,6 +53,8 @@ namespace Benchmark {
                 return 2;
             planeMesh1 = conf.getMeshA();
             planeMesh2 = conf.getMeshB();
+            if (!planeMesh1->isValid() || !planeMesh2->isValid())
+                return 2;
             setValueStat(benchmarkWriter.mTimeLoadMesh, s);
             printStats(s);            
         }

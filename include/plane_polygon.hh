@@ -181,7 +181,18 @@ public:
         auto dir1 = y - x;
         auto dir2 = z - x;
 
+        if (dir1 == vec_t(0) || dir2 == vec_t(0)) {
+            mIsValid = false;
+            return;
+        }
+
         auto normalDir = tg::cross(dir1, dir2);
+
+        if (normalDir == vec_t(0)) {
+            mIsValid = false;
+            return;
+        }
+
         vec_t approxNormalDir = vec_t(tg::normalize(tg::f64vec3(normalDir)) * 100);
 
         for (auto it = edgeRing.begin(); it != edgeRing.end(); ++it) {
@@ -725,6 +736,10 @@ public:
         return mID;
     }
 
+    bool isValid() {
+        return mIsValid;
+    }
+
 private: 
     void init_mesh() {
         for (auto f : mMesh.faces()) {
@@ -756,6 +771,7 @@ private:
     pm::edge_attribute<Plane> mEdges;
     pm::halfedge_attribute<int8_t> mHalfEdges;
     bool useHalfedges = true;
+    bool mIsValid = true;
     int mID;
     static int instances;
 };
