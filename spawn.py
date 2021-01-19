@@ -5,10 +5,15 @@ import threading
 from pathlib import Path
 
 
+
+
+max_threads = 8
 folder = "E:/benchmark/files"
-fileCount = len(os.listdir(folder))
+folder_libgl = "C:/Users/Basti/Documents/git/csg-comparison-libgl/build/Release/csg-comparison-libigl.exe"
+
+
 Path("E:/benchmark/files").mkdir(parents=True, exist_ok=True)
-maxThreads = 1
+file_count = len(os.listdir(folder))
 
 class Starter():
     def __init__(self):
@@ -18,24 +23,40 @@ class Starter():
         self.loopCount = 0
 
     def startExec(self, filename):
+        DEVNULL = open(os.devnull, 'wb')
         with open(f"E:/benchmark/logs/{os.path.splitext(filename)[0]}.log",'w+') as fout:
-            test = subprocess.run(["./bin/PlaneOctreeCSG.exe", filename], stdout=fout,stderr=fout)
+            return_val = subprocess.run(["./bin/PlaneOctreeCSG.exe", filename], stdout=fout,stderr=fout)
             self.loopCount += 1
-            if(test.returncode == 0): 
-                print(f"{self.loopCount}/{fileCount} {filename} [SUCCESS]")
+            if(return_val.returncode == 0): 
+                print(f"{self.loopCount}/{file_count} {filename} [SUCCESS]")
                 self.success+=1
-            elif(test.returncode == 2) : 
-                print(f"{self.loopCount}/{fileCount} {filename} [MESH_ERROR]")
+            elif(return_val.returncode == 2) : 
+                print(f"{self.loopCount}/{file_count} {filename} [MESH_ERROR]")
                 self.meshError+=1
             else : 
-                print(f"{self.loopCount}/{fileCount} {filename} [ERROR]")
+                print(f"{self.loopCount}/{file_count} {filename} [ERROR]")
                 self.errors+=1
+            if(return_val.returncode != 0):
+                print("return")
+                return
+
+        return_val = subprocess.run([folder_libgl, "--libgl", filename], stdout=DEVNULL, stderr=DEVNULL) 
+        if(return_val.returncode == 0):
+            print("libgl [SUCCESS]")
+        else:
+            print("libgl [ERROR]")
+        return_val = subprocess.run([folder_libgl, "--cork", filename], stdout=DEVNULL, stderr=DEVNULL) 
+        if(return_val.returncode == 0):
+            print("cork [SUCCESS]")
+        else:
+            print("cork [ERROR]")
+        
 
 starter = Starter()
 my_threads = []
 for filename in os.listdir(folder):       
     #print(len(my_threads)) 
-    while len(my_threads) >= maxThreads:
+    while len(my_threads) >= max_threads:
         my_threads = [t for t in my_threads if t.is_alive()]
         time.sleep(0)       
     new_thread = threading.Thread(target = starter.startExec, args = (filename,))
@@ -47,6 +68,6 @@ for my_thread in my_threads:
 
               
 print(f"---------------------------------")
-print(f"{starter.success}/{fileCount} [SUCCESS]")
-print(f"{starter.errors}/{fileCount} [ERROR]")
-print(f"{starter.meshError}/{fileCount} [MESH_ERROR]")
+print(f"{starter.success}/{file_count} [SUCCESS]")
+print(f"{starter.errors}/{file_count} [ERROR]")
+print(f"{starter.meshError}/{file_count} [MESH_ERROR]")

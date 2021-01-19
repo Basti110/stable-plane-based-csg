@@ -119,7 +119,7 @@ public:
             mComponentIsOutsideB[component] = intersections % 2;
             propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
         }
-        return;
+        //return;
         #define RAYINFO rayInfosB
         std::vector<tg::dsegment3> lines;
         //auto info = rayInfosB[5];
@@ -154,19 +154,27 @@ public:
             returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
         }
 
+        std::vector<tg::aabb3> hitBoxes;
+        for (auto box : RAYINFO[0]->rayBoxesDirect) {
+            hitBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+        }
+
+
+        auto const rayCells = gv::lines(hitBoxes).line_width_world(2500000);
+
         mSharedOctree->getPlaneMeshA().checkAndComputePositions();
         mSharedOctree->getPlaneMeshB().checkAndComputePositions();
-        auto const octreeCells = gv::lines(returnBoxes).line_width_world(25000);
-        auto const rayPath = gv::lines(lines).line_width_world(30000);
-        auto const lines1 = gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(1000);
-        auto const lines2 = gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(1000);
+        auto const octreeCells = gv::lines(returnBoxes).line_width_world(250000);
+        auto const rayPath = gv::lines(lines).line_width_world(3000000);
+        auto const lines1 = gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(10000);
+        auto const lines2 = gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(10000);
 
         {
             auto view = gv::view(octreeCells, tg::color3::blue);
-            //auto view = gv::view(rayCells, tg::color3::green);
+            gv::view(rayCells, tg::color3::green);
             gv::view(rayPath, tg::color3::red);
             gv::view(mSharedOctree->getPlaneMeshA().positions());
-            gv::view(mSharedOctree->getPlaneMeshB().positions());
+            //gv::view(mSharedOctree->getPlaneMeshB().positions());
             gv::view(lines1);
             gv::view(lines2);
             //auto view = gv::view(positions2, colorsB); // mFaceComponentsB->getColorAssignment());

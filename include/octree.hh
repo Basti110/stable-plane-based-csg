@@ -410,6 +410,24 @@ public:
         }
     }
 
+    void getAllFacesA(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshA) override {
+        for (auto child : mChildNodes) {
+            if (!child->intersect(ray, origin))
+                continue;
+
+            child->getAllFacesA(ray, origin, fMeshA);
+        }
+    }
+
+    void getAllFacesB(tg::vec3 ray, pos_t origin, std::set<pm::face_index>& fMeshB) override {
+        for (auto child : mChildNodes) {
+            if (!child->intersect(ray, origin))
+                continue;
+
+            child->getAllFacesB(ray, origin, fMeshB);
+        }
+    }
+
     NearestFace getNearestFace(tg::vec3 ray, pos_t origin) override {
         NearestFace currentNearest = { -1, pm::face_index(), -1 };
         for (auto child : mChildNodes) {

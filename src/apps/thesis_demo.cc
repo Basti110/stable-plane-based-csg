@@ -313,7 +313,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("Buddha");
+    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -367,7 +367,7 @@ APP("Benchmark:OneIteration") {
     std::cout << "Time Without PM Load: " << t + conf.initMeshTime() << "ms" << std::endl;
     std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
     conf.getOctree()->printOctreeStats();
-    conf.viewMesh(true);
+    //conf.viewMesh(true);
     components->renderFinalResult(iCut, 5000);
 }
 
@@ -401,11 +401,11 @@ void transformation(const pm::vertex_attribute<tg::pos3>& in, pm::vertex_attribu
 }
 
 APP("App:ShowCSG") {
-    const char* meshList[]{ "cube", "cubes1", "cubes2", "fox", "buddha", "bunny", "Armadillo" };
-    int scaleList[]{ 1e7, 1e7, 1e7, 1e6, 3e6, 1e6, 1e6 };
+    const char* meshList[]{ "cube", "cubes1", "cubes2", "fox", "buddha", "bunny", "Armadillo_2" };
+    int scaleList[]{ 1e7, 1e7, 1e7, 1e6, 3e6, 1e5, 1e6 };
     int selectedMesh1 = 1;
     int selectedMesh2 = 2;
-    int meshDistance = 10;
+    int meshDistance = 60;
 
     std::string path_cube1 = std::string("../data/mesh/") + std::string(meshList[selectedMesh1]) + std::string(".obj");
     std::string path_cube2 = std::string("../data/mesh/") + std::string(meshList[selectedMesh2]) + std::string(".obj");
@@ -487,6 +487,7 @@ APP("App:ShowCSG") {
         if (ImGui::IsKeyPressed('E')) {
             if (!isCut) {
                 isCut = true;
+                std::cout << transform[3][0] << ":" << transform[3][1] << ":" << transform[3][2] << ":" << transform[3][3] << std::endl;
                 config = ObjConfig(1e7, AABB({ -15, -15, -10 }, { 15, 15, 20 }), pos1, pos2);
                 glow::timing::CpuTimer timer;
                 auto boxes = config.getOctreeBoxes();

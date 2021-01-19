@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
     //return 0;
     if (argc > 1) {
         std::string file = std::string(argv[1]);
-        //std::string file = "44901.stl"; 
+        //std::string file = "49378.stl"; 
         /*{
            pm::Mesh mesh;
             pm::vertex_attribute<tg::pos3> pos(mesh);   
@@ -105,8 +105,8 @@ int main(int argc, char* argv[]) {
     //char* arg[] = { "main", "App:ShowMeshOrOctree" };
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
 
-    //char* arg[] = { "main", "Benchmark:OneIteration" };
-    char* arg[] = { "main", "App:ShowCSG" };
+    char* arg[] = { "main", "Benchmark:OneIteration" };
+    //char* arg[] = { "main", "App:ShowCSG" };
 
     //char* arg[] = { "main", "Test::Co_Planar_Cut2" };
     //char* arg[] = { "main", "Test::Co_Planar_Cut" };

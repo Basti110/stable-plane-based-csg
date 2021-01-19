@@ -234,8 +234,9 @@ private:
             pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
             {
                 TRACE("[ObjConfig] PM Load Mesh 1");
-                if (!pm::load(mPathObj1, *mMeshA, pos1))
-                    return false;
+                pm::load(mPathObj1, *mMeshA, pos1);
+                //if (!pm::load(mPathObj1, *mMeshA, pos1))
+                    //return false;
             }   
             if (mRepairBefore) {
                 pm::deduplicate(*mMeshA, pos1);
@@ -252,8 +253,9 @@ private:
             pm::vertex_attribute<tg::pos3> pos2(*mMeshB);
             {
                 TRACE("[ObjConfig] PM Load Mesh 2");
-                if (!pm::load(mPathObj2, *mMeshB, pos2))
-                    return false;
+                pm::load(mPathObj2, *mMeshB, pos2);
+                //if (!pm::load(mPathObj2, *mMeshB, pos2))
+                    //return false;
             }   
             if (mRepairBefore) {
                 pm::deduplicate(*mMeshB, pos2);
@@ -312,12 +314,13 @@ public:
                 ObjConfig(1e6, 1e6, AABB({ -60, -60, -40 }, { 60, 60, 80 }),
                 "../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90))) },
             { "fox_mesh_2",
-                ObjConfig(1e6, 1e6, AABB({ -60, -60, -40 }, { 60, 60, 80 }),
-                "../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90)),
-                "../data/mesh/fox.obj", tg::mat4::identity, tg::mat4::identity) },
+                ObjConfig(1e6, 1e6, AABB({ -60, -40, -40 }, { 60, 80, 80 }),
+                //"../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90)),
+                "../data/mesh/fox.obj", tg::mat4::identity, tg::rotation_x(tg::angle::from_degree(-90)),
+                "../data/mesh/fox.obj", tg::translation(tg::vec{ -5.0f, 10.f, 5.f }), tg::rotation_x(tg::angle::from_degree(-90))) },
             { "bunny_mesh_1",
                 ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
-                "../data/mesh/bunny.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90))) },
+                "../data/mesh/bunny.obj", tg::translation(tg::vec{ .0f, .5f, .5f }), tg::rotation_y(tg::angle::from_degree(-90))) },
             { "bunny_mesh_2",
                 ObjConfig(1e6, 1e6, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/bunny.obj", tg::translation(tg::vec{ -.0f, -.1f, .04f }), tg::rotation_y(tg::angle::from_degree(-90)),
@@ -342,17 +345,24 @@ public:
                 "../data/mesh/bunny.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
                 "../data/mesh/soma_gyroid_Z.obj", tg::translation(tg::vec{-25.0f, -.5f, 10.0f }), tg::scaling(1.3f, 1.3f, 1.3f))},
             { "Armadillo", //
-                ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+            ObjConfig(1e7, 2e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+            //ObjConfig(1e6, 1e7, AABB({ -15, -15, -10 }, { 15, 15, 20 }),
                 "../data/mesh/Armadillo_2.obj", tg::mat4::identity, tg::mat4::identity,
-                "../data/mesh/Armadillo_2.obj", tg::translation(tg::vec{ -20.0f, 0.0f, 20.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
+                //"../data/mesh/Armadillo_2.obj", tg::translation(tg::vec{ -20.0f, 0.0f, 20.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
+                //"../data/mesh/Armadillo.obj", tg::translation(tg::vec{ -0.556207f, -0.512985f, 6.94738f }), tg::mat4::identity)},
+                "../data/mesh/Armadillo_2.obj", tg::translation(tg::vec{ -0.296180f, 6.20101f, 5.74443f }), tg::mat4::identity) },
+                //-556207:-512985:6.94738e+06:1 //-296180:6.20101e+06:5.74443e+06:1
             { "Buddha", //
                 ObjConfig(1e8, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/Buddha.obj", tg::translation(tg::vec{ 0.0f, -10.5f, 0.0f }), tg::mat4::identity,
-                "../data/mesh/Buddha.obj", tg::translation(tg::vec{ -1.0f, -10.0f, 2.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
+                "../data/mesh/Buddha.obj", tg::translation(tg::vec{ -1.0f, -10.0f, 2.0f }), tg::rotation_y(tg::angle::from_degree(-90))) },
             { "cubes", //
                 ObjConfig(1e6, 1e6, AABB({ -8, -8, -8 }, { 8, 8, 8 }),
                 "../data/mesh/cubes1.obj", tg::mat4::identity, tg::mat4::identity,
-                "../data/mesh/cubes2.obj", tg::mat4::identity, tg::mat4::identity)},
+                //"../data/mesh/cubes2.obj", tg::translation(tg::vec{ .410618f, -1.10753f, -.371363f }), tg::mat4::identity)},
+                "../data/mesh/cubes2.obj", tg::translation(tg::vec{ .926829f, -1.08545f, 0.639239f }), tg::mat4::identity)},
+                //"../data/mesh/cubes2.obj", tg::translation(tg::vec{ 0.89226f,-1.08672f, 0.582565f}), tg::mat4::identity) },
+
         };
     }
 };

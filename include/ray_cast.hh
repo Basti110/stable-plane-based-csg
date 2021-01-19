@@ -66,7 +66,7 @@ public:
             }
         }
         TG_ASSERT(nearestPosIndex != -1);
-        return castToParentRecursive(node->parent(), curPos, nearestPosIndex, node->childIndex());
+        return castToParentRecursive(node->parent(), curPos, nearestPosIndex, node->childIndex()) + rayCastInfo.intersections;
     }
 
     RayCastInfo castRayToNextCornerPoint(const pm::vertex_handle& origin) {
@@ -101,6 +101,7 @@ public:
                         const Plane& thirdPlane = nextSidePlane;
 
                         pos_t point = getPointFromPlaneIndex(i, j, node);
+                        auto pointTest = pos_t(ob::to_position(mMainMesh.pos(side.basePlane, sidePlane, thirdPlane)));
                         if (mHasDebug) {
                             fillRayInfo({ basePlane , planeRay.plane1, planeRay.plane2 }, side.basePlane, sidePlane, thirdPlane);
                             mRayInfo->octreeVerex = point;
