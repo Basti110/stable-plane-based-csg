@@ -105,8 +105,8 @@ int main(int argc, char* argv[]) {
     //char* arg[] = { "main", "App:ShowMeshOrOctree" };
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
 
-    char* arg[] = { "main", "Benchmark:OneIteration" };
-    //char* arg[] = { "main", "App:ShowCSG" };
+    //char* arg[] = { "main", "Benchmark:OneIteration" };
+    char* arg[] = { "main", "App:ShowCSG" };
 
     //char* arg[] = { "main", "Test::Co_Planar_Cut2" };
     //char* arg[] = { "main", "Test::Co_Planar_Cut" };

@@ -313,7 +313,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
+    ObjConfig conf = ObjCollection::map.at("cubes");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -590,7 +590,7 @@ APP("App:ShowCSG") {
         auto view = gv::view();
         if (!isCut) {
             gv::view(renderable1, cam);
-            gv::view(pos2, gv::no_grid);
+            gv::view(pos2, gv::no_grid, gv::print_mode);
         }
         else {           
             if (showOctree)

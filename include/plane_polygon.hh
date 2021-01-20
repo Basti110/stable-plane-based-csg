@@ -180,6 +180,8 @@ public:
         auto test = tg::pos3(x);
         auto dir1 = y - x;
         auto dir2 = z - x;
+        
+        
 
         if (dir1 == vec_t(0) || dir2 == vec_t(0)) {
             mIsValid = false;

@@ -1,4 +1,5 @@
 #pragma once
+#include <glow-extras/timing/CpuTimer.hh>
 #include <plane_polygon.hh>
 #include <nexus/test.hh>
 #include <octree.hh>
@@ -19,8 +20,10 @@ public:
 		: mSharedOctree(octree), mFaceComponentsA(faceComponentsA), mFaceComponentsB(faceComponentsB) {
 		mComponentIsOutsideA = std::vector<int8_t>(mFaceComponentsA->getNumberOfComponents(), -1);
 		mComponentIsOutsideB = std::vector<int8_t>(mFaceComponentsB->getNumberOfComponents(), -1);
-
+        glow::timing::CpuTimer timer;
+        octree->repairOctree(iCut);
 		auto iSectA = iCut.getIntersectionEdgesMarkerA();
+        std::cout << "Repair Octree: " << timer.elapsedMillisecondsD() << "ms" << std::endl;
 		mComponentNeighborsA.resize(mFaceComponentsA->getNumberOfComponents());
 		for (pm::edge_handle& e : iSectA.mesh().edges()) {
 			if (iSectA[e]) {
@@ -160,14 +163,14 @@ public:
         }
 
 
-        auto const rayCells = gv::lines(hitBoxes).line_width_world(2500000);
+        auto const rayCells = gv::lines(hitBoxes).line_width_world(300000);
 
         mSharedOctree->getPlaneMeshA().checkAndComputePositions();
         mSharedOctree->getPlaneMeshB().checkAndComputePositions();
         auto const octreeCells = gv::lines(returnBoxes).line_width_world(250000);
-        auto const rayPath = gv::lines(lines).line_width_world(3000000);
-        auto const lines1 = gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(10000);
-        auto const lines2 = gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(10000);
+        auto const rayPath = gv::lines(lines).line_width_world(300000);
+        auto const lines1 = gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(100000);
+        auto const lines2 = gv::lines(mSharedOctree->getPlaneMeshB().positions()).line_width_world(100000);
 
         {
             auto view = gv::view(octreeCells, tg::color3::blue);
@@ -202,7 +205,37 @@ public:
         }
     }
 
+    bool copyFacesFromMesh(pm::vertex_attribute<tg::pos3>& pos, pm::Mesh& mesh, const VertexAttribute& copyFrom, pm::face_attribute<bool>& copyFaces, int scale=10e6) {
+        const auto& oldMesh = copyFrom.mesh();
+        pm::Mesh& newMesh = mesh;
+        for (auto face : oldMesh.faces()) {
+            if (!copyFaces[face])
+                continue;
 
+            auto he = face.any_halfedge();
+            auto heTmp = he.next();
+            auto pFrom = newMesh.vertices().add();
+            auto oldFrom = copyFrom[heTmp.vertex_from()];
+            pos[pFrom] = tg::pos3((double)oldFrom.x / scale, (double)oldFrom.y / scale, (double)oldFrom.z / scale);
+            std::vector<pm::halfedge_handle> halfEdges;
+
+            while(he != heTmp) {
+                pm::vertex_handle pTo = newMesh.vertices().add();
+                auto oldTo = copyFrom[heTmp.vertex_to()];
+                pos[pTo] = tg::pos3((double)oldTo.x / scale, (double)oldTo.y / scale, (double)oldTo.z / scale);
+                auto newHe = newMesh.halfedges().add_or_get(pFrom, pTo);
+                halfEdges.push_back(newHe);
+                pFrom = pTo;
+                heTmp = heTmp.next();
+            }
+            auto pTo = halfEdges[0].vertex_from();
+            halfEdges.push_back(newMesh.halfedges().add_or_get(pFrom, pTo));
+            newMesh.faces().add(halfEdges);
+        }
+        pm::deduplicate(newMesh, pos);
+        newMesh.compactify();
+        return true;
+    }
 
     void renderFinalResult(const IntersectionCut& iCut, float scale = 3000.f) {
         auto colorsA = getColorToStateA();
@@ -242,6 +275,11 @@ public:
         bool toogleLinesB = true;
         bool showIntersection = true;
 
+        pm::Mesh resultMesh;
+        pm::vertex_attribute<tg::pos3> resultPos(resultMesh);
+        copyFacesFromMesh(resultPos, resultMesh, planeMeshA.positions(), colorAtrMaskAOut);
+        copyFacesFromMesh(resultPos, resultMesh, planeMeshB.positions(), colorAtrMaskBOut);
+        pm::save("../out.obj", resultPos);
 
         gv::interactive([&](auto dt) {
             auto view = gv::view();
@@ -277,6 +315,13 @@ public:
             toogled |= ImGui::Checkbox("Show Lines A", &toogleLinesA);
             toogled |= ImGui::Checkbox("Show Lines B", &toogleLinesB);
             toogled |= ImGui::Checkbox("Show Intersection", &showIntersection);
+            if (ImGui::Button("Save")) {
+                std::cout << "Store Mesh" << std::endl;
+                //pm::Mesh resultMesh;
+                //pm::vertex_attribute<tg::pos3> resultPos;
+                //copyFacesFromMesh
+                
+            }
             /*if (ImGui::IsKeyPressed('L')) {
                 toogleLines = !toogleLines;
                 toogled = true;

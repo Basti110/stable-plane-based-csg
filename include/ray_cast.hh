@@ -2,6 +2,7 @@
 #include <plane_polygon.hh>
 #include <nexus/test.hh>
 #include <octree.hh>
+#define COMPLETE_RAY true
 
 class DebugRayInfo {
 public:
@@ -100,8 +101,8 @@ public:
                     if (intersectInInterval(nextRay, sidePlane, interval)) {
                         const Plane& thirdPlane = nextSidePlane;
 
-                        pos_t point = getPointFromPlaneIndex(i, j, node);
-                        auto pointTest = pos_t(ob::to_position(mMainMesh.pos(side.basePlane, sidePlane, thirdPlane)));
+                        //pos_t point = getPointFromPlaneIndex(i, j, node);
+                        auto point = pos_t(ob::to_position(mMainMesh.pos(side.basePlane, sidePlane, thirdPlane)));
                         if (mHasDebug) {
                             fillRayInfo({ basePlane , planeRay.plane1, planeRay.plane2 }, side.basePlane, sidePlane, thirdPlane);
                             mRayInfo->octreeVerex = point;
@@ -177,10 +178,14 @@ public:
 
         det = mMainMesh.pos(first, origin.edgePlane1, origin.edgePlane2);
         intersectionCount += intersectionToNextPoint(origin.edgePlane1, origin.edgePlane2, det, node, singsMesh);
+        if (COMPLETE_RAY && intersectionCount != 0)
+            return intersectionCount;
 
         det = mMainMesh.pos(first, second, edgePlane);
         TG_ASSERT(det.is_valid());
         intersectionCount += intersectionToNextPoint(first, edgePlane, det, node, singsMesh);
+        if (COMPLETE_RAY && intersectionCount != 0)
+            return intersectionCount;
 
         det = mMainMesh.pos(first, second, third);
         intersectionCount += intersectionToNextPoint(first, second, det, node, singsMesh);
@@ -189,6 +194,10 @@ public:
     }
 
     size_t intersectionToNextPoint(const Plane& p1, const Plane& p2, SubDet& subDet, SharedLeafNode node, std::vector<int8_t>& singsMesh) {
+        
+        std::vector<int> returnValues;
+        std::vector<double> returnDistances;
+
         size_t intersectionCount = 0;
         auto& facesList = mMainIsMeshA ? node->getFacesMeshB() : node->getFacesMeshA();
         //Mesh A
@@ -204,33 +213,39 @@ public:
             if (sign == singsMesh[i] || sign == 0)
                 continue;
 
+            auto test = singsMesh[i];
             singsMesh[i] = sign;
             auto subDetFacePlane = mOtherMesh.pos(p1, p2, facePlane);
-            
+            //auto ob::distancePow2(subDetFacePlane, subDet);
+         
             if (checkIfPointInPolygon(face, mOtherMesh, subDetFacePlane)) {
-                intersectionCount++;
+                if (COMPLETE_RAY) {
+                    returnDistances.push_back(tg::distance(ob::to_position(subDetFacePlane), ob::to_position(subDet)));
+                    if (sign > 0) {
+                        returnValues.push_back(1);
+                    }
+                    else {
+                        returnValues.push_back(2);
+                    }
+                }
+                else
+                    intersectionCount++;
             }
 
         }
-        /*//Mesh B
-        for (int i = 0; i < node->mFacesMeshB.size(); ++i) {
-            auto face = node->mFacesMeshB[i].of(mMeshB->mesh());
-            if (face.is_removed())
-                continue;
-            const Plane& facePlane = mMeshB->face(node->mFacesMeshB[i]);
-            auto sign = ob::classify_vertex(subDet, facePlane);
-            if (singsMeshB[i] == 2)
-                singsMeshB[i] == sign;
-
-            if (sign == singsMeshB[i] || sign == 0)
-                continue;
-
-            singsMeshB[i] = sign;
-            auto subDetFacePlane = mMeshA->pos(p1, p2, facePlane);
-            if (checkIfPointInPolygon(face, mMeshB, subDetFacePlane)) {
-                intersectionCount++;
+        if (COMPLETE_RAY) {
+            if (returnValues.size() == 0)
+                return 0;
+            double dis = 0;
+            int index = 0;
+            for (int i = 0; i < returnValues.size(); i++) {
+                if (returnDistances[i] > dis) {
+                    index = i;
+                    dis = returnDistances[i];
+                }
             }
-        }*/
+            return returnValues[index];
+        }
         return intersectionCount;
     }
 
@@ -297,6 +312,8 @@ public:
                 //rayInfo->rayBoxesDirect.push_back(nodes[0]->aabb());
                 //rayInfo->rayBoxesDirect.push_back(nodes[1]->aabb());
             }
+            if (COMPLETE_RAY && intersectionCount != 0)
+                return intersectionCount;
 
             if (pos.x < parenPos.x)
                 childIdx |= 0x1;
@@ -319,6 +336,8 @@ public:
                 //rayInfo->rayBoxesDirect.push_back(nodes[0]->aabb());
                 //rayInfo->rayBoxesDirect.push_back(nodes[1]->aabb());
             }
+            if (COMPLETE_RAY && intersectionCount != 0)
+                return intersectionCount;
             if (pos.y < parenPos.y)
                 childIdx |= 0x2;
             else
@@ -339,6 +358,8 @@ public:
                 //rayInfo->rayBoxesDirect.push_back(nodes[0]->aabb());
                 //rayInfo->rayBoxesDirect.push_back(nodes[1]->aabb());
             }
+            if (COMPLETE_RAY && intersectionCount != 0)
+                return intersectionCount;
             if (pos.y < parenPos.y)
                 childIdx |= 0x4;
             else
@@ -387,6 +408,8 @@ public:
 
     size_t faceIntersections(PlaneMesh& mesh, std::set<pm::face_index>& faces, PlaneRay& planeRay, std::vector<int8_t>& startSigns, pos_t endPoint) {
         size_t intersectionCount = 0;
+        std::vector<int> returnValues;
+        std::vector<double> returnDistances;
         auto setIt = faces.begin();
         for (int i = 0; i < faces.size(); ++i) {
             auto face = (*setIt).of(mesh.mesh());
@@ -406,9 +429,33 @@ public:
 
             startSigns[i] = sign;
             auto subDetFacePlane = mesh.pos(planeRay.plane1, planeRay.plane2, facePlane);
-            if (checkIfPointInPolygon(face, mOtherMesh, subDetFacePlane))
-                intersectionCount++;
+            if (checkIfPointInPolygon(face, mOtherMesh, subDetFacePlane)) {
+                if (COMPLETE_RAY) {
+                    returnDistances.push_back(tg::distance(ob::to_position(subDetFacePlane), tg::dpos3(endPoint)));
+                    if (sign > 0) {
+                        returnValues.push_back(1);
+                    }
+                    else {
+                        returnValues.push_back(2);
+                    }
+                }
+                else
+                    intersectionCount++;
+            }           
             ++setIt;
+        }
+        if (COMPLETE_RAY) {
+            if (returnValues.size() == 0)
+                return 0;
+            double dis = 0;
+            int index = 0;
+            for (int i = 0; i < returnValues.size(); i++) {
+                if (returnDistances[i] > dis) {
+                    index = i;
+                    dis = returnDistances[i];
+                }
+            }
+            return returnValues[index];
         }
         return intersectionCount;
     }
