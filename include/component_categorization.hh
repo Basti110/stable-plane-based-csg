@@ -20,10 +20,10 @@ public:
 		: mSharedOctree(octree), mFaceComponentsA(faceComponentsA), mFaceComponentsB(faceComponentsB) {
 		mComponentIsOutsideA = std::vector<int8_t>(mFaceComponentsA->getNumberOfComponents(), -1);
 		mComponentIsOutsideB = std::vector<int8_t>(mFaceComponentsB->getNumberOfComponents(), -1);
-        glow::timing::CpuTimer timer;
+        //glow::timing::CpuTimer timer;
         octree->repairOctree(iCut);
 		auto iSectA = iCut.getIntersectionEdgesMarkerA();
-        std::cout << "Repair Octree: " << timer.elapsedMillisecondsD() << "ms" << std::endl;
+        //std::cout << "Repair Octree: " << timer.elapsedMillisecondsD() << "ms" << std::endl;
 		mComponentNeighborsA.resize(mFaceComponentsA->getNumberOfComponents());
 		for (pm::edge_handle& e : iSectA.mesh().edges()) {
 			if (iSectA[e]) {
@@ -122,7 +122,7 @@ public:
             mComponentIsOutsideB[component] = intersections % 2;
             propagateComponentStateRecursiveB(mComponentIsOutsideB, component);
         }
-        //return;
+        return;
         #define RAYINFO rayInfosB
         std::vector<tg::dsegment3> lines;
         //auto info = rayInfosB[5];
@@ -163,7 +163,7 @@ public:
         }
 
 
-        auto const rayCells = gv::lines(hitBoxes).line_width_world(300000);
+        //auto const rayCells = gv::lines(hitBoxes).line_width_world(300000);
 
         mSharedOctree->getPlaneMeshA().checkAndComputePositions();
         mSharedOctree->getPlaneMeshB().checkAndComputePositions();
@@ -174,7 +174,7 @@ public:
 
         {
             auto view = gv::view(octreeCells, tg::color3::blue);
-            gv::view(rayCells, tg::color3::green);
+            //gv::view(rayCells, tg::color3::green);
             gv::view(rayPath, tg::color3::red);
             gv::view(mSharedOctree->getPlaneMeshA().positions());
             //gv::view(mSharedOctree->getPlaneMeshB().positions());

@@ -50,7 +50,7 @@ public:
         mID = instances;
         instances++;
     }
-
+    
     ///Only Triangle TODO: Polygons
     PlaneMesh(const pm::Mesh& m, const pm::vertex_attribute<pos_t>& pos) : mPositions(mMesh), mEdges(mMesh), mFaces(mMesh), mHalfEdges(mMesh) {
         TRACE("[MESH] Init Plane Mesh");

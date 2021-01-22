@@ -21,7 +21,9 @@ public:
         mPathObj1(pPathObj1),
         mTranslation1(pTranslation1),
         mRotation1(pRotation1),
-        mNumObjects(1)
+        mNumObjects(1),
+        mPos1(*mMeshA),
+        mPos2(*mMeshB)
     {
         mOctreeBox = AABB(pOctreeBox.min * pScaleOctree, pOctreeBox.max * pScaleOctree);
         mTransformation1 = mTranslation1 * mRotation1;
@@ -38,7 +40,9 @@ public:
         mPathObj2(pPathObj2),
         mTranslation2(pTranslation2),
         mRotation2(pRotation2),
-        mNumObjects(2)
+        mNumObjects(2),
+        mPos1(*mMeshA),
+        mPos2(*mMeshB)
     {
         mOctreeBox = AABB(pOctreeBox.min * pScaleOctree, pOctreeBox.max * pScaleOctree);
         mTransformation1 = mTranslation1 * mRotation1;
@@ -47,7 +51,9 @@ public:
 
     ObjConfig(scalar_t pScaleOctree, AABB pOctreeBox, const pm::vertex_attribute<tg::dpos3> pos1, const pm::vertex_attribute<tg::dpos3> pos2) :
         mScaleOctree(pScaleOctree),
-        mNumObjects(2) 
+        mNumObjects(2),
+        mPos1(*mMeshA),
+        mPos2(*mMeshB)
     {
         mOctreeBox = AABB(pOctreeBox.min * pScaleOctree, pOctreeBox.max * pScaleOctree);
         const auto& meshA = pos1.mesh();
@@ -195,6 +201,17 @@ public:
         }
         return true;
     }
+
+    void setMaxCellSize(int v) {
+        mMaxCellSize = v;
+    }
+
+    void reset() {
+        mPlaneMeshA = std::make_shared<PlaneMesh>(*mMeshA, mPos1, mScale);
+        mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, mPos2, mScale);
+        mOctree = SharedOctree(nullptr);
+        //fillOctreeIfNotFilled();
+    }
        
 private:
     void fillOctreeIfNotFilled() {  
@@ -231,39 +248,39 @@ private:
         long long meshInitTime = 0;       
         glow::timing::CpuTimer timer;
         if (!mPlaneMeshA) {
-            pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
+            //pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
             {
                 TRACE("[ObjConfig] PM Load Mesh 1");
-                pm::load(mPathObj1, *mMeshA, pos1);
+                pm::load(mPathObj1, *mMeshA, mPos1);
                 //if (!pm::load(mPathObj1, *mMeshA, pos1))
                     //return false;
             }   
             if (mRepairBefore) {
-                pm::deduplicate(*mMeshA, pos1);
+                pm::deduplicate(*mMeshA, mPos1);
                 mMeshA->compactify();
             }
-            transformation(pos1, mTransformation1);
+            transformation(mPos1, mTransformation1);
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            mPlaneMeshA = std::make_shared<PlaneMesh>(*mMeshA, pos1, mScale);
+            mPlaneMeshA = std::make_shared<PlaneMesh>(*mMeshA, mPos1, mScale);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             meshInitTime += std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count();
         }
 
         if (!mPlaneMeshB && mNumObjects == 2) {
-            pm::vertex_attribute<tg::pos3> pos2(*mMeshB);
+            //pm::vertex_attribute<tg::pos3> pos2(*mMeshB);
             {
                 TRACE("[ObjConfig] PM Load Mesh 2");
-                pm::load(mPathObj2, *mMeshB, pos2);
+                pm::load(mPathObj2, *mMeshB, mPos2);
                 //if (!pm::load(mPathObj2, *mMeshB, pos2))
                     //return false;
             }   
             if (mRepairBefore) {
-                pm::deduplicate(*mMeshB, pos2);
+                pm::deduplicate(*mMeshB, mPos2);
                 mMeshB->compactify();
             }
-            transformation(pos2, mTransformation2);
+            transformation(mPos2, mTransformation2);
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, pos2, mScale);
+            mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, mPos2, mScale);
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             meshInitTime += std::chrono::duration_cast<std::chrono::microseconds> (end - begin).count();
             //TG_ASSERT(mPlaneMeshB->allFacesAreValid());
@@ -276,12 +293,16 @@ private:
 
 
 
+
 private:
     bool mRepairBefore = false;
     int mNumObjects = 1;
     double mInitMeshTime = 0;
+    int mMaxCellSize = 15;
     std::shared_ptr<pm::Mesh> mMeshA = std::make_shared<pm::Mesh>();
     std::shared_ptr<pm::Mesh> mMeshB = std::make_shared<pm::Mesh>();
+    pm::vertex_attribute<tg::pos3> mPos1;
+    pm::vertex_attribute<tg::pos3> mPos2;
     SharedPlaneMesh mPlaneMeshA;
     SharedPlaneMesh mPlaneMeshB;
     SharedOctree mOctree;
@@ -356,13 +377,34 @@ public:
                 ObjConfig(1e8, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/Buddha.obj", tg::translation(tg::vec{ 0.0f, -10.5f, 0.0f }), tg::mat4::identity,
                 "../data/mesh/Buddha.obj", tg::translation(tg::vec{ -1.0f, -10.0f, 2.0f }), tg::rotation_y(tg::angle::from_degree(-90))) },
-            { "cubes", //-631121:887926:665039:1
+            { "cubes", 
                 ObjConfig(1e7, 1e7, AABB({ -15, -15, -10 }, { 15, 15, 20 }),
-                "../data/mesh/cubes1.obj", tg::mat4::identity, tg::mat4::identity, 
+                "../data/mesh/cubes1.obj", tg::mat4::identity, tg::mat4::identity, //-264829:-5.87149e+06:-4.86755e+06:1
                 //"../data/mesh/cubes2.obj", tg::translation(tg::vec{ .410618f, -1.10753f, -.371363f }), tg::mat4::identity)},
                 //"../data/mesh/cubes2.obj", tg::translation(tg::vec{ .81621f, -1.08294f, .545297f }), tg::mat4::identity)},
                 //"../data/mesh/cubes2.obj", tg::translation(tg::vec{ 0.89226f,-1.08672f, 0.582565f}), tg::mat4::identity) },
-                "../data/mesh/cubes2.obj", tg::translation(tg::vec{ -.0631121f, .0887926f, .0665039f }), tg::mat4::identity) },
+                //"../data/mesh/cubes2.obj", tg::translation(tg::vec{ -.0631121f, .0887926f, .0665039f }), tg::mat4::identity) },
+                "../data/mesh/cubes2.obj", tg::translation(tg::vec{ -0.0264829f,-0.587149f, -0.486755f}), tg::mat4::identity) },
+            { "Buddha_90", //
+                ObjConfig(1e8, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/Buddha.obj", tg::translation(tg::vec{ 5.0f, -10.5f, 0.0f }), tg::mat4::identity,
+                "../data/mesh/Buddha.obj", tg::translation(tg::vec{ 20.0f, 5.0f, 0.0f }), tg::rotation_z(tg::angle::from_degree(90))) },
+            { "Buddha_10", //
+                ObjConfig(1e8, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/Buddha.obj", tg::translation(tg::vec{ 5.0f, -10.5f, 0.0f }), tg::mat4::identity,
+                "../data/mesh/Buddha.obj", tg::translation(tg::vec{ 8.0f, -10.0f, 0.0f }), tg::rotation_z(tg::angle::from_degree(10))) },
+            { "Lucy_10", //
+                ObjConfig(1e6, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 100.0f, 300.0f, -100.0f }), tg::mat4::identity,
+                "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 100.0f, 300.0f, -100.0f }), tg::rotation_z(tg::angle::from_degree(10))) },
+            { "Lucy_90", //
+                ObjConfig(1e6, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 500.0f, 300.0f, -100.0f }), tg::mat4::identity,
+                "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 500.0f, 300.0f, -100.0f }), tg::rotation_z(tg::angle::from_degree(90))) },
+            { "Lucy_1", //
+                ObjConfig(1e6, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
+                "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 100.0f, 300.0f, -100.0f }), tg::mat4::identity,
+                "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 100.0f, 300.0f, -100.0f }), tg::rotation_z(tg::angle::from_degree(1))) },
 
         };
     }

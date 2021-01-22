@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     }
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
-
+    std::vector< std::vector<int>> ownpose = { {1, 2}, {1, 3}, {2, 4}, {3, 5}, {4, 6}, {7, 8}, {7, 9}, {9, 11}, {8, 10}, {10, 12}, {1, 7}, {2, 8} };
     //test_cut_testAB_meshes();
     //test_octree_cell_ray_cast();
     //convert();
@@ -104,9 +104,11 @@ int main(int argc, char* argv[]) {
     //char* argv[] = { "main", "App::component_classification" };
     //char* arg[] = { "main", "App:ShowMeshOrOctree" };
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
+    char* arg[] = { "main", "Benchmark:TestOctree" };
 
     //char* arg[] = { "main", "Benchmark:OneIteration" };
-    char* arg[] = { "main", "App:ShowCSG" };
+    //char* arg[] = { "main", "App:ShowCSG" };
+    
 
     //char* arg[] = { "main", "Test::Co_Planar_Cut2" };
     //char* arg[] = { "main", "Test::Co_Planar_Cut" };

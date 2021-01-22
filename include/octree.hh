@@ -282,7 +282,9 @@ public:
     void insertPolygon(int meshIdx, pm::face_index faceIdx);
     int childCount();
     bool mustSplitIfFull();
-    int maxValues() { return mMaxValues; }
+    int maxValues() { 
+        return mMaxValues; 
+    }
     
     SharedBranchNode split();
     void markIntersections(pm::face_attribute<tg::color3>& faceColor1, pm::face_attribute<tg::color3>& faceColor2) override;
@@ -1257,12 +1259,12 @@ public:
     }
 
     void printOctreeStats() {
-        std::cout << "Splits: " << mSplits << std::endl;
-        std::cout << "Smallest Cell Len: " << (double)mSmallestCellLen << std::endl;
-        std::cout << "Proper Contains: " << mProperContains << std::endl;
-        std::cout << "Proper Intersection: " << mProperIntersection << std::endl;
-        std::cout << "Non Intersecting: " << mNonIntersecting << std::endl;       
-        std::cout << "Touching: " << mTouching << std::endl;
+        std::cout << "[Octree] Splits: " << mSplits << std::endl;
+        std::cout << "[Octree] Smallest Cell Len: " << (double)mSmallestCellLen << std::endl;
+        std::cout << "[Octree] Proper Contains: " << mProperContains << std::endl;
+        std::cout << "[Octree] Proper Intersection: " << mProperIntersection << std::endl;
+        std::cout << "[Octree] Non Intersecting: " << mNonIntersecting << std::endl;       
+        std::cout << "[Octree] Touching: " << mTouching << std::endl;
     }
 
     using FaceLookUpType = std::unordered_map<int, std::vector<pm::face_handle>>;

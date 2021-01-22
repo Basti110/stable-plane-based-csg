@@ -51,6 +51,9 @@ public:
         if (mHasDebug)
             mRayInfo->nexPointsCell.push_back(curPos);
 
+        if (COMPLETE_RAY && rayCastInfo.intersections != 0)
+            return rayCastInfo.intersections;
+
         if (!node->hasParent())
             return -1;
 

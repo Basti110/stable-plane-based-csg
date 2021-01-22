@@ -209,7 +209,7 @@ APP("App::component_classification") {
 }
 
 APP("App::count_intersections") {
-    ObjConfig conf = ObjCollection::map.at("complex_1");
+    ObjConfig conf = ObjCollection::map.at("Buddha_90");
     auto planeMesh1 = conf.getMeshA();
     auto planeMesh2 = conf.getMeshB();
 
@@ -236,7 +236,7 @@ APP("App::count_intersections") {
 }
 
 APP("Benchmark:SubdetVsIntPos") {
-    ObjConfig conf = ObjCollection::map.at("fox_mesh_2");
+    ObjConfig conf = ObjCollection::map.at("cubes");
     auto planeMesh = conf.getMeshA();
     
     int iterations = 30000;
@@ -295,6 +295,30 @@ APP("Benchmark:TestAvgTime") {
     std::cout << "AVG Time with  " << testCount << " iterations: " << m / testCount  << "ms" << std::endl;
 }
 
+APP("Benchmark:TestOctree") {
+    int testStartSize = 5;
+    int testEndSize = 100;
+    ct::scope s;
+    ObjConfig conf = ObjCollection::map.at("complex_1");
+    std::cout << "[";
+    for (int i = testStartSize; i <= testEndSize; i+=2) {
+        TRACE("Test");
+        
+        conf.setMaxObjInCell(i);
+        auto planeMesh1 = conf.getMeshA();
+        auto planeMesh2 = conf.getMeshB();
+        glow::timing::CpuTimer timer;
+        SharedOctree octree = conf.getOctree();
+        IntersectionCut iCut = octree->cutPolygons();
+        auto components1 = std::make_shared<FaceComponentFinder>(*(conf.getMeshA()), iCut.getIntersectionEdgesMarkerA());
+        auto components2 = std::make_shared<FaceComponentFinder>(*(conf.getMeshB()), iCut.getIntersectionEdgesMarkerB());
+        auto components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
+        std::cout << "[" << i << ", " << timer.elapsedMillisecondsD() << "], ";
+        conf.reset();
+    }
+    std::cout << "]" << std::endl;
+}
+
 void printStats(ct::scope& s) {
     auto trace = s.trace();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(trace.time_end() - trace.time_start()).count();
@@ -313,7 +337,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("cubes");
+    ObjConfig conf = ObjCollection::map.at("Buddha");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -337,7 +361,7 @@ APP("Benchmark:OneIteration") {
         octree = conf.getOctree();
         printStats(s);
     }
-
+    //conf.viewMesh(true);
     //Cut Mesh
     IntersectionCut iCut;
     {
@@ -345,7 +369,7 @@ APP("Benchmark:OneIteration") {
         iCut = octree->cutPolygons();
         printStats(s);
     }
-    
+    //
     //Categorization
     std::shared_ptr<ComponentCategorization> components;
     {
@@ -367,8 +391,9 @@ APP("Benchmark:OneIteration") {
     std::cout << "Time Without PM Load: " << t + conf.initMeshTime() << "ms" << std::endl;
     std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
     conf.getOctree()->printOctreeStats();
+    iCut.printTimes();
     //conf.viewMesh(true);
-    components->renderFinalResult(iCut, 5000);
+    components->renderFinalResult(iCut, 10000);
 }
 
 
@@ -402,10 +427,14 @@ void transformation(const pm::vertex_attribute<tg::pos3>& in, pm::vertex_attribu
 
 APP("App:ShowCSG") {
     const char* meshList[]{ "cube", "cubes1", "cubes2", "fox", "buddha", "bunny", "Armadillo_2" };
-    int scaleList[]{ 1e7, 1e7, 1e7, 1e6, 3e6, 1e5, 1e6 };
+    const char* operationList[]{ "Mesh 1 + Mesh 2", "Mesh 2 AND Mesh 1", "Mesh 2 OR Mesh 1", "Mesh 1 - Mesh 2", "Mesh 2 - Mesh 1", "Mesh 1", "Mesh 2" };
+    const char* colorList[]{ "White", "Components", "In/Out" };
+
+
+    int scaleList[]{ 1e7, 1e7, 1e7, 1e6, 3e6, 1e6, 1e6 };
     int selectedMesh1 = 1;
     int selectedMesh2 = 2;
-    int meshDistance = 60;
+    int meshDistance = 80;
 
     std::string path_cube1 = std::string("../data/mesh/") + std::string(meshList[selectedMesh1]) + std::string(".obj");
     std::string path_cube2 = std::string("../data/mesh/") + std::string(meshList[selectedMesh2]) + std::string(".obj");
@@ -453,12 +482,17 @@ APP("App:ShowCSG") {
     pm::face_attribute<bool> colorAtrMaskBIn;
     pm::face_attribute<bool> colorAtrMaskAOut;
     pm::face_attribute<bool> colorAtrMaskBOut;
+    pm::face_attribute<tg::color3> colorsA;
+    pm::face_attribute<tg::color3> colorsB;
     gv::SharedLineRenderable octreeRenderable;
     //std::string meshList[]{ "Mesh 1", "Mesh 2" };
-
+    std::shared_ptr<FaceComponentFinder> components1;
+    std::shared_ptr<FaceComponentFinder> components2;
+    std::shared_ptr<ComponentCategorization> components;
 
     bool showOctree = false;
     int tooglePolygons = 0;
+    int colorMode = 0;
     renderable1 = gv::make_renderable(pos1);
     //renderable2 = gv::make_renderable(pos2);
 
@@ -493,13 +527,13 @@ APP("App:ShowCSG") {
                 auto boxes = config.getOctreeBoxes();
                 SharedOctree octree = config.getOctree();
                 IntersectionCut iCut = octree->cutPolygons();
-                std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*(config.getMeshA()), iCut.getIntersectionEdgesMarkerA());
-                std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*(config.getMeshB()), iCut.getIntersectionEdgesMarkerB());
-                std::shared_ptr<ComponentCategorization> components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
+                components1 = std::make_shared<FaceComponentFinder>(*(config.getMeshA()), iCut.getIntersectionEdgesMarkerA());
+                components2 = std::make_shared<FaceComponentFinder>(*(config.getMeshB()), iCut.getIntersectionEdgesMarkerB());
+                components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
                 octree->getPlaneMeshA().checkAndComputePositions();
                 octree->getPlaneMeshB().checkAndComputePositions();
-                auto colorsA = components->getColorToStateA();
-                auto colorsB = components->getColorToStateB();
+                colorsA = components->getColorToStateA();
+                colorsB = components->getColorToStateB();
                 std::cout << "CSG Operation: " << timer.elapsedMillisecondsD() << "ms" << std::endl;
 
                 //Attributes
@@ -518,19 +552,17 @@ APP("App:ShowCSG") {
                 renderable1 = gv::make_renderable(config.getMeshA()->positions());
                 renderable2 = gv::make_renderable(config.getMeshB()->positions());
                 octreeRenderable = gv::make_renderable(gv::lines(boxes).line_width_world(100000));
+                gv::configure(*renderable1, tg::color3(0.95));
+                gv::configure(*renderable2, tg::color3(0.5));
+                int tooglePolygons = 0;
+                int colorMode = 0;
             }
         }
         
         if (isCut) {
             //bool toogled = ImGui::Checkbox("Show Octree", &showOctree);
-            bool toogled = ImGui::RadioButton("Mesh 1 + Mesh 2", &tooglePolygons, 0);
-            toogled |= ImGui::RadioButton("Mesh 2 AND Mesh 1", &tooglePolygons, 1);
-            toogled |= ImGui::RadioButton("Mesh 2 OR Mesh 1", &tooglePolygons, 2);
-            toogled |= ImGui::RadioButton("Mesh 1 - Mesh 2", &tooglePolygons, 3);
-            toogled |= ImGui::RadioButton("Mesh 2 - Mesh 1", &tooglePolygons, 4);
-            toogled |= ImGui::RadioButton("Mesh 1", &tooglePolygons, 5);
-            toogled |= ImGui::RadioButton("Mesh 2", &tooglePolygons, 6);
-
+            bool toogled = ImGui::Combo("CSG Operation", &tooglePolygons, operationList, IM_ARRAYSIZE(operationList));
+            toogled |= ImGui::Combo("Color", &colorMode, colorList, IM_ARRAYSIZE(colorList));
 
             if (toogled) {
                 renderable1 = gv::make_renderable(config.getMeshA()->positions());
@@ -550,6 +582,18 @@ APP("App:ShowCSG") {
                 else if (tooglePolygons == 4) {
                     renderable1->setMasking(maskFaceAIn);
                     renderable2->setMasking(maskFaceBOut);
+                }
+                if (colorMode == 0) {
+                    gv::configure(*renderable1, tg::color3(0.95));
+                    gv::configure(*renderable2, tg::color3(0.5));
+                }
+                else if (colorMode == 1) {
+                    gv::configure(*renderable1, components1->getColorAssignment());
+                    gv::configure(*renderable2, components2->getColorAssignment());
+                }
+                else if (colorMode == 2) {
+                    gv::configure(*renderable1, colorsA);
+                    gv::configure(*renderable2, colorsB);
                 }
                 //::view_clear_accumulation();
             }
