@@ -299,7 +299,7 @@ APP("Benchmark:TestOctree") {
     int testStartSize = 5;
     int testEndSize = 100;
     ct::scope s;
-    ObjConfig conf = ObjCollection::map.at("complex_1");
+    ObjConfig conf = ObjCollection::map.at("Lucy_10");
     std::cout << "[";
     for (int i = testStartSize; i <= testEndSize; i+=2) {
         TRACE("Test");
@@ -337,7 +337,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("Buddha");
+    ObjConfig conf = ObjCollection::map.at("Lucy_1");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -393,7 +393,7 @@ APP("Benchmark:OneIteration") {
     conf.getOctree()->printOctreeStats();
     iCut.printTimes();
     //conf.viewMesh(true);
-    components->renderFinalResult(iCut, 10000);
+    components->renderFinalResult(iCut, 8000); //10000);
 }
 
 

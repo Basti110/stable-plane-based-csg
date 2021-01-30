@@ -65,6 +65,16 @@ add_subdirectory(extern/nexus)
 # ctracer
 add_subdirectory(extern/ctracer)
 
+# BabelSerializer
+add_subdirectory(extern/reflector)
+
+# BabelSerializer
+add_subdirectory(extern/rich-log)
+
+# BabelSerializer
+add_subdirectory(extern/babel-serializer)
+
+
 # ===============================================
 # Configure executable
 
@@ -82,6 +92,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES})
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
+    babel-serializer
     clean-core
     typed-geometry
     glow

@@ -10,6 +10,9 @@
 #include <glow-extras/viewer/experimental.hh>
 #include <glow-extras/timing/CpuTimer.hh>
 #include <polymesh/algorithms/deduplicate.hh>
+#include <clean-core/array.hh>
+#include <babel-serializer/file.hh>
+#include <babel-serializer/geometry/stl.hh>
 
 //data class
 class ObjConfig {
@@ -212,6 +215,44 @@ public:
         mOctree = SharedOctree(nullptr);
         //fillOctreeIfNotFilled();
     }
+
+    void adjustScale() {
+        auto posRef = mPos1.first();
+        auto scaleO = false;
+        auto scaleM = true;
+        for (auto pos : mPos1) {
+            if (std::abs(pos.x) > 100 || std::abs(pos.y) > 100 || std::abs(pos.z) > 100)
+                scaleO = true;
+
+            if (scaleM && tg::distance(posRef, pos) > 1)
+                scaleM = false;
+        }
+        if (scaleM)
+            mScale *= 10;
+        if (scaleO)
+            mScaleOctree *= 10;
+        std::cout << "*10" << std::endl;
+    }
+
+
+    static void loadBabel(std::string filepath, std::shared_ptr<pm::Mesh> mesh, pm::vertex_attribute<tg::pos3>& pos) {
+        //auto c_name = cc::string_view(filepath.c_str());
+        //auto t = babel::file::read_all_bytes(c_name);
+        auto res = babel::stl::read(babel::file::read_all_bytes(filepath));
+        mesh->clear();
+        pos = mesh->vertices().make_attribute<tg::pos3>();
+        for (auto const t : res.triangles)
+        {
+            auto const v0 = mesh->vertices().add();
+            auto const v1 = mesh->vertices().add();
+            auto const v2 = mesh->vertices().add();
+            pos[v0] = t.v0;
+            pos[v1] = t.v1;
+            pos[v2] = t.v2;
+            mesh->faces().add(v0, v1, v2);
+        }
+        //gv::view(pos);
+    }
        
 private:
     void fillOctreeIfNotFilled() {  
@@ -251,13 +292,15 @@ private:
             //pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
             {
                 TRACE("[ObjConfig] PM Load Mesh 1");
-                pm::load(mPathObj1, *mMeshA, mPos1);
-                //if (!pm::load(mPathObj1, *mMeshA, pos1))
+                //pm::load(mPathObj1, *mMeshA, mPos1);
+                if (!pm::load(mPathObj1, *mMeshA, mPos1))
                     //return false;
+                    loadBabel(mPathObj1, mMeshA, mPos1);
             }   
             if (mRepairBefore) {
                 pm::deduplicate(*mMeshA, mPos1);
                 mMeshA->compactify();
+                adjustScale();
             }
             transformation(mPos1, mTransformation1);
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -270,9 +313,9 @@ private:
             //pm::vertex_attribute<tg::pos3> pos2(*mMeshB);
             {
                 TRACE("[ObjConfig] PM Load Mesh 2");
-                pm::load(mPathObj2, *mMeshB, mPos2);
-                //if (!pm::load(mPathObj2, *mMeshB, pos2))
-                    //return false;
+                //pm::load(mPathObj2, *mMeshB, mPos2);
+                if (!pm::load(mPathObj2, *mMeshB, mPos2))
+                    loadBabel(mPathObj2, mMeshB, mPos2);
             }   
             if (mRepairBefore) {
                 pm::deduplicate(*mMeshB, mPos2);
@@ -306,7 +349,7 @@ private:
     SharedPlaneMesh mPlaneMeshA;
     SharedPlaneMesh mPlaneMeshB;
     SharedOctree mOctree;
-    int mMaxObjInCell = 15;
+    int mMaxObjInCell = 22;
     scalar_t mScale = 1;
     scalar_t mScaleOctree = 1;    
 
@@ -369,9 +412,9 @@ public:
             ObjConfig(1e7, 2e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
             //ObjConfig(1e6, 1e7, AABB({ -15, -15, -10 }, { 15, 15, 20 }),
                 "../data/mesh/Armadillo_2.obj", tg::mat4::identity, tg::mat4::identity,
-                //"../data/mesh/Armadillo_2.obj", tg::translation(tg::vec{ -20.0f, 0.0f, 20.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
+                "../data/mesh/Armadillo_2.obj", tg::translation(tg::vec{ -20.0f, 0.0f, 20.0f }), tg::rotation_y(tg::angle::from_degree(-90)))},
                 //"../data/mesh/Armadillo.obj", tg::translation(tg::vec{ -0.556207f, -0.512985f, 6.94738f }), tg::mat4::identity)},
-                "../data/mesh/Armadillo_2.obj", tg::translation(tg::vec{ -0.296180f, 6.20101f, 5.74443f }), tg::mat4::identity) },
+                //"../data/mesh/Armadillo_2.obj", tg::translation(tg::vec{ -0.296180f, 6.20101f, 5.74443f }), tg::mat4::identity) },
                 //-556207:-512985:6.94738e+06:1 //-296180:6.20101e+06:5.74443e+06:1
             { "Buddha", //
                 ObjConfig(1e8, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
@@ -400,7 +443,7 @@ public:
             { "Lucy_90", //
                 ObjConfig(1e6, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 500.0f, 300.0f, -100.0f }), tg::mat4::identity,
-                "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 500.0f, 300.0f, -100.0f }), tg::rotation_z(tg::angle::from_degree(90))) },
+                "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 400.0f, 300.0f, -100.0f }), tg::rotation_z(tg::angle::from_degree(90))) },
             { "Lucy_1", //
                 ObjConfig(1e6, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 100.0f, 300.0f, -100.0f }), tg::mat4::identity,

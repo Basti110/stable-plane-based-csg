@@ -46,18 +46,22 @@ namespace Benchmark {
         SharedPlaneMesh planeMesh1;
         SharedPlaneMesh planeMesh2;
         {
-            ct::scope s("Load Mesh");
+            
             if (!conf.loadMesh())
                 return 2;
             if (!conf.meshIsValid())
                 return 2;
+            ct::scope s("Load Mesh");
             planeMesh1 = conf.getMeshA();
             planeMesh2 = conf.getMeshB();
             if (!planeMesh1->isValid() || !planeMesh2->isValid())
                 return 2;
-            setValueStat(benchmarkWriter.mTimeLoadMesh, s);
+            //setValueStat(benchmarkWriter.mTimeLoadMesh, s);
+            benchmarkWriter.mTimeLoadMesh = conf.initMeshTime();
             printStats(s);            
         }
+        benchmarkWriter.mFacesInSceneBefore = planeMesh1->mesh().faces().size();
+        benchmarkWriter.mFacesInSceneBefore += planeMesh2->mesh().faces().size();
         //conf.viewMesh(true);
         if (!planeMesh1->allHalfEdgesAreValid())
             return 2;
@@ -93,6 +97,7 @@ namespace Benchmark {
             ct::scope s("Categorization");
             std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
             std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
+            benchmarkWriter.mComponents = components1->countComponents() + components2->countComponents();
             components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
             setValueStat(benchmarkWriter.mTimeCategorization, s);
             printStats(s);           
@@ -102,7 +107,11 @@ namespace Benchmark {
         auto c = trace.elapsed_cycles();
         auto m = std::chrono::duration_cast<std::chrono::milliseconds>(trace.time_end() - trace.time_start()).count();
         auto t = timer.elapsedMillisecondsD();
+        benchmarkWriter.mFacesInSceneAfter = planeMesh1->mesh().faces().size();
+        benchmarkWriter.mFacesInSceneAfter += planeMesh2->mesh().faces().size();
         benchmarkWriter.mTimeComplete = t + conf.initMeshTime();
+        benchmarkWriter.mSplitCount = iCut.getSplitCount();
+        benchmarkWriter.mIntersectionCount = iCut.getIntersectionCount();
         std::cout << std::endl;
         std::cout << "----------- Total ---------- " << std::endl;
         std::cout << "Time: " << m << "ms" << std::endl;
@@ -110,9 +119,10 @@ namespace Benchmark {
         std::cout << "Time Without PM Load: " << t + conf.initMeshTime() << "ms" << std::endl;
         std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
         conf.getOctree()->printOctreeStats();
+        iCut.printTimes();
         benchmarkWriter.writeToFile();
         //conf.viewMesh(true);
-        //components->renderFinalResult(iCut);
+        components->renderFinalResult(iCut, 4000);
         return 0;
     }
 }

@@ -28,7 +28,8 @@
 //#define CLOCK 3399740
 //std::string testObj = "../data/mesh/fox.obj";
 std::string testObj = "../data/mesh/buddha_2.obj";
-
+//std::string path = "E:/Thingi10K/Thingi10K/raw_meshes/";
+std::string path = "E:/benchmark/files/";
 void test_octree_cell_ray_cast();
 void test_cut_testAB_meshes();
 void test_cut_mesh();
@@ -40,6 +41,8 @@ void test_trianle_classification();
 void test_color_lines();
 void test_component_classification();
 void convert();
+void showUnstable();
+void loadFromRandom();
 void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
 
 int main(int argc, char* argv[]) {
@@ -51,13 +54,16 @@ int main(int argc, char* argv[]) {
     glow::glfw::GlfwContext ctx;
     nx::Nexus tests;
     std::vector< std::vector<int>> ownpose = { {1, 2}, {1, 3}, {2, 4}, {3, 5}, {4, 6}, {7, 8}, {7, 9}, {9, 11}, {8, 10}, {10, 12}, {1, 7}, {2, 8} };
+    //showUnstable();
+    loadFromRandom();
     //test_cut_testAB_meshes();
     //test_octree_cell_ray_cast();
     //convert();
     //return 0;
     if (argc > 1) {
-        std::string file = std::string(argv[1]);
-        //std::string file = "49378.stl"; 
+        //std::string file = std::string(argv[1]);
+        std::string file = "37275.stl"; 
+        
         /*{
            pm::Mesh mesh;
             pm::vertex_attribute<tg::pos3> pos(mesh);   
@@ -76,8 +82,11 @@ int main(int argc, char* argv[]) {
                
         std::cout << "Try to open " << file << std::endl;       
         ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -100, -100, -100 }, { 100, 100, 100 }),
-            "E:/benchmark/files/" + file, tg::mat4::identity, tg::mat4::identity,
-            "E:/benchmark/files/" + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(-90)));
+            path + file, tg::mat4::identity, tg::mat4::identity,
+            path + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(-90)));
+            //path + file, tg::translation(tg::vec{ 0.0f, 1.f, 0.0f }), tg::rotation_y(tg::angle::from_degree(-90)));
+            //path + file, tg::translation(tg::vec{ 0.5f, 1.f, 0.5f }), tg::mat4::identity);
+            //"E:/benchmark/files/" + file, tg::mat4::identity, tg::rotation_x(tg::angle::from_degree(30)));
 
     /*while (true) {
         conf.getOctree()->startDebugView();
@@ -95,7 +104,7 @@ int main(int argc, char* argv[]) {
     //test_octree();    
 
     //char* arg[] = { "main", "Image::Cubes" };
-    //char* argv[] = { "main", "Image::Intersection" };
+    char* arg[] = { "main", "Image::Intersection_2" };
     //char* argv[] = { "main", "Image::Touching_Face" };
     //char* argv[] = { "main", "Image::BasePlaneTest1" };
     //char* argv[] = { "main", "App::Plane_Geometry_Visu"};
@@ -104,7 +113,7 @@ int main(int argc, char* argv[]) {
     //char* argv[] = { "main", "App::component_classification" };
     //char* arg[] = { "main", "App:ShowMeshOrOctree" };
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
-    char* arg[] = { "main", "Benchmark:TestOctree" };
+    //char* arg[] = { "main", "Benchmark:TestOctree" };
 
     //char* arg[] = { "main", "Benchmark:OneIteration" };
     //char* arg[] = { "main", "App:ShowCSG" };
@@ -591,4 +600,78 @@ void test_cut_testAB_meshes() {
         newOctree->insert_polygon(planeMesh2.id(), f);
     }
     newOctree->startDebugView();*/
+}
+
+void showUnstable() {
+    
+    pm::Mesh mesh1;
+    pm::vertex_attribute<tg::pos3> pos1(mesh1);
+    pm::load(path + "37275.stl", mesh1, pos1);
+    pm::Mesh mesh2;
+    pm::vertex_attribute<tg::pos3> pos2(mesh2);
+    pm::load(path + "37275.stl", mesh2, pos2);
+    transformation(pos2, tg::rotation_y(tg::angle::from_degree(90)));
+    pm::Mesh mesh3;
+    pm::vertex_attribute<tg::pos3> pos3(mesh3);
+    pm::load("../data/mesh/ma_talk_unstable1.stl", mesh3, pos3);
+    pm::Mesh mesh4;
+    pm::vertex_attribute<tg::pos3> pos4(mesh4);
+    pm::load("../data/mesh/ma_talk_unstable2.obj", mesh4, pos4);
+
+
+    auto rPos1 = gv::make_renderable(gv::make_renderable(pos1));
+    auto const lPos1 = gv::make_renderable(gv::lines(pos1).line_width_world(0.02));
+    auto rPos2 = gv::make_renderable(gv::make_renderable(pos2));
+    auto const lPos2 = gv::make_renderable(gv::lines(pos2).line_width_world(0.02));
+    auto rPos3 = gv::make_renderable(gv::make_renderable(pos3));
+    auto const lPos3 = gv::make_renderable(gv::lines(pos3).line_width_world(0.02));
+    auto rPos4 = gv::make_renderable(gv::make_renderable(pos4));
+    auto const lPos4 = gv::make_renderable(gv::lines(pos4).line_width_world(0.02));
+
+    bool toggle1 = true;
+    bool toggle2 = true;
+    gv::interactive([&](auto dt) {
+        auto view = gv::view();
+        ImGui::Begin("Move");
+        if (ImGui::IsKeyPressed('L')) {
+            toggle1 = !toggle1;
+        }
+        if (ImGui::IsKeyPressed('K')) {
+            toggle2 = !toggle2;
+        }
+        ImGui::End();
+        if (toggle1) {
+            gv::view(rPos1, gv::print_mode);
+            gv::view(lPos1);
+            gv::view(rPos2);
+            gv::view(lPos2);
+        }
+        else {
+            gv::view(rPos3, gv::print_mode);
+            gv::view(lPos3);
+        }
+        if (!toggle2) {
+            gv::view(rPos4, gv::print_mode);
+            gv::view(lPos4);
+        }
+    });
+
+}
+
+void loadFromRandom() {
+    std::string path = "C:/Users/Basti/Downloads/";
+    ObjConfig conf = ObjConfig(1e7, 1e6, AABB({ -100, -100, -100 }, { 100, 100, 100 }),
+        "../data/mesh/rwth.obj", tg::mat4::identity, tg::mat4::identity,
+        "../data/mesh/rwth_cube.obj", tg::mat4::identity, tg::mat4::identity);
+    //path + file, tg::translation(tg::vec{ 0.0f, 1.f, 0.0f }), tg::rotation_y(tg::angle::from_degree(-90)));
+    //path + file, tg::translation(tg::vec{ 0.5f, 1.f, 0.5f }), tg::mat4::identity);
+    //"E:/benchmark/files/" + file, tg::mat4::identity, tg::rotation_x(tg::angle::from_degree(30)));
+
+/*while (true) {
+    conf.getOctree()->startDebugView();
+    test_cut_testAB_meshes();
+}*/
+
+    //conf.setMeshRepairBefore(true);
+    Benchmark::testMesh(conf, "test.txt");
 }

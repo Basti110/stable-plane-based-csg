@@ -7,7 +7,8 @@ from pathlib import Path
 
 
 
-max_threads = 8
+max_threads = 6
+#folder = "E:/Thingi10K/Thingi10K/raw_meshes"
 folder = "E:/benchmark/files"
 folder_libgl = "C:/Users/Basti/Documents/git/csg-comparison-libgl/build/Release/csg-comparison-libigl.exe"
 
@@ -28,18 +29,18 @@ class Starter():
             return_val = subprocess.run(["./bin/PlaneOctreeCSG.exe", filename], stdout=fout,stderr=fout)
             self.loopCount += 1
             if(return_val.returncode == 0): 
-                print(f"{self.loopCount}/{file_count} {filename} [SUCCESS]")
+                print(f"{self.loopCount}/{file_count} {filename} [SUCCESS] {self.success}:{self.meshError}:{self.errors}")
                 self.success+=1
             elif(return_val.returncode == 2) : 
-                print(f"{self.loopCount}/{file_count} {filename} [MESH_ERROR]")
+                print(f"{self.loopCount}/{file_count} {filename} [MESH_ERROR] {self.success}:{self.meshError}:{self.errors}")
                 self.meshError+=1
             else : 
-                print(f"{self.loopCount}/{file_count} {filename} [ERROR]")
+                print(f"{self.loopCount}/{file_count} {filename} [ERROR] {self.success}:{self.meshError}:{self.errors}")
                 self.errors+=1
             if(return_val.returncode != 0):
-                print("return")
+                #print("return")
                 return
-
+        #return
         return_val = subprocess.run([folder_libgl, "--libgl", filename], stdout=DEVNULL, stderr=DEVNULL) 
         if(return_val.returncode == 0):
             print("libgl [SUCCESS]")

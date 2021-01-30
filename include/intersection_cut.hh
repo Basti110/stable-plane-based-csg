@@ -66,6 +66,14 @@ public:
         return mLookupFacesB;
     }
 
+    long getSplitCount() {
+        return splitCount;
+    }
+
+    long getIntersectionCount() {
+        return intersectionCount;
+    }
+
     std::vector<pm::face_index> getCoplanarFacesMeshA() const { 
         std::vector<pm::face_index> list;
         for (auto it : mCoplanarFacesMeshA) {

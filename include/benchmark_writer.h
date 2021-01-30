@@ -12,6 +12,11 @@ public:
     float mTimeCutMesh = -1;
     float mTimeCategorization = -1;
     float mTimeComplete = -1;
+    int mFacesInSceneBefore = 0;
+    int mFacesInSceneAfter = 0;
+    int mComponents = 0;
+    long mSplitCount = 0;
+    long mIntersectionCount = 0;
     std::string mPath = "";
 
     void writeToFile() {
@@ -28,7 +33,12 @@ public:
         ss << "\"TimeBuildOctree\": " << mTimeBuildOctree << ", " << std::endl;
         ss << "\"TimeCutMesh\": " << mTimeCutMesh << ", " << std::endl;
         ss << "\"TimeCategorization\": " << mTimeCategorization << ", " << std::endl;
-        ss << "\"TimeComplete\": " << mTimeComplete << std::endl;
+        ss << "\"TimeComplete\": " << mTimeComplete << ", " << std::endl;
+        ss << "\"FacesBefore\": " << mFacesInSceneBefore << ", " << std::endl;
+        ss << "\"FacesAfter\": " << mFacesInSceneAfter << ", " << std::endl;
+        ss << "\"Components\": " << mComponents << ", " << std::endl;
+        ss << "\"IntersectionCount\": " << mIntersectionCount << ", " << std::endl;
+        ss << "\"SplitCount\": " << mSplitCount << std::endl;
         ss << "}";
         return ss.str();
     }

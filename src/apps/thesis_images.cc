@@ -13,16 +13,24 @@ APP("Image::Intersection") {
     PlaneMesh planeMesh2;
     planeMesh1.insertPolygon({ -10, 0, 0 }, { 10, 0, 0 }, { 0, 20, 0 });
     planeMesh2.insertPolygon({ -15, 10, -10 }, { -5, 10, 10 }, { 5, 10, -10 });
-    auto view = gv::view(planeMesh1.positions(), gv::no_grid, "test");
+    
     gv::label_style style;
     style.font = { "sans", 30 };
     style.line_width = 2.0f;
     style.pixel_distance = 50;
-    gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1), tg::color3::color(0.0));
-    gv::view(planeMesh2.positions());
-    gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1), tg::color3::color(0.0));
-    gv::view(gv::label{ "Face 1", style, tg::pos3{0, 15, 0} });
-    gv::view(gv::label{ "Face 2", style, tg::pos3{-7, 10, -2} });
+
+    auto transform = tg::pos3(-6.86246, 27.7306, 33.2359);
+    auto target = tg::pos3(-2.5, 10, 0);
+    {
+        auto view = gv::view(planeMesh1.positions(), gv::camera_transform(transform, target), gv::print_mode, gv::no_grid, "test");
+        gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1), tg::color3::color(0.0));
+        gv::view(planeMesh2.positions());
+        gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1), tg::color3::color(0.0));
+    }
+    glow::info() << gv::get_last_close_info().cam_pos;
+    glow::info() << gv::get_last_close_info().cam_target;
+    //gv::view(gv::label{ "Face 1", style, tg::pos3{0, 15, 0} });
+    //gv::view(gv::label{ "Face 2", style, tg::pos3{-7, 10, -2} });
 }
 
 APP("Image::Touching_Face") {
@@ -33,7 +41,7 @@ APP("Image::Touching_Face") {
     planeMesh2.insertPolygon({ { -10, 10, 0 }, { -5, 10, 10 }, { 0, 10, 0 }});
     //auto view = gv::view(planeMesh1.positions());
     //auto g = gv::grid();
-    auto view = gv::view(planeMesh1.positions(), gv::no_grid, "test");
+    auto view = gv::view(planeMesh1.positions(), gv::print_mode, gv::no_grid, "test");
     gv::label_style style;
     style.font = { "sans", 30 };
     style.line_width = 2.0f;
@@ -44,6 +52,32 @@ APP("Image::Touching_Face") {
     gv::view(gv::label{ "Face 1", style, tg::pos3{0, 15, 0} });
     gv::view(gv::label{ "Face 2", style, tg::pos3{-5, 10, -5} });
     gv::view(gv::label{ "Face 3", style, tg::pos3{-5, 10, 5} });
+}
+
+APP("Image::Intersection_2") {
+    PlaneMesh planeMesh1;
+    PlaneMesh planeMesh2;
+    planeMesh1.insertPolygon({ { -5, 10, 0 }, { 5, 10, 0 }, { 0, 20, 0 } });
+    planeMesh1.insertPolygon({ { -10, 0, 0 }, { -5, 10, 0 }, { 5, 10, 0 }, { 10, 0, 0 } });
+    planeMesh2.insertPolygon({ { -15, 10, -10 }, { -10, 10, 0 }, { 0, 10, 0 }, { 5, 10, -10 } });
+    planeMesh2.insertPolygon({ { -10, 10, 0 }, { -5, 10, 10 }, { 0, 10, 0 } });
+    //auto view = gv::view(planeMesh1.positions());
+    //auto g = gv::grid();
+    
+    gv::label_style style;
+    style.font = { "sans", 30 };
+    style.line_width = 2.0f;
+    style.pixel_distance = 50;
+
+    auto transform = tg::pos3(-6.86246, 27.7306, 33.2359);
+    auto target = tg::pos3(-2.5, 10, 0);
+    auto view = gv::view(planeMesh1.positions(), gv::camera_transform(transform, target), gv::print_mode, gv::no_grid, "test");
+    gv::view(gv::lines(planeMesh1.positions()).line_width_world(0.1), tg::color3::color(0.0), "test");
+    gv::view(planeMesh2.positions());
+    gv::view(gv::lines(planeMesh2.positions()).line_width_world(0.1), tg::color3::color(0.0));
+    //gv::view(gv::label{ "Face 1", style, tg::pos3{0, 15, 0} });
+    //gv::view(gv::label{ "Face 2", style, tg::pos3{-5, 10, -5} });
+    //gv::view(gv::label{ "Face 3", style, tg::pos3{-5, 10, 5} });
 }
 
 APP("Image::BasePlaneTest1") {

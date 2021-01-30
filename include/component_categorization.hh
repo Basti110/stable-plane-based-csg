@@ -20,10 +20,10 @@ public:
 		: mSharedOctree(octree), mFaceComponentsA(faceComponentsA), mFaceComponentsB(faceComponentsB) {
 		mComponentIsOutsideA = std::vector<int8_t>(mFaceComponentsA->getNumberOfComponents(), -1);
 		mComponentIsOutsideB = std::vector<int8_t>(mFaceComponentsB->getNumberOfComponents(), -1);
-        //glow::timing::CpuTimer timer;
+        
         octree->repairOctree(iCut);
 		auto iSectA = iCut.getIntersectionEdgesMarkerA();
-        //std::cout << "Repair Octree: " << timer.elapsedMillisecondsD() << "ms" << std::endl;
+        //
 		mComponentNeighborsA.resize(mFaceComponentsA->getNumberOfComponents());
 		for (pm::edge_handle& e : iSectA.mesh().edges()) {
 			if (iSectA[e]) {
@@ -115,7 +115,9 @@ public:
             TG_ASSERT(vertexB != pm::vertex_handle::invalid);
             SharedDebugRayInfo rayInfoB = std::make_shared<DebugRayInfo>();
             RayCast rayCast(mSharedOctree->getPlaneMeshB(), mSharedOctree->getPlaneMeshA(), mSharedOctree, rayInfoB);
+            glow::timing::CpuTimer timer;
             auto intersections = rayCast.countIntersectionsToOutside(vertexB);
+            std::cout << "Ray Cast: " << timer.elapsedMillisecondsD() << "ms" << std::endl;
             //auto intersections = mSharedOctree->countIntersectionsToOutside2(vertexB, mSharedOctree->getPlaneMeshB(), rayInfoB);
             rayInfosB.push_back(rayInfoB);
             auto component = mFaceComponentsB->getComponentOfFace(vertexB.any_face());
@@ -232,8 +234,8 @@ public:
             halfEdges.push_back(newMesh.halfedges().add_or_get(pFrom, pTo));
             newMesh.faces().add(halfEdges);
         }
-        pm::deduplicate(newMesh, pos);
-        newMesh.compactify();
+        //pm::deduplicate(newMesh, pos);
+        //newMesh.compactify();
         return true;
     }
 
@@ -284,15 +286,15 @@ public:
         gv::interactive([&](auto dt) {
             auto view = gv::view();
             if (tooglePolygons != 6)
-                gv::view(positionsA, gv::print_mode);
+                gv::view(positionsA, gv::print_mode, gv::no_grid);
             if (tooglePolygons != 5)
-                gv::view(positionsB, gv::print_mode);
+                gv::view(positionsB, gv::print_mode, gv::no_grid);
 
 
             if (showIntersection)
                 gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()));
-            else
-                gv::view(isectLines2, gv::masked(iCut.getIntersectionEdgesMarkerB()));
+            //else
+                //gv::view(isectLines2, gv::masked(iCut.getIntersectionEdgesMarkerB()));
 
             if (toogleLinesA)
                 gv::view(positionLinesASmall);
@@ -348,7 +350,7 @@ public:
                 }
                 if (colorMode == 0) {
                     gv::configure(*positionsA, tg::color3(0.95));
-                    gv::configure(*positionsB, tg::color3(0.5));
+                    gv::configure(*positionsB, tg::color3(0.95));
                 }
                 else if (colorMode == 1) {
                     gv::configure(*positionsA, mFaceComponentsA->getColorAssignment());
@@ -375,7 +377,7 @@ public:
             int component = faceComponents->getComponentOfFace(face);
             if (componentIsOutside[component] == 2)
                 return tg::color3::red;
-            return componentIsOutside[component] == 0 ? tg::color3::white : tg::color3::black;
+            return componentIsOutside[component] == 0 ? tg::color3::white : tg::color3(130 / 255., 177 / 255., 255 / 255.);
             });
         return faceColors;
     }
@@ -389,7 +391,7 @@ public:
 				int component = faceComponents->getComponentOfFace(face);
                 if (componentIsOutside[component] == 2)
                     return tg::color3::red;
-				return componentIsOutside[component] == 0 ? tg::color3::white :  tg::color3::black;
+				return componentIsOutside[component] == 0 ? tg::color3::white :  tg::color3(130 / 255., 177 / 255., 255 / 255.);
 			});
 		return faceColors;
 	}
