@@ -2,7 +2,7 @@
 #include <plane_polygon.hh>
 #include <nexus/test.hh>
 #include <octree.hh>
-#define COMPLETE_RAY true
+#define COMPLETE_RAY false
 
 class DebugRayInfo {
 public:

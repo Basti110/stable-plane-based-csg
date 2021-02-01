@@ -7,7 +7,7 @@
 IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection(const PlaneMesh& mesh1, pm::face_handle const& planeBase, 
     const PlaneMesh& mesh2, pm::face_handle const& polygon)
 {
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
     int sign = 0;
     int index = 0;
     TG_ASSERT(!polygon.is_removed());
@@ -81,9 +81,6 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
             intersection.intersection = intersection_result::co_planar;
         else
             intersection.intersection = intersection_result::non_intersecting;
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-        this->testTimeCount3 += nSeconds;
         return intersection;
     }
     TG_ASSERT(index == 2 && "On a Convex Polygon are now exactly 2 intersections");
@@ -99,9 +96,6 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
         }
         if (halfedgeHandles[1] == halfedgeHandles[0].next()) {
             intersection.intersection = intersection_result::non_intersecting;
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-            this->testTimeCount3 += nSeconds;
             return intersection;
         }
     }
@@ -110,9 +104,6 @@ IntersectionObject::IntersectionHandle IntersectionObject::planeBaseIntersection
     intersection.intersectionEdge2 = halfedgeHandles[1];
     intersection.intersectVertex1 = vertexOnEdge[0];
     intersection.intersectVertex2 = vertexOnEdge[1];
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-    this->testTimeCount3 += nSeconds;
     return intersection;
 }
 
@@ -210,8 +201,8 @@ SharedTriIntersect IntersectionObject::getClassifiedEdgesFromSignChange(std::vec
         pm::vertex_handle q = edges1[(i + 1) % edges1.size()].vertex_from();
         TrianlgeIntersectionPlanar::EdgeData& edge1Data = intersectionPlanar->getEdgeDataT1(i);
 
-        for (int j = 0; j < edges2.size(); ++j) {
-            int8_t signStorageTmp = ob::classify_vertex(mPlaneMeshA.pos(q), mPlaneMeshB.edge(edges2[j].edge())) * mPlaneMeshB.halfedge(edges2[j]);
+        for (int j = 0; j < edges2.size(); ++j) {         
+            int8_t signStorageTmp = mPlaneMeshA.getSign(q, mPlaneMeshB.edge(edges2[j].edge())) * mPlaneMeshB.halfedge(edges2[j]);
             int8_t signBefore = signsFirstPoint[j];
             if (signStorageTmp != signBefore && (signStorageTmp != 0 || signBefore == -1) && (signBefore != 0 || signStorageTmp == -1)) {
                 auto pos1 = edges2[j].vertex_from();
@@ -219,8 +210,9 @@ SharedTriIntersect IntersectionObject::getClassifiedEdgesFromSignChange(std::vec
                 auto edge = mPlaneMeshA.findEdge(qOld, q);
                 int8_t t1 = mPlaneMeshA.halfedge(edge);
                 TG_ASSERT(t1 != 0);
-                int8_t sign = ob::classify_vertex(mPlaneMeshB.pos(pos1), mPlaneMeshA.edge(edge)) * mPlaneMeshA.halfedge(edge);
-                int8_t sign2 = ob::classify_vertex(mPlaneMeshB.pos(pos2), mPlaneMeshA.edge(edge)) * mPlaneMeshA.halfedge(edge);
+                
+                int8_t sign = mPlaneMeshB.getSign(pos1, mPlaneMeshA.edge(edge)) * mPlaneMeshA.halfedge(edge);
+                int8_t sign2 = mPlaneMeshB.getSign(pos2, mPlaneMeshA.edge(edge)) * mPlaneMeshA.halfedge(edge);
                 if ((sign != sign2) && (sign2 != 0 || sign == -1) && (sign != 0 || sign2 == -1)) {
 
                     TrianlgeIntersectionPlanar::EdgeData& edge2Data = intersectionPlanar->getEdgeDataT2(j);;
@@ -307,6 +299,7 @@ SharedTriIntersect IntersectionObject::handleCoplanarIntersection(const pm::face
     bool isInnerPoint = std::get<0>(pointCase);
     bool isEdgePoint = std::get<1>(pointCase);
 
+    showFaces(mPlaneMeshA, polygon1, mPlaneMeshB, polygon2);
     auto result = getClassifiedEdgesFromSignChange(signStorage, edges1, edges2);
     return result;
 }
@@ -319,10 +312,10 @@ bool IntersectionObject::handleTouchIntersection(const pm::face_handle& polygon1
     PlaneMesh& planeMeshB = isMeshA ? mPlaneMeshB : mPlaneMeshA;
 
     pm::halfedge_handle edge = t2.intersectionEdge1;
-    SubDet subdet = planeMeshB.pos(edge.vertex_to());
-    int8_t sign1 = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge1.edge()));
+    //SubDet subdet = planeMeshB.pos(edge.vertex_to());   
+    int8_t sign1 = planeMeshB.getSign(edge.vertex_to(), planeMeshA.edge(t1.intersectionEdge1.edge()));
     sign1 *= planeMeshA.halfedge(t1.intersectionEdge1);
-    int8_t sign2 = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge2.edge()));
+    int8_t sign2 = planeMeshB.getSign(edge.vertex_to(), planeMeshA.edge(t1.intersectionEdge2.edge()));
     sign2 *= planeMeshA.halfedge(t1.intersectionEdge2);
     edge = edge.next();
 
@@ -331,10 +324,10 @@ bool IntersectionObject::handleTouchIntersection(const pm::face_handle& polygon1
         int8_t sign1Tmp = 0;
         int8_t sign2Tmp = 0;
         while (edge != t2.intersectionEdge2) {
-            subdet = planeMeshB.pos(edge.vertex_to());
-            int8_t sign1Tmp = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge1.edge()));
+            //subdet = planeMeshB.pos(edge.vertex_to());
+            int8_t sign1Tmp = planeMeshB.getSign(edge.vertex_to(), planeMeshA.edge(t1.intersectionEdge1.edge()));
             sign1Tmp *= planeMeshA.halfedge(t1.intersectionEdge1);
-            int8_t sign2Tmp = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge2.edge()));
+            int8_t sign2Tmp = planeMeshB.getSign(edge.vertex_to(), planeMeshA.edge(t1.intersectionEdge2.edge()));
             sign2Tmp *= planeMeshA.halfedge(t1.intersectionEdge2);
             TG_ASSERT(sign1Tmp || sign2Tmp);
 
@@ -363,10 +356,10 @@ bool IntersectionObject::handleTouchIntersection(const pm::face_handle& polygon1
         int8_t sign1Tmp = 0;
         int8_t sign2Tmp = 0;
         while (edge != t2.intersectionEdge2) {
-            subdet = planeMeshB.pos(edge.vertex_to());
-            int8_t sign1Tmp = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge1.edge()));
+            //subdet = planeMeshB.pos(edge.vertex_to());
+            int8_t sign1Tmp = planeMeshB.getSign(edge.vertex_to(), planeMeshA.edge(t1.intersectionEdge1.edge()));
             sign1Tmp *= planeMeshA.halfedge(t1.intersectionEdge1);
-            int8_t sign2Tmp = ob::classify_vertex(subdet, planeMeshA.edge(t1.intersectionEdge2.edge()));
+            int8_t sign2Tmp = planeMeshB.getSign(edge.vertex_to(), planeMeshA.edge(t1.intersectionEdge2.edge()));
             sign2Tmp *= planeMeshA.halfedge(t1.intersectionEdge2);
             if(!(sign1Tmp || sign2Tmp))
                 return false;
@@ -490,8 +483,16 @@ void IntersectionObject::showFaces(PlaneMesh& mesh1, const pm::face_handle& poly
     tg::aabb3 viewBox;
     viewBox.min = tg::pos3(mesh1.posInt(polygon1.any_vertex()));
     viewBox.max = tg::pos3(mesh2.posInt(polygon1.any_vertex()));*/
+    auto faceColors1 = mesh1.mesh().faces().make_attribute_with_default(tg::color3::white);
+    faceColors1[polygon1] = tg::color3::red;
+    auto faceColors2 = mesh2.mesh().faces().make_attribute_with_default(tg::color3::white);
+    faceColors2[polygon2] = tg::color3::blue;
+    auto view = gv::view(mesh1.positions(), faceColors1);
+    gv::view(gv::lines(mesh1.positions()).line_width_world(10000));
+    gv::view(mesh2.positions(), faceColors2);
+    gv::view(gv::lines(mesh2.positions()).line_width_world(10000));
 
-    pm::Mesh mesh;
+    /*pm::Mesh mesh;
     pm::vertex_attribute<tg::pos3> pos(mesh);
     std::vector<pm::vertex_handle> vertex_handles;
 
@@ -510,6 +511,7 @@ void IntersectionObject::showFaces(PlaneMesh& mesh1, const pm::face_handle& poly
     }
     mesh.faces().add(vertex_handles);
 
-    //auto view = gv::view(pos);
+    auto view = gv::view(pos);
+    gv::view(gv::lines(pos).line_width_world(10000));*/
     //gv::view(mesh2.positions(), gv::masked(face2Mask), viewBox);
 }

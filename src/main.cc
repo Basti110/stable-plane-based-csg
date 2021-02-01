@@ -30,6 +30,7 @@
 std::string testObj = "../data/mesh/buddha_2.obj";
 //std::string path = "E:/Thingi10K/Thingi10K/raw_meshes/";
 std::string path = "E:/benchmark/files/";
+//std::string path = "D:/benchmark/";
 void test_octree_cell_ray_cast();
 void test_cut_testAB_meshes();
 void test_cut_mesh();
@@ -43,7 +44,12 @@ void test_component_classification();
 void convert();
 void showUnstable();
 void loadFromRandom();
+int centerMesh(std::string s);
 void transformation(pm::vertex_attribute<tg::pos3>& pos, tg::mat4& mat);
+float gamma = 2.2;
+#define OCTREE_BLUE tg::pow(47/255.f, gamma), tg::pow(85/255.f, gamma), tg::pow(151/255.f, gamma)
+#define RAYCAST_GREEN tg::pow(112 / 255.f, gamma), tg::pow(173 / 255.f, gamma), tg::pow(71 / 255.f, gamma)
+#define RAYCAST_ORANGE tg::pow(237 / 255.f, gamma), tg::pow(125 / 255.f, gamma), tg::pow(49 / 255.f, gamma)
 
 int main(int argc, char* argv[]) {
     ObjCollection::init();
@@ -55,7 +61,8 @@ int main(int argc, char* argv[]) {
     nx::Nexus tests;
     std::vector< std::vector<int>> ownpose = { {1, 2}, {1, 3}, {2, 4}, {3, 5}, {4, 6}, {7, 8}, {7, 9}, {9, 11}, {8, 10}, {10, 12}, {1, 7}, {2, 8} };
     //showUnstable();
-    loadFromRandom();
+    //loadFromRandom();
+    //return centerMesh(path + std::string(argv[1]));
     //test_cut_testAB_meshes();
     //test_octree_cell_ray_cast();
     //convert();
@@ -83,7 +90,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Try to open " << file << std::endl;       
         ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -100, -100, -100 }, { 100, 100, 100 }),
             path + file, tg::mat4::identity, tg::mat4::identity,
-            path + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(-90)));
+            path + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(90)));
             //path + file, tg::translation(tg::vec{ 0.0f, 1.f, 0.0f }), tg::rotation_y(tg::angle::from_degree(-90)));
             //path + file, tg::translation(tg::vec{ 0.5f, 1.f, 0.5f }), tg::mat4::identity);
             //"E:/benchmark/files/" + file, tg::mat4::identity, tg::rotation_x(tg::angle::from_degree(30)));
@@ -94,6 +101,7 @@ int main(int argc, char* argv[]) {
     }*/
 
         conf.setMeshRepairBefore(true);
+        conf.setMoveToCenter(true);
         return Benchmark::testMesh(conf, "E:/benchmark/benchmark/" + file.substr(0, file.size() - 3) + "txt");
     }
         
@@ -104,7 +112,7 @@ int main(int argc, char* argv[]) {
     //test_octree();    
 
     //char* arg[] = { "main", "Image::Cubes" };
-    char* arg[] = { "main", "Image::Intersection_2" };
+    //char* arg[] = { "main", "Image::Intersection_2" };
     //char* argv[] = { "main", "Image::Touching_Face" };
     //char* argv[] = { "main", "Image::BasePlaneTest1" };
     //char* argv[] = { "main", "App::Plane_Geometry_Visu"};
@@ -115,7 +123,7 @@ int main(int argc, char* argv[]) {
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
     //char* arg[] = { "main", "Benchmark:TestOctree" };
 
-    //char* arg[] = { "main", "Benchmark:OneIteration" };
+    char* arg[] = { "main", "Benchmark:OneIteration" };
     //char* arg[] = { "main", "App:ShowCSG" };
     
 
@@ -453,9 +461,9 @@ void test_octree_cell_ray_cast() {
         returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
     }
 
-    auto const octreeCells = gv::lines(boxes).line_width_world(200000);
-    auto const rayCells = gv::lines(returnBoxes).line_width_world(2500000);
-    auto const rayPath = gv::lines(lines).line_width_world(3000000);
+    auto const octreeCells = gv::lines(boxes).line_width_world(600000);
+    auto const rayCells = gv::lines(returnBoxes).line_width_world(5000000);
+    auto const rayPath = gv::lines(lines).line_width_world(6000000);
     auto const positions1 = planeMesh1->positions();
     auto const positionLines1 = gv::lines(planeMesh1->positions()).line_width_world(100000);
     auto const positions2 = planeMesh2->positions();
@@ -463,13 +471,14 @@ void test_octree_cell_ray_cast() {
     bool tooglePolygons = true;
 
     if (tooglePolygons) {
-        auto view = gv::view(octreeCells, tg::color3::blue);
-        gv::view(rayCells, tg::color3::green);
-        gv::view(rayPath, tg::color3::red);
+        
+        //auto view = gv::view(octreeCells, tg::color3::color(OCTREE_BLUE), gv::print_mode);
+        auto view = gv::view(rayCells, tg::color3::color(RAYCAST_ORANGE));
+        gv::view(rayPath, tg::color3::color(RAYCAST_GREEN));
         gv::view(positions1);
         gv::view(positionLines1);
-        gv::view(positions2);
-        gv::view(positionLines2);
+        //gv::view(positions2);
+        //gv::view(positionLines2);
     }
 
     /*gv::interactive([&](auto) {
@@ -674,4 +683,19 @@ void loadFromRandom() {
 
     //conf.setMeshRepairBefore(true);
     Benchmark::testMesh(conf, "test.txt");
+}
+
+int centerMesh(std::string filePath) {
+    pm::Mesh m;
+    pm::vertex_attribute<tg::pos3> pos(m);
+    if (!pm::load(filePath, m, pos))
+        return -1;
+    auto aabb = tg::aabb_of(pos);
+    auto distance = aabb.max - aabb.min;
+    auto halfDistance = distance / 2;
+    auto center = aabb.min + halfDistance;
+    auto trans = tg::translation(-center);
+    transformation(pos, trans);
+    pm::save(filePath, pos);
+    return 0;
 }

@@ -216,13 +216,9 @@ public:
         static constexpr int NormalOutBits = GeometryT::bits_normal * 2;
 
 
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         IntersectionHandle intersection1 = planeBaseIntersection(mPlaneMeshA, polygon1, mPlaneMeshB, polygon2);
         if (intersection1.intersection == intersection_result::non_intersecting) {
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-            this->testTimeCount1 += nSeconds;
-            testCount1++;
             return std::make_shared<TrianlgeIntersection>();
         }
             
@@ -234,11 +230,8 @@ public:
 
         IntersectionHandle intersection2 = planeBaseIntersection(mPlaneMeshB, polygon2, mPlaneMeshA, polygon1);
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-        this->testTimeCount1 += nSeconds;
 
         if (intersection2.intersection == intersection_result::non_intersecting) {
-            testCount2++;
             return std::make_shared<TrianlgeIntersection>();
         }
             
@@ -247,33 +240,16 @@ public:
             //return std::make_shared<TrianlgeIntersection>();
 
 
-        begin = std::chrono::steady_clock::now();
+
         auto r = handleIntersection(polygon1, polygon2, intersection1, intersection2);
-        end = std::chrono::steady_clock::now();
-        nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-        this->testTimeCount2 += nSeconds;
-        testCount3++;
         return r;
     }
 
-    void printTimes() {
-        std::cout << "  [INTERSECTION] test time 1: " << (double)testTimeCount1 / 1000000 << "ms" << std::endl;
-        std::cout << "  [INTERSECTION] test time 2: " << (double)testTimeCount2 / 1000000 << "ms" << std::endl;
-        std::cout << "  [INTERSECTION] test time 3: " << (double)testTimeCount3 / 1000000 << "ms" << std::endl;
-        std::cout << "  [INTERSECTION] test count 1: " << testCount1 << std::endl;
-        std::cout << "  [INTERSECTION] test count 2: " << testCount2 << std::endl;
-        std::cout << "  [INTERSECTION] test count 3: " << testCount3 << std::endl;
-    }
+
 
     private:
         PlaneMesh& mPlaneMeshA;
         PlaneMesh& mPlaneMeshB;
-        long long testTimeCount1 = 0;
-        long long testTimeCount2 = 0;
-        long long testTimeCount3 = 0;
-        long testCount1 = 0;
-        long testCount2 = 0;
-        long testCount3 = 0;
 };
 
 using IsectOb = IntersectionObject;

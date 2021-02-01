@@ -8,10 +8,11 @@ from pathlib import Path
 
 
 max_threads = 6
+#folder = "D:/benchmark"
 #folder = "E:/Thingi10K/Thingi10K/raw_meshes"
 folder = "E:/benchmark/files"
 folder_libgl = "C:/Users/Basti/Documents/git/csg-comparison-libgl/build/Release/csg-comparison-libigl.exe"
-
+folder_cgal = "C:/Users/Basti/Documents/git/csg-comparison-cgal/bin/csg-comparison.exe"
 
 Path("E:/benchmark/files").mkdir(parents=True, exist_ok=True)
 file_count = len(os.listdir(folder))
@@ -40,17 +41,25 @@ class Starter():
             if(return_val.returncode != 0):
                 #print("return")
                 return
-        #return
+        return
         return_val = subprocess.run([folder_libgl, "--libgl", filename], stdout=DEVNULL, stderr=DEVNULL) 
         if(return_val.returncode == 0):
             print("libgl [SUCCESS]")
         else:
             print("libgl [ERROR]")
+        return
+        self.loopCount += 1
+        print(f"Mesh: {self.loopCount}")
         return_val = subprocess.run([folder_libgl, "--cork", filename], stdout=DEVNULL, stderr=DEVNULL) 
         if(return_val.returncode == 0):
             print("cork [SUCCESS]")
         else:
             print("cork [ERROR]")
+        return_val = subprocess.run([folder_cgal, "--cgal", filename], stdout=DEVNULL, stderr=DEVNULL) 
+        if(return_val.returncode == 0):
+            print("Cgal [SUCCESS]")
+        else:
+            print("Cgal [ERROR]")
         
 
 starter = Starter()

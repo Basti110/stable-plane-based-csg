@@ -337,7 +337,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("Lucy_1");
+    ObjConfig conf = ObjCollection::map.at("co-planar-cubes");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -393,7 +393,7 @@ APP("Benchmark:OneIteration") {
     conf.getOctree()->printOctreeStats();
     iCut.printTimes();
     //conf.viewMesh(true);
-    components->renderFinalResult(iCut, 8000); //10000);
+    components->renderFinalResult(iCut, 1000); //10000);
 }
 
 

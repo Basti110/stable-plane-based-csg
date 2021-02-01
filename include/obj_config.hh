@@ -209,6 +209,10 @@ public:
         mMaxCellSize = v;
     }
 
+    void setMoveToCenter(bool v) {
+        mMoveToCenter = v;
+    }
+
     void reset() {
         mPlaneMeshA = std::make_shared<PlaneMesh>(*mMeshA, mPos1, mScale);
         mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, mPos2, mScale);
@@ -252,6 +256,15 @@ public:
             mesh->faces().add(v0, v1, v2);
         }
         //gv::view(pos);
+    }
+
+    void moveToCenter(const pm::vertex_attribute<tg::pos3>& pos, tg::mat4& transformation) {
+        auto aabb = tg::aabb_of(pos);
+        auto distance = aabb.max - aabb.min;
+        auto halfDistance = distance / 2;
+        auto center = aabb.min + halfDistance;
+        auto trans = tg::translation(-center);
+        transformation = transformation * trans;
     }
        
 private:
@@ -302,6 +315,8 @@ private:
                 mMeshA->compactify();
                 adjustScale();
             }
+            if (mMoveToCenter) 
+                moveToCenter(mPos1, mTransformation1);           
             transformation(mPos1, mTransformation1);
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             mPlaneMeshA = std::make_shared<PlaneMesh>(*mMeshA, mPos1, mScale);
@@ -321,6 +336,8 @@ private:
                 pm::deduplicate(*mMeshB, mPos2);
                 mMeshB->compactify();
             }
+            if (mMoveToCenter)
+                moveToCenter(mPos2, mTransformation2);
             transformation(mPos2, mTransformation2);
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             mPlaneMeshB = std::make_shared<PlaneMesh>(*mMeshB, mPos2, mScale);
@@ -339,6 +356,7 @@ private:
 
 private:
     bool mRepairBefore = false;
+    bool mMoveToCenter = false;
     int mNumObjects = 1;
     double mInitMeshTime = 0;
     int mMaxCellSize = 15;
@@ -402,7 +420,7 @@ public:
                 "../data/mesh/cube3.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
             { "raycast",
                 ObjConfig(2e7, 1e8, AABB({ -2, -2, -2 }, { 2, 2, 2 }),
-                "../data/mesh/raycast1.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
+                "../data/mesh/raycast4.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity,
                 "../data/mesh/raycast2.obj", tg::translation(tg::vec{-.5f, -.5f, -.5f }), tg::mat4::identity) },
             { "complex_1",
                 ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
@@ -448,7 +466,10 @@ public:
                 ObjConfig(1e6, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 100.0f, 300.0f, -100.0f }), tg::mat4::identity,
                 "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 100.0f, 300.0f, -100.0f }), tg::rotation_z(tg::angle::from_degree(1))) },
-
+            { "co-planar-cubes", //
+                ObjConfig(1e6, 1e6, AABB({ -5, -5, -5 }, { 5, 5, 5 }),
+                "../data/mesh/co-planar-cube.obj", tg::mat4::identity, tg::mat4::identity,
+                "../data/mesh/unit_cube.obj", tg::mat4::identity, tg::mat4::identity )},
         };
     }
 };
