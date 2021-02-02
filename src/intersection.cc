@@ -224,7 +224,7 @@ SharedTriIntersect IntersectionObject::getClassifiedEdgesFromSignChange(std::vec
                         else
                             innerPoint = isInnerPoint(mPlaneMeshB.pos(pos1), intersectionPlanar->getEdgeDataT1(), mPlaneMeshA);
 
-                        if (innerPoint != -1) {
+                        if (innerPoint == 1) {
                             signsFirstPoint[j] = signStorageTmp;
                             if (edge2Data.state == TrianlgeIntersectionPlanar::PlanarState::ONE_EDGE)
                                 edge2Data.state = TrianlgeIntersectionPlanar::PlanarState::TWO_EDGES;
@@ -241,7 +241,7 @@ SharedTriIntersect IntersectionObject::getClassifiedEdgesFromSignChange(std::vec
                         else
                             innerPoint = isInnerPoint(mPlaneMeshA.pos(qOld), intersectionPlanar->getEdgeDataT2(), mPlaneMeshB);
 
-                        if (innerPoint != -1) {
+                        if (innerPoint == 1) {
                             signsFirstPoint[j] = signStorageTmp;
                             if (edge1Data.state == TrianlgeIntersectionPlanar::PlanarState::ONE_EDGE)
                                 edge1Data.state = TrianlgeIntersectionPlanar::PlanarState::TWO_EDGES;
@@ -299,7 +299,7 @@ SharedTriIntersect IntersectionObject::handleCoplanarIntersection(const pm::face
     bool isInnerPoint = std::get<0>(pointCase);
     bool isEdgePoint = std::get<1>(pointCase);
 
-    showFaces(mPlaneMeshA, polygon1, mPlaneMeshB, polygon2);
+    //showFaces(mPlaneMeshA, polygon1, mPlaneMeshB, polygon2);
     auto result = getClassifiedEdgesFromSignChange(signStorage, edges1, edges2);
     return result;
 }

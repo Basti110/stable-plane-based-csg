@@ -466,10 +466,14 @@ public:
                 ObjConfig(1e6, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 100.0f, 300.0f, -100.0f }), tg::mat4::identity,
                 "../data/mesh/Lucy.obj", tg::translation(tg::vec{ 100.0f, 300.0f, -100.0f }), tg::rotation_z(tg::angle::from_degree(1))) },
-            { "co-planar-cubes", //
+            { "co-planar-cubes1", //
                 ObjConfig(1e6, 1e6, AABB({ -5, -5, -5 }, { 5, 5, 5 }),
                 "../data/mesh/co-planar-cube.obj", tg::mat4::identity, tg::mat4::identity,
                 "../data/mesh/unit_cube.obj", tg::mat4::identity, tg::mat4::identity )},
+            { "co-planar-cubes2", //
+                ObjConfig(1e6, 1e6, AABB({ -5, -5, -5 }, { 5, 5, 5 }),
+                "../data/mesh/co-planar-cube.obj", tg::mat4::identity, tg::mat4::identity,
+                "../data/mesh/unit_cube.obj", tg::translation(tg::vec{ 0.0f, 1.0f, 0.0f }), tg::mat4::identity)},
         };
     }
 };
