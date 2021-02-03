@@ -122,7 +122,7 @@ namespace Benchmark {
         iCut.printTimes();
         benchmarkWriter.writeToFile();
         //conf.viewMesh(true);
-        components->renderFinalResult(iCut, 4000);
+        //components->renderFinalResult(iCut, 4000);
         return 0;
     }
 }

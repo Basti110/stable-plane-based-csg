@@ -350,7 +350,7 @@ public:
                 }
                 if (colorMode == 0) {
                     gv::configure(*positionsA, tg::color3(0.95));
-                    gv::configure(*positionsB, tg::color3(0.95));
+                    gv::configure(*positionsB, tg::color3(0.55));
                 }
                 else if (colorMode == 1) {
                     gv::configure(*positionsA, mFaceComponentsA->getColorAssignment());
