@@ -669,21 +669,21 @@ IntersectionCut::IntersectionCut() {
 
 SharedTriIntersect IntersectionCut::getIntersectionStateWithTimer(pm::face_handle& t1, pm::face_handle& t2) {
     this->intersectionCount++;
-    //std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     auto intersection = mISectObject->intersect<geometry128>(t1, t2);
-    //std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    //auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-    //this->intersectionTimeCount += nSeconds;
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+    this->intersectionTimeCount += nSeconds;
     return intersection;
 }
 
 NewFaces IntersectionCut::splitnWithTimer(pm::face_handle& t1, pm::face_handle& t2, SharedTriIntersect i) {
     this->splitCount++;
-    //std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     auto splits = split(i, PlaneMeshInfo{ *mMeshA, t1 }, PlaneMeshInfo{ *mMeshB, t2 });
-    //std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    //auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
-    //this->splitTimeCount += nSeconds;
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    auto nSeconds = std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count();
+    this->splitTimeCount += nSeconds;
     return splits;
 }
 

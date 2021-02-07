@@ -4,6 +4,7 @@
 #include <nexus/test.hh>
 #include <octree.hh>
 #include <face_component_finder.hh>
+#include <polymesh/algorithms/triangulate.hh>
 #include <ray_cast.hh>
 #include <aabb.hh>
 #include <set>
@@ -13,7 +14,8 @@ class ComponentCategorization {
 		UNDEFINED = -1,
 		OUTSIDE = 0,
 		INSIDE = 1,	
-        COPLANAR = 2,
+        COPLANAR_SAME = 2,
+        COPLANAR_OPPOSITE = 2,
 	};
 public:
 	ComponentCategorization(SharedOctree octree, SharedFaceComponents faceComponentsA, SharedFaceComponents faceComponentsB, const IntersectionCut& iCut)
@@ -207,7 +209,7 @@ public:
         }
     }
 
-    bool copyFacesFromMesh(pm::vertex_attribute<tg::pos3>& pos, pm::Mesh& mesh, const VertexAttribute& copyFrom, pm::face_attribute<bool>& copyFaces, int scale=10e6) {
+    bool copyFacesFromMeshOut(pm::vertex_attribute<tg::pos3>& pos, pm::Mesh& mesh, const VertexAttribute& copyFrom, pm::face_attribute<bool>& copyFaces, int scale=10e6) {
         const auto& oldMesh = copyFrom.mesh();
         pm::Mesh& newMesh = mesh;
         for (auto face : oldMesh.faces()) {
@@ -234,6 +236,41 @@ public:
             halfEdges.push_back(newMesh.halfedges().add_or_get(pFrom, pTo));
             newMesh.faces().add(halfEdges);
         }
+        //pm::triangulate_naive(newMesh);
+        //pm::deduplicate(newMesh, pos);       
+        //newMesh.compactify();
+        return true;
+    }
+
+    //Flip faces
+    bool copyFacesFromMeshIn(pm::vertex_attribute<tg::pos3>& pos, pm::Mesh& mesh, const VertexAttribute& copyFrom, pm::face_attribute<bool>& copyFaces, int scale = 10e6) {
+        const auto& oldMesh = copyFrom.mesh();
+        pm::Mesh& newMesh = mesh;
+        for (auto face : oldMesh.faces()) {
+            if (!copyFaces[face])
+                continue;
+
+            auto he = face.any_halfedge();
+            auto heTmp = he.prev();
+            auto pFrom = newMesh.vertices().add();
+            auto oldTo = copyFrom[heTmp.vertex_to()];
+            pos[pFrom] = tg::pos3((double)oldTo.x / scale, (double)oldTo.y / scale, (double)oldTo.z / scale);
+            std::vector<pm::halfedge_handle> halfEdges;
+
+            while (he != heTmp) {
+                pm::vertex_handle pTo = newMesh.vertices().add();
+                auto oldfrom = copyFrom[heTmp.vertex_from()];
+                pos[pTo] = tg::pos3((double)oldfrom.x / scale, (double)oldfrom.y / scale, (double)oldfrom.z / scale);
+                auto newHe = newMesh.halfedges().add_or_get(pFrom, pTo);
+                halfEdges.push_back(newHe);
+                pFrom = pTo;
+                heTmp = heTmp.prev();
+            }
+            auto pTo = halfEdges[0].vertex_from();
+            halfEdges.push_back(newMesh.halfedges().add_or_get(pFrom, pTo));
+            newMesh.faces().add(halfEdges);
+        }
+        //pm::triangulate_naive(newMesh);
         //pm::deduplicate(newMesh, pos);
         //newMesh.compactify();
         return true;
@@ -248,9 +285,9 @@ public:
         auto& planeMeshB = mSharedOctree->getPlaneMeshB();
 
         // Attributes
-        auto colorAtrMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white; }));
-        auto colorAtrMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white; }));
-        auto colorAtrMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c != tg::color3::white; }));
+        auto colorAtrMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white;   }));
+        auto colorAtrMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white;  }));
+        auto colorAtrMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c != tg::color3::white;  }));
         auto colorAtrMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c != tg::color3::white; }));
 
         //Maskes
@@ -279,8 +316,9 @@ public:
 
         pm::Mesh resultMesh;
         pm::vertex_attribute<tg::pos3> resultPos(resultMesh);
-        copyFacesFromMesh(resultPos, resultMesh, planeMeshA.positions(), colorAtrMaskAOut);
-        copyFacesFromMesh(resultPos, resultMesh, planeMeshB.positions(), colorAtrMaskBOut);
+        copyFacesFromMeshIn(resultPos, resultMesh, planeMeshA.positions(), colorAtrMaskAOut);
+        copyFacesFromMeshOut(resultPos, resultMesh, planeMeshB.positions(), colorAtrMaskBIn);
+        std::cout << "### Vertices: " << resultMesh.vertices().size() << std::endl;
         pm::save("../out.obj", resultPos);
 
         gv::interactive([&](auto dt) {

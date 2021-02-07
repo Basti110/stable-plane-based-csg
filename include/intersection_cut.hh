@@ -80,8 +80,6 @@ public:
             auto index = pm::face_index(it.first);
             if (!index.of(mMeshA->mesh()).is_removed())
                 list.push_back(index);
-            else
-                int i = 0;
         }
             
         return list;

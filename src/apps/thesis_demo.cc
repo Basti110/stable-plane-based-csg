@@ -337,7 +337,7 @@ void printStats(ct::scope& s) {
 APP("Benchmark:OneIteration") {
     int testCount = 1;
     ct::scope rootScope;
-    ObjConfig conf = ObjCollection::map.at("complex_1");
+    ObjConfig conf = ObjCollection::map.at("Lucy_1");
 
     std::cout << "#############################################################" << std::endl;
     std::cout << "#######                 Benchmark                     #######" << std::endl;
@@ -352,6 +352,7 @@ APP("Benchmark:OneIteration") {
         planeMesh2 = conf.getMeshB();
         printStats(s);
     }
+    auto facesInSceneBefore = planeMesh1->mesh().faces().size() + planeMesh2->mesh().faces().size();
     //bool test = planeMesh1->allHalfEdgesAreValid();
     glow::timing::CpuTimer timer;
     //Load Octree
@@ -371,29 +372,36 @@ APP("Benchmark:OneIteration") {
     }
     //
     //Categorization
+    int countComponents = 0;
     std::shared_ptr<ComponentCategorization> components;
     {
         ct::scope s("Categorization");
         std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(*planeMesh1, iCut.getIntersectionEdgesMarkerA());
         std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
         components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
+        countComponents = components1->countComponents() + components2->countComponents();
         printStats(s);
     }
+    
     
     auto trace = rootScope.trace();
     auto c = trace.elapsed_cycles();
     auto m = std::chrono::duration_cast<std::chrono::milliseconds>(trace.time_end() - trace.time_start()).count();
     auto t = timer.elapsedMillisecondsD();
+    auto facesInSceneAfter = planeMesh1->mesh().faces().size() + planeMesh2->mesh().faces().size();
     std::cout << std::endl;
     std::cout << "----------- Total ---------- " << std::endl;
     std::cout << "Time: " << m << "ms" << std::endl;
     std::cout << "Time CTracer: " << c / (double)CLOCK << "ms (Maybe not exact. Dependent on constant CPU frequence)" << std::endl;
     std::cout << "Time Without PM Load: " << t + conf.initMeshTime() << "ms" << std::endl;
     std::cout << "scope: " << rootScope.trace().elapsed_cycles() / (double)1000000000 << "G cycle" << std::endl;
+    std::cout << "Components: " << countComponents << std::endl;
+    std::cout << "Faces before: " << facesInSceneBefore << std::endl;
+    std::cout << "Faces after: " << facesInSceneAfter << std::endl;
     conf.getOctree()->printOctreeStats();
     iCut.printTimes();
     //conf.viewMesh(true);
-    components->renderFinalResult(iCut, 10000); //10000);
+    components->renderFinalResult(iCut, 1000); //10000);
 }
 
 
@@ -426,14 +434,15 @@ void transformation(const pm::vertex_attribute<tg::pos3>& in, pm::vertex_attribu
 }
 
 APP("App:ShowCSG") {
-    const char* meshList[]{ "cube", "cubes1", "cubes2", "fox", "buddha", "bunny", "Armadillo_2" };
+    //const char* meshList[]{ "cube", "cubes1", "cubes2", "fox", "buddha", "bunny", "Armadillo_2" };
+    const char* meshList[]{ "cubes1", "cubes2", "bunny", "Armadillo_2" };
     const char* operationList[]{ "Mesh 1 + Mesh 2", "Mesh 2 AND Mesh 1", "Mesh 2 OR Mesh 1", "Mesh 1 - Mesh 2", "Mesh 2 - Mesh 1", "Mesh 1", "Mesh 2" };
     const char* colorList[]{ "White", "Components", "In/Out" };
 
 
-    int scaleList[]{ 1e7, 1e7, 1e7, 1e6, 3e6, 1e6, 1e6 };
-    int selectedMesh1 = 1;
-    int selectedMesh2 = 2;
+    int scaleList[]{ 1e7, 1e7, 1e6, 1e6 };
+    int selectedMesh1 = 0;
+    int selectedMesh2 = 1;
     int meshDistance = 80;
 
     std::string path_cube1 = std::string("../data/mesh/") + std::string(meshList[selectedMesh1]) + std::string(".obj");
@@ -493,6 +502,9 @@ APP("App:ShowCSG") {
     bool showOctree = false;
     int tooglePolygons = 0;
     int colorMode = 0;
+    float degreeX = 0;
+    float degreeY = 0;
+    float degreeZ = 0;
     renderable1 = gv::make_renderable(pos1);
     //renderable2 = gv::make_renderable(pos2);
 
@@ -514,7 +526,8 @@ APP("App:ShowCSG") {
 
         auto camPos = cam->getPosition();
         tg::dmat4 transform = tg::translation(tg::dvec3(camPos) + (tg::dvec3(rayWorld) * meshDistance * 1e6));
-        transformation(posf2, pos2, transform, scaleList[selectedMesh2]);
+        auto rot = tg::rotation_x(tg::angle::from_degree(degreeX)) * tg::rotation_y(tg::angle::from_degree(degreeY)) * tg::rotation_z(tg::angle::from_degree(degreeZ));
+        transformation(posf2, pos2, transform * tg::dmat4(rot), scaleList[selectedMesh2]);
 
         //if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         ImGui::Begin("Move");
@@ -619,18 +632,31 @@ APP("App:ShowCSG") {
         if (ImGui::IsKeyPressed('Q')) {
             if (isCut) {
                 isCut = false;
+                tooglePolygons = 0;
+                colorMode = 0;
+                degreeX = 0;
+                degreeY = 0;
+                degreeZ = 0;
                 renderable1 = gv::make_renderable(pos1);
                 //renderable2 = gv::make_renderable(pos2);
             }             
         }
 
-        if (ImGui::IsKeyPressed('X')) {
-            meshDistance++;
-        } 
-        if (ImGui::IsKeyPressed('Z')) {
-            meshDistance--;
-        }
+        if (ImGui::IsKeyPressed('2')) 
+            meshDistance+=5;
+       
+        if (ImGui::IsKeyPressed('1')) 
+            meshDistance-=5;
 
+        if (ImGui::IsKeyPressed('X'))
+            degreeX+=5;
+
+        if (ImGui::IsKeyPressed('Z'))
+            degreeY+= 5;
+
+        if (ImGui::IsKeyPressed('Y'))
+            degreeZ+= 5;
+        
         auto view = gv::view();
         if (!isCut) {
             gv::view(renderable1, cam);

@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Try to open " << file << std::endl;       
         ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -100, -100, -100 }, { 100, 100, 100 }),
             path + file, tg::mat4::identity, tg::mat4::identity,
-            path + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(10)));
+            path + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(1)));
             //path + file, tg::translation(tg::vec{ 0.0f, 1.f, 0.0f }), tg::rotation_y(tg::angle::from_degree(-90)));
             //path + file, tg::translation(tg::vec{ 0.5f, 1.f, 0.5f }), tg::mat4::identity);
             //"E:/benchmark/files/" + file, tg::mat4::identity, tg::rotation_x(tg::angle::from_degree(30)));
@@ -99,7 +99,6 @@ int main(int argc, char* argv[]) {
         conf.getOctree()->startDebugView();
         test_cut_testAB_meshes();
     }*/
-
         conf.setMeshRepairBefore(true);
         //conf.setMoveToCenter(true);
         return Benchmark::testMesh(conf, "E:/benchmark/benchmark/" + file.substr(0, file.size() - 3) + "txt");
