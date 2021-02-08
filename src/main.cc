@@ -21,6 +21,7 @@
 #include <polymesh/formats.hh>
 #include <benchmark.h>
 #include <ray_cast.hh>
+#include <csg_app.h>
 //---
 #include <iomanip>
 //#define GIGA 1000000000
@@ -69,7 +70,16 @@ int main(int argc, char* argv[]) {
     //return 0;
     if (argc > 1 || true) {
         //std::string file = std::string(argv[1]);
-        std::string file = "37275.stl"; 
+        std::string file = "37275.stl";
+
+        //1°, 10° funktioniert.
+        //std::string file = "37275.stl";
+
+        //Example Co-planar (bug) Object per mesh 10°
+        //std::string file = "37744.stl";
+
+        //Example Multiple Object per mesh 90°
+        //std::string file = "37012.stl"; 
         
         /*{
            pm::Mesh mesh;
@@ -101,7 +111,7 @@ int main(int argc, char* argv[]) {
     }*/
         conf.setMeshRepairBefore(true);
         //conf.setMoveToCenter(true);
-        return Benchmark::testMesh(conf, "E:/benchmark/benchmark/" + file.substr(0, file.size() - 3) + "txt");
+        return Benchmark::testMesh(conf, "E:/benchmark/benchmark/" + file.substr(0, file.size() - 3) + "txt", true);
     }
         
     //ObjConfig conf = ObjCollection::map.at("complex_1");
@@ -122,9 +132,13 @@ int main(int argc, char* argv[]) {
     //char* argv[] = { "main", "Benchmark:TestAvgTime" };   
     //char* arg[] = { "main", "Benchmark:TestOctree" };
 
-    char* arg[] = { "main", "Benchmark:OneIteration" };
+    //char* arg[] = { "main", "Benchmark:OneIteration" };
     //char* arg[] = { "main", "App:ShowCSG" };
     
+
+    //Demos
+    //char* arg[] = { "main", "Demo:Co-Planar-Cubes" };
+    char* arg[] = { "main", "Demo:Intersection-Demo-CoPlanar1" };
 
     //char* arg[] = { "main", "Test::Co_Planar_Cut2" };
     //char* arg[] = { "main", "Test::Co_Planar_Cut" };
@@ -697,4 +711,33 @@ int centerMesh(std::string filePath) {
     transformation(pos, trans);
     pm::save(filePath, pos);
     return 0;
+}
+
+//###############################################################
+//###########         Für Später         ########################
+//###############################################################
+
+APP("Demo:Co-Planar-Cubes") {
+    ObjConfig conf = ObjCollection::map.at("co-planar-cubes2");
+    Benchmark::testMesh(conf, "../logs/out.log", true, 400);
+    conf = ObjCollection::map.at("co-planar-cubes1");
+    Benchmark::testMesh(conf, "../logs/out.log", true, 400);
+}
+
+
+APP("Demo:Intersection-Demo-CoPlanar1") {
+    pm::Mesh m1;
+    auto pos1 = m1.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/37744.stl", m1, pos1);
+    pm::deduplicate(m1, pos1);
+    m1.compactify();
+
+    pm::Mesh m2;
+    auto pos2 = m2.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/37744.stl", m2, pos2);
+    pm::deduplicate(m2, pos2);
+    m2.compactify();
+
+    transformation(pos2, tg::rotation_y(tg::angle::from_degree(1)));
+    getCSGobject(pos1, pos2);
 }

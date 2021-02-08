@@ -580,8 +580,8 @@ public:
     IntersectionCut cutPolygons() {
         IntersectionCut faceLookUp(mMeshA, mMeshB);
         //Todo
-        bool test1 = mMeshA->allFacesAreValidAndNotRemoved();
-        bool test2 = mMeshB->allFacesAreValidAndNotRemoved();
+        //bool test1 = mMeshA->allFacesAreValidAndNotRemoved();
+        //bool test2 = mMeshB->allFacesAreValidAndNotRemoved();
         mRoot->cutPolygons(faceLookUp);
         //faceLookUp.repairCoPlanarMarkedPolygons();
         //faceLookUp.printTimes();

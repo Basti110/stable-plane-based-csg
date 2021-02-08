@@ -283,16 +283,16 @@ public:
         auto& planeMeshB = mSharedOctree->getPlaneMeshB();
 
         // Attributes
-        auto colorAtrMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white;   }));
-        auto colorAtrMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white;  }));
-        auto colorAtrMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c != tg::color3::white;  }));
-        auto colorAtrMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c != tg::color3::white; }));
+        //auto colorAtrMaskAIn = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c == tg::color3::white;   }));
+        //auto colorAtrMaskBIn = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c == tg::color3::white;  }));
+        //auto colorAtrMaskAOut = pm::face_attribute<bool>(colorsA.map([](tg::color3 c) { return c != tg::color3::white;  }));
+        //auto colorAtrMaskBOut = pm::face_attribute<bool>(colorsB.map([](tg::color3 c) { return c != tg::color3::white; }));
 
         //Maskes
-        auto maskFaceAIn = gv::masked(colorAtrMaskAIn);
-        auto maskFaceBIn = gv::masked(colorAtrMaskBIn);
-        auto maskFaceAOut = gv::masked(colorAtrMaskAOut);
-        auto maskFaceBOut = gv::masked(colorAtrMaskBOut);
+        //auto maskFaceAIn = gv::masked(colorAtrMaskAIn);
+        //auto maskFaceBIn = gv::masked(colorAtrMaskBIn);
+        //auto maskFaceAOut = gv::masked(colorAtrMaskAOut);
+        //auto maskFaceBOut = gv::masked(colorAtrMaskBOut);
 
         auto positionsA = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
         auto const positionLinesASmall = gv::make_renderable(gv::lines(mSharedOctree->getPlaneMeshA().positions()).line_width_world(4 * scale));
@@ -314,10 +314,10 @@ public:
 
         pm::Mesh resultMesh;
         pm::vertex_attribute<tg::pos3> resultPos(resultMesh);
-        copyFacesFromMeshIn(resultPos, resultMesh, planeMeshA.positions(), colorAtrMaskAOut);
-        copyFacesFromMeshOut(resultPos, resultMesh, planeMeshB.positions(), colorAtrMaskBIn);
-        std::cout << "### Vertices: " << resultMesh.vertices().size() << std::endl;
-        pm::save("../out.obj", resultPos);
+        //copyFacesFromMeshIn(resultPos, resultMesh, planeMeshA.positions(), colorAtrMaskAOut);
+        //copyFacesFromMeshOut(resultPos, resultMesh, planeMeshB.positions(), colorAtrMaskBIn);
+        //std::cout << "### Vertices: " << resultMesh.vertices().size() << std::endl;
+        //pm::save("../out.obj", resultPos);
 
         gv::interactive([&](auto dt) {
             auto view = gv::view();
@@ -369,20 +369,20 @@ public:
                 positionsA = gv::make_renderable(mSharedOctree->getPlaneMeshA().positions());
                 positionsB = gv::make_renderable(mSharedOctree->getPlaneMeshB().positions());
                 if (tooglePolygons == 1) {
-                    positionsA->setMasking(maskFaceAOut);
-                    positionsB->setMasking(maskFaceBOut);
+                    positionsA->setMasking(gv::masked(getStateMaskA((int8_t)InOutState::INSIDE, (int8_t)InOutState::COPLANAR_SAME)));
+                    positionsB->setMasking(gv::masked(getStateMaskB((int8_t)InOutState::INSIDE, -2)));
                 }
                 else if (tooglePolygons == 2) {
-                    positionsA->setMasking(maskFaceAIn);
-                    positionsB->setMasking(maskFaceBIn);
+                    positionsA->setMasking(gv::masked(getStateMaskA((int8_t)InOutState::OUTSIDE, (int8_t)InOutState::COPLANAR_SAME)));
+                    positionsB->setMasking(gv::masked(getStateMaskB((int8_t)InOutState::OUTSIDE, -2)));
                 }
                 else if (tooglePolygons == 3) {
-                    positionsA->setMasking(maskFaceAOut);
-                    positionsB->setMasking(maskFaceBIn);
+                    positionsA->setMasking(gv::masked(getStateMaskA((int8_t)InOutState::INSIDE, (int8_t)InOutState::COPLANAR_OPPOSITE)));
+                    positionsB->setMasking(gv::masked(getStateMaskB((int8_t)InOutState::OUTSIDE, -2)));
                 }
                 else if (tooglePolygons == 4) {
-                    positionsA->setMasking(maskFaceAIn);
-                    positionsB->setMasking(maskFaceBOut);
+                    positionsA->setMasking(gv::masked(getStateMaskA((int8_t)InOutState::OUTSIDE, (int8_t)InOutState::COPLANAR_OPPOSITE)));
+                    positionsB->setMasking(gv::masked(getStateMaskB((int8_t)InOutState::INSIDE, -2)));
                 }
                 if (colorMode == 0) {
                     gv::configure(*positionsA, tg::color3(0.95));
@@ -411,7 +411,7 @@ public:
 
         pm::face_attribute<tg::color3> faceColors = mesh.faces().map([&](pm::face_handle& face) {
             int component = faceComponents->getComponentOfFace(face);
-            if (componentIsOutside[component] == 2)
+            if (componentIsOutside[component] == 2 || componentIsOutside[component] == 3)
                 return tg::color3::red;
             return componentIsOutside[component] == 0 ? tg::color3::white : tg::color3(130 / 255., 177 / 255., 255 / 255.);
             });
@@ -425,12 +425,36 @@ public:
 
 		pm::face_attribute<tg::color3> faceColors = mesh.faces().map([&](pm::face_handle& face) {
 				int component = faceComponents->getComponentOfFace(face);
-                if (componentIsOutside[component] == 2)
+                if (componentIsOutside[component] == 2 || componentIsOutside[component] == 3)
                     return tg::color3::red;
 				return componentIsOutside[component] == 0 ? tg::color3::white :  tg::color3(130 / 255., 177 / 255., 255 / 255.);
 			});
 		return faceColors;
 	}
+
+    pm::face_attribute<bool> getStateMaskA(int stateToMask, int coplanarToMask) {
+        const pm::Mesh& mesh = mSharedOctree->getPlaneMeshA().mesh();
+
+        pm::face_attribute<bool> stateMask = mesh.faces().map([&](pm::face_handle& face) {
+            int component = mFaceComponentsA->getComponentOfFace(face);
+            if (mComponentIsOutsideA[component] == coplanarToMask)
+                return true;
+            return mComponentIsOutsideA[component] == stateToMask;
+            });
+        return stateMask;
+    }
+
+    pm::face_attribute<bool> getStateMaskB(int stateToMask, int coplanarToMask) {
+        const pm::Mesh& mesh = mSharedOctree->getPlaneMeshB().mesh();
+
+        pm::face_attribute<bool> stateMask = mesh.faces().map([&](pm::face_handle& face) {
+                int component = mFaceComponentsB->getComponentOfFace(face);
+                if (mComponentIsOutsideB[component] == coplanarToMask)
+                    return true;
+                return mComponentIsOutsideB[component] == stateToMask;
+            });
+        return stateMask;
+    }
 
 private:
     //std::unordered_set<int> mCoplanarComponentsA;

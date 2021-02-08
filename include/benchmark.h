@@ -34,7 +34,7 @@ namespace Benchmark {
         v = elapsed / 1000.f;
     }
 
-    int testMesh(ObjConfig& conf, std::string outputPath) {
+    int testMesh(ObjConfig& conf, std::string outputPath, bool renderMesh = false, float lineSizeScale = 4000) {
         int testCount = 1;
         ct::scope rootScope;
         BenchMarkWriter benchmarkWriter(outputPath);
@@ -122,7 +122,8 @@ namespace Benchmark {
         iCut.printTimes();
         benchmarkWriter.writeToFile();
         //conf.viewMesh(true);
-        components->renderFinalResult(iCut, 4000);
+        if(renderMesh)
+            components->renderFinalResult(iCut, lineSizeScale);
         return 0;
     }
 }

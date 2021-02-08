@@ -83,7 +83,7 @@ public:
                 TG_ASSERT(it.second.size() > 0);
                 if (it.second.size() > 0) {
                     auto normal1 = mMeshA->face(index).to_dplane().normal;
-                    auto normal2 = mMeshA->face(it.second[0]).to_dplane().normal;
+                    auto normal2 = mMeshB->face(it.second[0]).to_dplane().normal;
                     bool sameDirection = tg::dot(normal1, normal2) > 0;
                     list.push_back({ index, sameDirection });
                 }               
@@ -101,7 +101,7 @@ public:
                 TG_ASSERT(it.second.size() > 0);
                 if (it.second.size() > 0) {
                     auto normal1 = mMeshB->face(index).to_dplane().normal;
-                    auto normal2 = mMeshB->face(it.second[0]).to_dplane().normal;
+                    auto normal2 = mMeshA->face(it.second[0]).to_dplane().normal;
                     bool sameDirection = tg::dot(normal1, normal2) > 0;
                     list.push_back({ index, sameDirection });
                 }
