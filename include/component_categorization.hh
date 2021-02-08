@@ -15,7 +15,7 @@ class ComponentCategorization {
 		OUTSIDE = 0,
 		INSIDE = 1,	
         COPLANAR_SAME = 2,
-        COPLANAR_OPPOSITE = 2,
+        COPLANAR_OPPOSITE = 3,
 	};
 public:
 	ComponentCategorization(SharedOctree octree, SharedFaceComponents faceComponentsA, SharedFaceComponents faceComponentsB, const IntersectionCut& iCut)
@@ -47,20 +47,18 @@ public:
 			}
 		}
 
-        auto coPlanarFacesA = iCut.getCoplanarFacesMeshA();
-        auto coPlanarFacesB = iCut.getCoplanarFacesMeshB();
+        auto coPlanarFacesA = iCut.getCoplanarFacesWithOrientationMeshA();
+        auto coPlanarFacesB = iCut.getCoplanarFacesWithOrientationMeshB();
 
         for (auto face : coPlanarFacesA) {
-            auto faceHandle = face.of(octree->getPlaneMeshA().mesh());
-            bool t1 = faceHandle.is_removed();
-            auto t2 = faceComponentsA->getFaceToComponent()[face];
-            mComponentIsOutsideA[t2] = (int8_t)InOutState::COPLANAR;
+            auto faceComponent = faceComponentsA->getFaceToComponent()[face.first];
+            mComponentIsOutsideA[faceComponent] = face.second ? (int8_t)InOutState::COPLANAR_SAME : (int8_t)InOutState::COPLANAR_OPPOSITE;
         }
             
-
-        for (auto face : coPlanarFacesB)
-            mComponentIsOutsideB[faceComponentsB->getFaceToComponent()[face]] = (int8_t)InOutState::COPLANAR;
-        
+        for (auto face : coPlanarFacesB) {
+            auto faceComponent = faceComponentsB->getFaceToComponent()[face.first];
+            mComponentIsOutsideB[faceComponent] = face.second ? (int8_t)InOutState::COPLANAR_SAME : (int8_t)InOutState::COPLANAR_OPPOSITE;
+        }       
 		assignInOut(iCut);
 	}
 

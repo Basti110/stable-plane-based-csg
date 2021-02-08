@@ -74,22 +74,38 @@ public:
         return intersectionCount;
     }
 
-    std::vector<pm::face_index> getCoplanarFacesMeshA() const { 
-        std::vector<pm::face_index> list;
+    //Same direction = true, otherwise false
+    std::vector<std::pair<pm::face_index, bool>> getCoplanarFacesWithOrientationMeshA() const { 
+        std::vector<std::pair<pm::face_index, bool>> list;
         for (auto it : mCoplanarFacesMeshA) {
             auto index = pm::face_index(it.first);
-            if (!index.of(mMeshA->mesh()).is_removed())
-                list.push_back(index);
-        }
-            
+            if (!index.of(mMeshA->mesh()).is_removed()) {
+                TG_ASSERT(it.second.size() > 0);
+                if (it.second.size() > 0) {
+                    auto normal1 = mMeshA->face(index).to_dplane().normal;
+                    auto normal2 = mMeshA->face(it.second[0]).to_dplane().normal;
+                    bool sameDirection = tg::dot(normal1, normal2) > 0;
+                    list.push_back({ index, sameDirection });
+                }               
+            }             
+        }           
         return list;
     }
-    std::vector<pm::face_index> getCoplanarFacesMeshB() const {
-        std::vector<pm::face_index> list;
+
+    //Same direction = true, otherwise false
+    std::vector<std::pair<pm::face_index, bool>> getCoplanarFacesWithOrientationMeshB() const {
+        std::vector<std::pair<pm::face_index, bool>> list;
         for (auto it : mCoplanarFacesMeshB) {
             auto index = pm::face_index(it.first);
-            if (!index.of(mMeshB->mesh()).is_removed())
-                list.push_back(index);
+            if (!index.of(mMeshB->mesh()).is_removed()) {
+                TG_ASSERT(it.second.size() > 0);
+                if (it.second.size() > 0) {
+                    auto normal1 = mMeshB->face(index).to_dplane().normal;
+                    auto normal2 = mMeshB->face(it.second[0]).to_dplane().normal;
+                    bool sameDirection = tg::dot(normal1, normal2) > 0;
+                    list.push_back({ index, sameDirection });
+                }
+            }
         }
         return list;
     }

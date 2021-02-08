@@ -61,5 +61,5 @@ void getCSGobject(const pm::vertex_attribute<tg::pos3>& pos1, const pm::vertex_a
     }
 
     //Render results
-    //components->renderFinalResult(iCut, 1000); //10000);
+    components->renderFinalResult(iCut, 1000); //10000);
 }
