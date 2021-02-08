@@ -10,14 +10,17 @@
 #include <set>
 
 class ComponentCategorization {
-	enum class InOutState : int8_t {
-		UNDEFINED = -1,
-		OUTSIDE = 0,
-		INSIDE = 1,	
+
+public:
+
+    enum class InOutState : int8_t {
+        UNDEFINED = -1,
+        OUTSIDE = 0,
+        INSIDE = 1,
         COPLANAR_SAME = 2,
         COPLANAR_OPPOSITE = 3,
-	};
-public:
+    };
+
 	ComponentCategorization(SharedOctree octree, SharedFaceComponents faceComponentsA, SharedFaceComponents faceComponentsB, const IntersectionCut& iCut)
 		: mSharedOctree(octree), mFaceComponentsA(faceComponentsA), mFaceComponentsB(faceComponentsB) {
 		mComponentIsOutsideA = std::vector<int8_t>(mFaceComponentsA->getNumberOfComponents(), -1);
@@ -274,7 +277,7 @@ public:
         return true;
     }
 
-    void renderFinalResult(const IntersectionCut& iCut, float scale = 3000.f) {
+    void renderFinalResult(float scale = 3000.f, const IntersectionCut* iCut = nullptr) {
         auto colorsA = getColorToStateA();
         auto colorsB = getColorToStateB();
         mSharedOctree->getPlaneMeshA().checkAndComputePositions();
@@ -327,8 +330,8 @@ public:
                 gv::view(positionsB, gv::print_mode, gv::no_grid);
 
 
-            if (showIntersection)
-                gv::view(isectLines1, gv::masked(iCut.getIntersectionEdgesMarkerA()));
+            if (showIntersection && iCut)
+                gv::view(isectLines1, gv::masked(iCut->getIntersectionEdgesMarkerA()));
             //else
                 //gv::view(isectLines2, gv::masked(iCut.getIntersectionEdgesMarkerB()));
 

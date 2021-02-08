@@ -401,7 +401,7 @@ APP("Benchmark:OneIteration") {
     conf.getOctree()->printOctreeStats();
     iCut.printTimes();
     //conf.viewMesh(true);
-    components->renderFinalResult(iCut, 1000); //10000);
+    components->renderFinalResult(1000, &iCut); //10000);
 }
 
 

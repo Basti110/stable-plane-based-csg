@@ -123,7 +123,7 @@ namespace Benchmark {
         benchmarkWriter.writeToFile();
         //conf.viewMesh(true);
         if(renderMesh)
-            components->renderFinalResult(iCut, lineSizeScale);
+            components->renderFinalResult(lineSizeScale, &iCut);
         return 0;
     }
 }

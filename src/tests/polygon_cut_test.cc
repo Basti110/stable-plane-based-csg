@@ -404,7 +404,7 @@ TEST("Test::Co_Planar_Cut") {
     std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(planeMesh1, iCut.getIntersectionEdgesMarkerA());
     std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(planeMesh2, iCut.getIntersectionEdgesMarkerB());
     auto components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
-    components->renderFinalResult(iCut, 1);
+    components->renderFinalResult(1, &iCut);
 
 
     
@@ -560,7 +560,7 @@ TEST("Test::Co_Planar_Cut2") {
     std::shared_ptr<FaceComponentFinder> components1 = std::make_shared<FaceComponentFinder>(planeMesh1, iCut.getIntersectionEdgesMarkerA());
     std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(planeMesh2, iCut.getIntersectionEdgesMarkerB());
     auto components = std::make_shared<ComponentCategorization>(octree, components1, components2, iCut);
-    components->renderFinalResult(iCut, 1);
+    components->renderFinalResult(1, &iCut);
 }
 
 TEST("Test::Cut_Triangle_Planar_1") {

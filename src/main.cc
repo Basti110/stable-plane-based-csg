@@ -68,18 +68,22 @@ int main(int argc, char* argv[]) {
     //test_octree_cell_ray_cast();
     //convert();
     //return 0;
-    if (argc > 1 || true) {
+    if (argc > 1) {
         //std::string file = std::string(argv[1]);
-        std::string file = "37275.stl";
+
+        std::string file = "36372.stl";
+
+        //complex 10°
+        //std::string file = "37266.stl";
 
         //1°, 10° funktioniert.
         //std::string file = "37275.stl";
 
-        //Example Co-planar (bug) Object per mesh 10°
+        //Example Co-planar (bug) Object per mesh 1°
         //std::string file = "37744.stl";
 
         //Example Multiple Object per mesh 90°
-        //std::string file = "37012.stl"; 
+        //std::string file = "37744.stl"; 
         
         /*{
            pm::Mesh mesh;
@@ -100,7 +104,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Try to open " << file << std::endl;       
         ObjConfig conf = ObjConfig(1e6, 1e6, AABB({ -100, -100, -100 }, { 100, 100, 100 }),
             path + file, tg::mat4::identity, tg::mat4::identity,
-            path + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(90)));
+            path + file, tg::mat4::identity, tg::rotation_y(tg::angle::from_degree(1)));
             //path + file, tg::translation(tg::vec{ 0.0f, 1.f, 0.0f }), tg::rotation_y(tg::angle::from_degree(-90)));
             //path + file, tg::translation(tg::vec{ 0.5f, 1.f, 0.5f }), tg::mat4::identity);
             //"E:/benchmark/files/" + file, tg::mat4::identity, tg::rotation_x(tg::angle::from_degree(30)));
@@ -111,7 +115,7 @@ int main(int argc, char* argv[]) {
     }*/
         conf.setMeshRepairBefore(true);
         //conf.setMoveToCenter(true);
-        return Benchmark::testMesh(conf, "E:/benchmark/benchmark/" + file.substr(0, file.size() - 3) + "txt", true);
+        return Benchmark::testMesh(conf, "E:/benchmark/benchmark/" + file.substr(0, file.size() - 3) + "txt", true, 400);
     }
         
     //ObjConfig conf = ObjCollection::map.at("complex_1");
@@ -138,7 +142,14 @@ int main(int argc, char* argv[]) {
 
     //Demos
     //char* arg[] = { "main", "Demo:Co-Planar-Cubes" };
-    char* arg[] = { "main", "Demo:Intersection-Demo-CoPlanar1" };
+    //char* arg[] = { "main", "Demo:Normal-Cuts" };
+    //char* arg[] = { "main", "Demo:Intersection-Demo-CoPlanar1" };
+    //char* arg[] = { "main", "Demo:Intersection-Demo-CoPlanar2" };
+    //char* arg[] = { "main", "Demo:Intersection-Demo-CoPlanar3" };
+    //char* arg[] = { "main", "Demo:Intersection-Demo-CoPlanar4" };
+    char* arg[] = { "main", "Demo:Ray-Cast" };
+    //char* arg[] = { "main", "Demo:Get-Poly-Mesh" };
+
 
     //char* arg[] = { "main", "Test::Co_Planar_Cut2" };
     //char* arg[] = { "main", "Test::Co_Planar_Cut" };
@@ -442,7 +453,7 @@ void test_component_classification() {
     std::shared_ptr<FaceComponentFinder> components2 = std::make_shared<FaceComponentFinder>(*planeMesh2, iCut.getIntersectionEdgesMarkerB());
     ComponentCategorization components(octree, components1, components2, iCut);
     std::cout << "Time categorization: " << timer.elapsedMilliseconds() << "ms" << std::endl;
-    components.renderFinalResult(iCut);
+    components.renderFinalResult(3000, &iCut);
 }
 
 void test_octree_cell_ray_cast() {
@@ -724,8 +735,24 @@ APP("Demo:Co-Planar-Cubes") {
     Benchmark::testMesh(conf, "../logs/out.log", true, 400);
 }
 
-
 APP("Demo:Intersection-Demo-CoPlanar1") {
+    pm::Mesh m1;
+    auto pos1 = m1.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/37991.stl", m1, pos1);
+    pm::deduplicate(m1, pos1);
+    m1.compactify();
+
+    pm::Mesh m2;
+    auto pos2 = m2.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/37991.stl", m2, pos2);
+    pm::deduplicate(m2, pos2);
+    m2.compactify();
+
+    transformation(pos2, tg::rotation_y(tg::angle::from_degree(10)));
+    auto csgResult = csg::computeCSG(pos1, pos2, 1e6, true);
+}
+
+APP("Demo:Intersection-Demo-CoPlanar2") {
     pm::Mesh m1;
     auto pos1 = m1.vertices().make_attribute<tg::pos3>();
     load("../data/mesh/37744.stl", m1, pos1);
@@ -738,6 +765,114 @@ APP("Demo:Intersection-Demo-CoPlanar1") {
     pm::deduplicate(m2, pos2);
     m2.compactify();
 
-    transformation(pos2, tg::rotation_y(tg::angle::from_degree(1)));
-    getCSGobject(pos1, pos2);
+    transformation(pos2, tg::rotation_y(tg::angle::from_degree(10)));
+    auto csgResult = csg::computeCSG(pos1, pos2, 1e6, true);
+}
+
+APP("Demo:Intersection-Demo-CoPlanar3") {
+    pm::Mesh m1;
+    auto pos1 = m1.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/37275.stl", m1, pos1);
+    pm::deduplicate(m1, pos1);
+    m1.compactify();
+
+    pm::Mesh m2;
+    auto pos2 = m2.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/37275.stl", m2, pos2);
+    pm::deduplicate(m2, pos2);
+    m2.compactify();
+
+    transformation(pos2, tg::rotation_y(tg::angle::from_degree(10)));
+    auto csgResult = csg::computeCSG(pos1, pos2, 1e6, true);
+}
+
+APP("Demo:Intersection-Demo-CoPlanar4") {
+    pm::Mesh m1;
+    auto pos1 = m1.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/36372.stl", m1, pos1);
+    pm::deduplicate(m1, pos1);
+    m1.compactify();
+
+    pm::Mesh m2;
+    auto pos2 = m2.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/36372.stl", m2, pos2);
+    pm::deduplicate(m2, pos2);
+    m2.compactify();
+
+    transformation(pos2, tg::rotation_y(tg::angle::from_degree(10)));
+    auto csgResult = csg::computeCSG(pos1, pos2, 1e6, true);
+}
+
+APP("Demo:Normal-Cuts") {
+    pm::Mesh m1;
+    auto pos1 = m1.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/37266.stl", m1, pos1);
+    pm::deduplicate(m1, pos1);
+    m1.compactify();
+
+    pm::Mesh m2;
+    auto pos2 = m2.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/37266.stl", m2, pos2);
+    transformation(pos2, tg::rotation_y(tg::angle::from_degree(10)));
+    pm::deduplicate(m2, pos2);
+    m2.compactify();
+
+    pm::Mesh resultMesh;
+    auto csgResult = csg::computeCSG(pos1, pos2, 1e6, true);
+}
+
+APP("Demo:Get-Poly-Mesh") {
+    pm::Mesh m1;
+    auto pos1 = m1.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/fox.obj", m1, pos1);
+
+    pm::Mesh m2;
+    auto pos2 = m2.vertices().make_attribute<tg::pos3>();
+    load("../data/mesh/fox.obj", m2, pos2);
+    transformation(pos2, tg::rotation_y(tg::angle::from_degree(20)));
+
+    pm::Mesh resultMesh;
+    auto csgResult = csg::computeCSG(pos1, pos2);
+    auto resultPos = csg::applyCSG(csgResult, csg::Operation::M1_MINUS_M2, resultMesh);
+    gv::view(resultPos);
+}
+
+APP("Demo:Ray-Cast") {
+    ObjConfig conf = ObjCollection::map.at("raycast");
+    auto planeMesh1 = conf.getMeshA();
+    auto planeMesh2 = conf.getMeshB();
+    TG_ASSERT(planeMesh2->allFacesAreValid());
+    auto octree = conf.getOctree();
+    auto boxes = conf.getOctreeBoxes();
+
+    pm::vertex_handle origin = planeMesh1->mesh().all_vertices().first();
+    SharedDebugRayInfo rayInfo = std::make_shared<DebugRayInfo>();
+    RayCast rayCast(octree->getPlaneMeshA(), octree->getPlaneMeshB(), octree, rayInfo);
+    auto intersections = rayCast.countIntersectionsToOutside(origin);
+
+    std::vector<tg::dsegment3> lines;
+    for (int i = 0; i < (int)rayInfo->rayPath.size() - 1; ++i) {
+        lines.push_back(tg::dsegment3{ ob::to_position(rayInfo->rayPath[i]), ob::to_position(rayInfo->rayPath[i + 1]) });
+    }
+
+    for (int i = 0; i < (int)rayInfo->nexPointsCell.size() - 1; ++i) {
+        lines.push_back(tg::dsegment3{ tg::dpos3(rayInfo->nexPointsCell[i]), tg::dpos3(rayInfo->nexPointsCell[i + 1]) });
+    }
+
+    std::vector<tg::aabb3> returnBoxes;
+    for (auto box : rayInfo->rayBoxesDirect) {
+        returnBoxes.push_back(tg::aabb3(tg::pos3(box.min), tg::pos3(box.max)));
+    }
+
+    auto const octreeCells = gv::lines(boxes).line_width_world(600000);
+    auto const rayCells = gv::lines(returnBoxes).line_width_world(5000000);
+    auto const rayPath = gv::lines(lines).line_width_world(6000000);
+    auto const positions1 = planeMesh1->positions();
+    auto const positionLines1 = gv::lines(planeMesh1->positions()).line_width_world(100000);
+
+    auto view = gv::view(rayCells, tg::color3::color(RAYCAST_ORANGE), gv::print_mode);
+    gv::view(rayPath, tg::color3::color(RAYCAST_GREEN));
+    gv::view(octreeCells, tg::color3::color(OCTREE_BLUE));
+    gv::view(positions1);
+    gv::view(positionLines1);   
 }
