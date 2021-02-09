@@ -305,10 +305,9 @@ private:
             //pm::vertex_attribute<tg::pos3> pos1(*mMeshA);
             {
                 TRACE("[ObjConfig] PM Load Mesh 1");
-                //pm::load(mPathObj1, *mMeshA, mPos1);
-                if (!pm::load(mPathObj1, *mMeshA, mPos1))
-                    //return false;
-                    loadBabel(mPathObj1, mMeshA, mPos1);
+                pm::load(mPathObj1, *mMeshA, mPos1);
+                //if (!pm::load(mPathObj1, *mMeshA, mPos1))
+                    //loadBabel(mPathObj1, mMeshA, mPos1);
             }   
             if (mRepairBefore) {
                 pm::deduplicate(*mMeshA, mPos1);
@@ -328,9 +327,9 @@ private:
             //pm::vertex_attribute<tg::pos3> pos2(*mMeshB);
             {
                 TRACE("[ObjConfig] PM Load Mesh 2");
-                //pm::load(mPathObj2, *mMeshB, mPos2);
-                if (!pm::load(mPathObj2, *mMeshB, mPos2))
-                    loadBabel(mPathObj2, mMeshB, mPos2);
+                pm::load(mPathObj2, *mMeshB, mPos2);
+                //if (!pm::load(mPathObj2, *mMeshB, mPos2))
+                    //loadBabel(mPathObj2, mMeshB, mPos2);
             }   
             if (mRepairBefore) {
                 pm::deduplicate(*mMeshB, mPos2);
@@ -397,9 +396,8 @@ public:
                 "../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90))) },
             { "fox_mesh_2",
                 ObjConfig(1e6, 1e6, AABB({ -60, -40, -40 }, { 60, 80, 80 }),
-                //"../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90)),
-                "../data/mesh/fox.obj", tg::mat4::identity, tg::rotation_x(tg::angle::from_degree(-90)),
-                "../data/mesh/fox.obj", tg::translation(tg::vec{ -5.0f, 10.f, 5.f }), tg::rotation_x(tg::angle::from_degree(-90))) },
+                "../data/mesh/fox.obj", tg::translation(tg::vec{ 0.f, -50.f, 15.f }), tg::rotation_x(tg::angle::from_degree(-90)),
+                "../data/mesh/fox.obj", tg::mat4::identity, tg::mat4::identity) },
             { "bunny_mesh_1",
                 ObjConfig(1e7, 1e7, AABB({ -60, -60, -50 }, { 60, 60, 70 }),
                 "../data/mesh/bunny.obj", tg::translation(tg::vec{ .0f, .5f, .5f }), tg::rotation_y(tg::angle::from_degree(-90))) },
